@@ -1,4 +1,4 @@
-﻿// Magica Cloth 2.
+// Magica Cloth 2.
 // Copyright (c) 2023 MagicaSoft.
 // https://magicasoft.jp
 using System;
@@ -338,7 +338,7 @@ namespace MagicaCloth2
             Develop.DebugLog($"Cloth dispose internal.");
 
             // 破棄監視リストから削除する
-            MagicaManager.Team.RemoveMonitoringProcess(this);
+            MagicaManager.Team?.RemoveMonitoringProcess(this);
         }
 
         internal void IncrementSuspendCounter()

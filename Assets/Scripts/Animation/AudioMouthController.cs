@@ -3,20 +3,18 @@ using System.Collections;
 
 public class AudioMouthController : MonoBehaviour
 {
+    public SkinnedMeshRenderer meshRenderer;
+    public int blendShapeIndex;
+    public float blendWeightMultiplier = 100f;
+    public float smoothTime = 0.1f;
 
-    public SkinnedMeshRenderer meshRenderer; // 模型的SkinnedMeshRenderer组件
-    public int blendShapeIndex; // blendshape索引
-    public float blendWeightMultiplier = 100f; // blendshape权重倍增器
-    public float smoothTime = 0.1f; // 平滑过渡时间
+    [SerializeField]private AudioSource audioSource;
 
-    [SerializeField]private AudioSource audioSource; // 音频源
-
-    private float blendWeight; // blendshape权重
-    private float blendWeightVelocity; // blendshape权重的速度
+    private float blendWeight;
+    private float blendWeightVelocity;
 
     void Update()
     {
-        // 如果音频正在播放，则平滑设置blendshape的权重
         if (audioSource.isPlaying)
         {
             float amplitude = GetAmplitude();
@@ -30,7 +28,6 @@ public class AudioMouthController : MonoBehaviour
         }
     }
 
-    // 获取音频振幅
     float GetAmplitude()
     {
         float[] samples = new float[512];

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System;
 using System.Runtime.InteropServices;
@@ -119,12 +119,16 @@ public class TransparentWindow : MonoBehaviour
     //是否允许输入
     public bool configToken = false;
 
-    private IntPtr hwnd;
+    private IntPtr hwnd = IntPtr.Zero;
+    private bool _transparentEnabled;
 
-    // Use this for initialization
-    void Awake()
+    void Start()
     {
-        #if !UNITY_EDITOR
+#if !UNITY_EDITOR
+        SettingsData settings = SettingsData.Load();
+        if (settings != null && settings.winX > 0) currentX = settings.winX;
+        if (settings != null && settings.winY > 0) currentY = settings.winY;
+
         Application.runInBackground = true;
         Screen.fullScreen = false;
 
@@ -146,75 +150,80 @@ public class TransparentWindow : MonoBehaviour
                 break;
         }
 
-        //获取当前窗口
-        hwnd = GetActiveWindow();
+        hwnd = GetActiveWindow();
+        StartCoroutine(ApplyWindowStyleDelayed());
+#endif
+    }
 
-        //
-        if (isApha)
+    IEnumerator ApplyWindowStyleDelayed()
+    {
+        yield return new WaitForEndOfFrame();
+        yield return null;
+
+        Screen.SetResolution(ResWidth, ResHeight, FullScreenMode.Windowed);
+        yield return null;
+
+        if (isApha)
         {
-
-            //去边框并且透明
-            SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED);
+            SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED);
             int intExTemp = GetWindowLong(hwnd, GWL_EXSTYLE);
-            if (isAphaPenetrate)//是否透明穿透窗体
-            {
+            if (isAphaPenetrate)
+            {
                 SetWindowLong(hwnd, GWL_EXSTYLE, intExTemp | WS_EX_TRANSPARENT | WS_EX_LAYERED);
-                //SetWindowLong(hwnd, GWL_EXSTYLE, intExTemp | WS_EX_LAYERED);
-                //SetLayeredWindowAttributes(hwnd, 0, 0, LWA_COLORKEY);
             }
 
-            //
-            SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_BORDER & ~WS_CAPTION);
+            SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_BORDER & ~WS_CAPTION);
             SetWindowPos(hwnd, -1, currentX, currentY, ResWidth, ResHeight, SWP_SHOWWINDOW);
-            var margins = new MARGINS() { cxLeftWidth = -1 };
-            //
-            DwmExtendFrameIntoClientArea(hwnd, ref margins);
-        }
 
+            yield return null;
+            var margins = new MARGINS() { cxLeftWidth = -1 };
+            DwmExtendFrameIntoClientArea(hwnd, ref margins);
+        }
         else
         {
-            //单纯去边框
-            SetWindowLong(hwnd, GWL_STYLE, WS_POPUP);
+            SetWindowLong(hwnd, GWL_STYLE, WS_POPUP);
             SetWindowPos(hwnd, -1, currentX, currentY, ResWidth, ResHeight, SWP_SHOWWINDOW);
         }
-        #endif
+
+        _transparentEnabled = isAphaPenetrate;
+    }
+
+    private void SetTransparent(bool enable)
+    {
+        if (hwnd == IntPtr.Zero || _transparentEnabled == enable) return;
+        _transparentEnabled = enable;
+        if (enable)
+            SetWindowLong(hwnd, GWL_EXSTYLE, (uint)(GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_TRANSPARENT));
+        else
+            SetWindowLong(hwnd, GWL_EXSTYLE, (uint)(GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TRANSPARENT));
     }
 
     private void Update()
     {
 #if !UNITY_EDITOR
-        //检查键盘是否按下
+        if (hwnd == IntPtr.Zero) return;
+
         if (Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl))
         {
-            // 临时禁用透明穿透，以允许拖动窗口
-            SetWindowLong(hwnd, GWL_EXSTYLE, (uint)(GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TRANSPARENT));
+            SetTransparent(false);
         }
 
-        //检查键盘是否按下
         if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
         {
-            // 检查鼠标左键是否按下
             if (Input.GetMouseButtonDown(0))
             {
-                // 判断鼠标是否在模型上
-                // 释放鼠标捕获，确保鼠标事件可以传递给窗口管理器
                 ReleaseCapture();
-
-                // 向窗口发送消息，模拟在标题栏上按下鼠标左键的操作，从而实现拖动窗口
-                SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);      
+                SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
             }
         }
 
-        //检查键盘是否弹起
         if (Input.GetKeyUp(KeyCode.LeftControl) || Input.GetKeyUp(KeyCode.RightControl))
         {
             if (!configToken)
             {
-                // 重新启用透明穿透
-                SetWindowLong(hwnd, GWL_EXSTYLE, (uint)(GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_TRANSPARENT));
+                SetTransparent(true);
             }
         }
-
 #endif
 
         if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
@@ -223,16 +232,14 @@ public class TransparentWindow : MonoBehaviour
             {
                 configToken = true;
 #if !UNITY_EDITOR
-                // 临时禁用透明穿透，以允许拖动窗口
-                SetWindowLong(hwnd, GWL_EXSTYLE, (uint)(GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TRANSPARENT));
+                SetTransparent(false);
 #endif
             }
-            else 
+            else
             {
                 configToken = false;
 #if !UNITY_EDITOR
-                // 重新启用透明穿透
-                SetWindowLong(hwnd, GWL_EXSTYLE, (uint)(GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_TRANSPARENT));
+                SetTransparent(true);
 #endif
             }
         }
@@ -242,8 +249,22 @@ public class TransparentWindow : MonoBehaviour
     {
         configToken = false;
 #if !UNITY_EDITOR
-        // 重新启用透明穿透
-        SetWindowLong(hwnd, GWL_EXSTYLE, (uint)(GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_TRANSPARENT));
+        SetTransparent(true);
 #endif
+    }
+
+    public void GetWindowPosition(out int x, out int y)
+    {
+        RECT rect;
+        if (hwnd != IntPtr.Zero && GetWindowRect(hwnd, out rect))
+        {
+            x = rect.Left;
+            y = rect.Top;
+        }
+        else
+        {
+            x = currentX;
+            y = currentY;
+        }
     }
 }

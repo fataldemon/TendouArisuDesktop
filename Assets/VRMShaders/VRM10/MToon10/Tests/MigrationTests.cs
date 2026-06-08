@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using VRMShaders.VRM10.MToon10.Runtime;
 
 namespace VRMShaders.VRM10.MToon10.Tests

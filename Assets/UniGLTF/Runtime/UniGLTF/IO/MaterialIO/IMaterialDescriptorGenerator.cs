@@ -1,4 +1,4 @@
-﻿using VRMShaders;
+using VRMShaders;
 
 namespace UniGLTF
 {

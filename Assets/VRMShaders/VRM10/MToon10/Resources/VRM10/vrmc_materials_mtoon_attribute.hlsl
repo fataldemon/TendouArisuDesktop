@@ -1,4 +1,4 @@
-﻿#ifndef VRMC_MATERIALS_MTOON_ATTRIBUTE_INCLUDED
+#ifndef VRMC_MATERIALS_MTOON_ATTRIBUTE_INCLUDED
 #define VRMC_MATERIALS_MTOON_ATTRIBUTE_INCLUDED
 
 #include "./vrmc_materials_mtoon_render_pipeline.hlsl"

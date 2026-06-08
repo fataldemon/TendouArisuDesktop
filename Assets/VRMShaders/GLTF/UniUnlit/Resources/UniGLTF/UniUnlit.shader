@@ -1,4 +1,4 @@
-﻿Shader "UniGLTF/UniUnlit"
+Shader "UniGLTF/UniUnlit"
 {
     Properties
     {

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using ColorSpace = VRMShaders.ColorSpace;
 
 namespace UniGLTF

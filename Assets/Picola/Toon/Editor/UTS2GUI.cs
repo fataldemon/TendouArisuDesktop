@@ -1,4 +1,4 @@
-﻿//Unitychan Toon Shader ver.2.0
+//Unitychan Toon Shader ver.2.0
 //UTS2GUI.cs for UTS2 v.2.0.8
 //nobuyuki@unity3d.com
 //https://github.com/unity3d-jp/UnityChanToonShaderVer2_Project

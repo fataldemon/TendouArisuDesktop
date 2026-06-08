@@ -52,10 +52,9 @@ public class FacialController : MonoBehaviour
     public Material blush;
     public Material shy;
 
-    private List<int> restoreBlendIndexList = new List<int>(); // 用于记录各种表情修改了哪些index
-    private List<float> restoreFromWeightList = new List<float>(); //用于记录各种表情修改的index的最终权重
+    private List<int> restoreBlendIndexList = new List<int>();
+    private List<float> restoreFromWeightList = new List<float>();
 
-    // Start is called before the first frame update
     void Start()
     {
         Tear1.SetActive(false); 
@@ -67,13 +66,11 @@ public class FacialController : MonoBehaviour
         SetNormalBlush();
     }
 
-    // Update is called once per frame
     void Update()
     {
         
     }
 
-    //设置透明度
     public void SetShyBlush()
     {
         MeshRenderer blushRender1 = Blush1.GetComponent<MeshRenderer>();
@@ -82,7 +79,6 @@ public class FacialController : MonoBehaviour
         blushRender2.material = shy;
     }
 
-    //设置透明度
     public void SetNormalBlush()
     {
         MeshRenderer blushRender1 = Blush1.GetComponent<MeshRenderer>();
@@ -147,11 +143,10 @@ public class FacialController : MonoBehaviour
         }
     }
 
-    #region 实现动画的代码
+    #region Expression Coroutines
     IEnumerator AngryCoroutine() 
     {
-        Debug.Log("当前表情：生气。");
-        // 实现生气的表情动画（认真+嘟嘴）
+        Debug.Log("Expression: angry");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
@@ -159,7 +154,6 @@ public class FacialController : MonoBehaviour
             skinnedMeshRenderer.SetBlendShapeWeight(cheekBlendIndex, weight);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(angryBlendIndex);
         restoreFromWeightList.Add(100f);
         restoreBlendIndexList.Add(cheekBlendIndex);
@@ -169,15 +163,13 @@ public class FacialController : MonoBehaviour
 
     IEnumerator SeriousCoroutine()
     {
-        Debug.Log("当前表情：认真。");
-        // 将认真表情的权重值逐渐变为100，然后再逐渐恢复为0，实现认真的表情动画
+        Debug.Log("Expression: serious");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
             skinnedMeshRenderer.SetBlendShapeWeight(angryBlendIndex, weight);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(angryBlendIndex);
         restoreFromWeightList.Add(100f);
         
@@ -185,15 +177,13 @@ public class FacialController : MonoBehaviour
 
     IEnumerator HappyCoroutine()
     {
-        Debug.Log("当前表情：开心。");
-        // 将开心表情的权重值逐渐变为100，然后再逐渐恢复为0，实现开心的表情动画
+        Debug.Log("Expression: happy");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
             skinnedMeshRenderer.SetBlendShapeWeight(joyBlendIndex, weight);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(joyBlendIndex);
         restoreFromWeightList.Add(100f);
         
@@ -201,15 +191,13 @@ public class FacialController : MonoBehaviour
 
     IEnumerator FunCoroutine()
     {
-        Debug.Log("当前表情：高兴。");
-        // 将高兴表情的权重值逐渐变为80，然后再逐渐恢复为0，实现高兴的表情动画
+        Debug.Log("Expression: fun");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
             skinnedMeshRenderer.SetBlendShapeWeight(funBlendIndex, weight*0.5f);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(funBlendIndex);
         restoreFromWeightList.Add(50f);
         
@@ -217,8 +205,7 @@ public class FacialController : MonoBehaviour
 
     IEnumerator PanicCoroutine()
     {
-        Debug.Log("当前表情：慌乱。");
-        // 实现慌乱的表情动画
+        Debug.Log("Expression: panic");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
@@ -229,7 +216,6 @@ public class FacialController : MonoBehaviour
             skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, weight*0.928f);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(mouthABlendIndex);
         restoreFromWeightList.Add(50f);
         restoreBlendIndexList.Add(mouthEBlendIndex);
@@ -246,8 +232,7 @@ public class FacialController : MonoBehaviour
 
     IEnumerator CuriousCoroutine()
     {
-        Debug.Log("当前表情：好奇。");
-        // 实现好奇的表情动画
+        Debug.Log("Expression: curious");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 50.0f, t / transformDuration);
@@ -255,7 +240,6 @@ public class FacialController : MonoBehaviour
             skinnedMeshRenderer.SetBlendShapeWeight(mouthSorrowBlendIndex, weight);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(mouthUBlendIndex);
         restoreFromWeightList.Add(50f);
         restoreBlendIndexList.Add(mouthSorrowBlendIndex);
@@ -265,8 +249,7 @@ public class FacialController : MonoBehaviour
 
     IEnumerator ThinkingCoroutine()
     {
-        Debug.Log("当前表情：思考。");
-        // 实现思考的表情动画
+        Debug.Log("Expression: thinking");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
@@ -276,7 +259,6 @@ public class FacialController : MonoBehaviour
             skinnedMeshRenderer.SetBlendShapeWeight(eyeJoyBlendIndex, weight * 0.5f);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(mouthIBlendIndex);
         restoreFromWeightList.Add(100f);          
         restoreBlendIndexList.Add(mouthUBlendIndex);
@@ -290,8 +272,7 @@ public class FacialController : MonoBehaviour
 
     IEnumerator DisappointedCoroutine()
     {
-        Debug.Log("当前表情：失望。");
-        // 实现失望的表情动画
+        Debug.Log("Expression: disappointed");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
@@ -299,7 +280,6 @@ public class FacialController : MonoBehaviour
             skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, weight);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(mouthAngryBlendIndex);
         restoreFromWeightList.Add(80f);
         restoreBlendIndexList.Add(browSorrowBlendIndex);
@@ -309,8 +289,7 @@ public class FacialController : MonoBehaviour
 
     IEnumerator SweatingCoroutine()
     {
-        Debug.Log("当前表情：汗颜。");
-        // 实现汗颜的表情动画
+        Debug.Log("Expression: sweating");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
@@ -320,7 +299,6 @@ public class FacialController : MonoBehaviour
             skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, weight);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(mouthABlendIndex);
         restoreFromWeightList.Add(50f);
         restoreBlendIndexList.Add(mouthEBlendIndex);
@@ -334,15 +312,13 @@ public class FacialController : MonoBehaviour
 
     IEnumerator ConfidentCoroutine()
     {
-        Debug.Log("当前表情：自信。");
-        // 实现自信的表情动画
+        Debug.Log("Expression: confident");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
             skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, weight / 2);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(mouthIBlendIndex);
         restoreFromWeightList.Add(50f);
 
@@ -350,8 +326,7 @@ public class FacialController : MonoBehaviour
 
     IEnumerator CryCoroutine()
     {
-        Debug.Log("当前表情：委屈。");
-        // 实现委屈的表情动画
+        Debug.Log("Expression: cry");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
@@ -361,7 +336,6 @@ public class FacialController : MonoBehaviour
             skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, weight*0.1f);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(mouthIBlendIndex);
         restoreFromWeightList.Add(50f);
         restoreBlendIndexList.Add(eyeSorrowBlendIndex);
@@ -376,15 +350,13 @@ public class FacialController : MonoBehaviour
 
     IEnumerator PlainCoroutine()
     {
-        Debug.Log("当前表情：面无表情。");
-        // 实现面无表情的动画
+        Debug.Log("Expression: plain");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
             skinnedMeshRenderer.SetBlendShapeWeight(mouthAngryBlendIndex, weight * 0.5f);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(mouthAngryBlendIndex);
         restoreFromWeightList.Add(50f);
 
@@ -392,8 +364,7 @@ public class FacialController : MonoBehaviour
 
     IEnumerator ShyCoroutine()
     {
-        Debug.Log("当前表情：害羞。");
-        // 实现害羞的表情动画
+        Debug.Log("Expression: shy");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
@@ -405,7 +376,6 @@ public class FacialController : MonoBehaviour
             skinnedMeshRenderer.SetBlendShapeWeight(lookLeftBlendIndex, weight);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(mouthAngryBlendIndex);
         restoreFromWeightList.Add(50f);
         restoreBlendIndexList.Add(mouthAngryBlendIndex);
@@ -423,8 +393,7 @@ public class FacialController : MonoBehaviour
 
     IEnumerator TouchingCoroutine()
     {
-        Debug.Log("当前表情：感动。");
-        // 实现感动的表情动画
+        Debug.Log("Expression: touching");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
@@ -432,7 +401,6 @@ public class FacialController : MonoBehaviour
             skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, weight);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(joyBlendIndex);
         restoreFromWeightList.Add(100f);
         restoreBlendIndexList.Add(browSorrowBlendIndex);
@@ -443,8 +411,7 @@ public class FacialController : MonoBehaviour
 
     IEnumerator WinkCoroutine()
     {
-        Debug.Log("当前表情：眨眼。");
-        // 实现眨眼的表情动画
+        Debug.Log("Expression: wink");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
@@ -453,7 +420,6 @@ public class FacialController : MonoBehaviour
             skinnedMeshRenderer.SetBlendShapeWeight(eyeJoyRightBlendIndex, weight*0.5f);
             yield return null;
         }
-        //记录需要恢复的值
         restoreBlendIndexList.Add(funBlendIndex);
         restoreFromWeightList.Add(50f);
         restoreBlendIndexList.Add(blinkRightBlendIndex);
@@ -465,9 +431,8 @@ public class FacialController : MonoBehaviour
 
     IEnumerator RollbackCoroutine(Action<bool> _callback)
     {
-        Debug.Log("回退当前表情。");
-        // 实现回退表情动画
-        Debug.Log($"回退目录数：{restoreBlendIndexList.Count}");
+        Debug.Log("Restoring expression.");
+        Debug.Log("Restore count: " + restoreBlendIndexList.Count);
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
             float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
@@ -494,7 +459,7 @@ public class FacialController : MonoBehaviour
         Sweat1.SetActive(false);
         Sweat2.SetActive(false);
         SetNormalBlush();
-        Debug.Log($"回退完成");
+        Debug.Log("Restore complete.");
         _callback(false);
     }
     #endregion

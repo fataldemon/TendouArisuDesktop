@@ -1,4 +1,4 @@
-﻿namespace VRMShaders
+namespace VRMShaders
 {
     public enum ColorSpace
     {

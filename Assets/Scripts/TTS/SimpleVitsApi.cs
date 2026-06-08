@@ -11,28 +11,14 @@ using Unity.Mathematics;
 
 public class SimpleVitsApi : TTS
 {
-    /// <summary>
-    /// 语音合成，返回合成文本
-    /// </summary>
-    /// <param name="_msg"></param>
-    /// <param name="_callback">回调函数</param>
-    /// <param name="_getException">异常处理函数</param>
     public override void Speak(string _msg, Action<AudioClip, string> _callback, Action<bool> _getException)
     {
         StartCoroutine(GenerateVoice(_msg, _callback, _getException));
     }
 
-    /// <summary>
-    /// 合成音频
-    /// </summary>
-    /// <param name="_msg"></param>
-    /// <param name="_callback"></param>
-    /// <param name="_getException">异常处理函数</param>
-    /// <returns></returns>
     private IEnumerator GenerateVoice(string _msg, Action<AudioClip, string> _callback, Action<bool> _getException)
     {
         stopwatch.Restart();
-        //发送报文
         using (UnityWebRequest request = new UnityWebRequest(m_PostURL, "POST"))
         {
             string boundary = "----VoiceConversionFormBoundary" + RandomString(16);
@@ -51,20 +37,14 @@ public class SimpleVitsApi : TTS
             }
             else
             {
-                Debug.LogError("语音合成失败: " + request.error);
+                Debug.LogError("TTS Error: " + request.error);
                 _getException(true);
             }
         }
         stopwatch.Stop();
-        Debug.Log("语音合成耗时：" + stopwatch.Elapsed.TotalSeconds);
+        Debug.Log("Voice synthesis time: " + stopwatch.Elapsed.TotalSeconds);
     }
 
-    /// <summary>
-    /// 处理发送的Json报文
-    /// </summary>
-    /// <param name="_msg"></param>
-    /// <param name="_lan"></param>
-    /// <returns></returns>
     private byte[] GetPostJson(string _msg, string boundary)
     {
         var jsonData = new Dictionary<string, string>
@@ -78,8 +58,7 @@ public class SimpleVitsApi : TTS
             { "segment_size", "50" },
             { "sdp_ratio", "0.2" }
         };
-        // 将数据转换为JSON格式
-        
+
         byte[] formData = GetMultipartFormData(jsonData, boundary);
         return formData;
     }

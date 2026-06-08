@@ -1,4 +1,4 @@
-﻿#ifndef VRMC_MATERIALS_MTOON_GEOMETRY_UV_INCLUDED
+#ifndef VRMC_MATERIALS_MTOON_GEOMETRY_UV_INCLUDED
 #define VRMC_MATERIALS_MTOON_GEOMETRY_UV_INCLUDED
 
 #include "./vrmc_materials_mtoon_render_pipeline.hlsl"

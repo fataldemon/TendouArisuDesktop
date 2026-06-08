@@ -1,4 +1,4 @@
-﻿Shader "CloverUI/OverlayGizmo"
+Shader "CloverUI/OverlayGizmo"
 {
     Properties
     {

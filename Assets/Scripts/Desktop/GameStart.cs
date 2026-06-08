@@ -162,6 +162,11 @@ public class GameStart : MonoBehaviour
 
 	private System.Random rand = new System.Random();
 
+	private bool isResizingDialog;
+	private Vector2 resizeStartMouse;
+	private int resizeStartWidth;
+	private int resizeStartHeight;
+
 	private void SetExceptionRestore(bool value)
 	{
 		Debug.Log("捕捉到错误信息。");
@@ -177,6 +182,27 @@ public class GameStart : MonoBehaviour
 
 	private void Start()
 	{
+		SettingsData settings = SettingsData.Load();
+		if (settings != null)
+		{
+			if (settings.posX != 0f || settings.posY != 0f || settings.posZ != 0f)
+			{
+				targetTransform.position = new Vector3(settings.posX, settings.posY, settings.posZ);
+				targetTransform.rotation = Quaternion.Euler(settings.rotX, settings.rotY, settings.rotZ);
+			}
+			if (!string.IsNullOrEmpty(settings.websocketUrl))
+				websocket_url = settings.websocketUrl;
+			if (settings.ttsMode >= 0)
+				tts_page = settings.ttsMode;
+			if (settings.msgMaxWidth > 0)
+				msg_max_length = settings.msgMaxWidth;
+			if (settings.msgHeight > 0)
+				msg_height = settings.msgHeight;
+			if (settings.fontSize > 0)
+				fontSize = settings.fontSize;
+			config.ApplyFrom(settings);
+		}
+
 		config.initConfiguration(websocket_url, tts_page, translator.Baidu_fanyi_url, translator.App_id, translator.Private_key, translator.Salt, llmFormatter.identity, llmFormatter.preset_information);
 		TTS_module = config.getTTS(tts_page);
 		screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
@@ -388,11 +414,38 @@ public class GameStart : MonoBehaviour
 
 	private void OnApplicationQuit()
 	{
+		SaveSettings();
 		if (NetManager.M_Instance.GetNetStatus())
 		{
 			Debug.Log("向服务器请求断开连接......");
 			NetManager.M_Instance.CloseClientWebSocket();
 		}
+	}
+
+	private void SaveSettings()
+	{
+		SettingsData settings = new SettingsData();
+		if (targetTransform != null)
+		{
+			settings.posX = targetTransform.position.x;
+			settings.posY = targetTransform.position.y;
+			settings.posZ = targetTransform.position.z;
+			Vector3 euler = targetTransform.rotation.eulerAngles;
+			settings.rotX = euler.x;
+			settings.rotY = euler.y;
+			settings.rotZ = euler.z;
+		}
+		settings.websocketUrl = websocket_url;
+		settings.ttsMode = tts_page;
+		settings.msgMaxWidth = msg_max_length;
+		settings.msgHeight = msg_height;
+		settings.fontSize = fontSize;
+		int wx, wy;
+		windowController.GetWindowPosition(out wx, out wy);
+		settings.winX = wx;
+		settings.winY = wy;
+		config.PopulateTo(settings);
+		settings.Save();
 	}
 
 	private void OnGUI()
@@ -429,6 +482,51 @@ public class GameStart : MonoBehaviour
 				}
 			}
 		}
+
+		if (windowController.configToken && targetTransform != null)
+		{
+			screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
+			float gripSize = 24f;
+			float dialogRight = screenPos.x + guiOffset.x + msg_max_length;
+			float dialogBottom = (float)Screen.height - screenPos.y + guiOffset.y + msg_height;
+			Rect gripRect = new Rect(dialogRight - gripSize, dialogBottom - gripSize, gripSize, gripSize);
+
+			Color prevColor = GUI.color;
+			GUI.color = new Color(1f, 1f, 1f, 0.5f);
+			GUI.Box(gripRect, "");
+			GUI.Label(gripRect, "╋");
+			GUI.color = prevColor;
+
+			Event e = Event.current;
+			if (e.type == EventType.MouseDown && gripRect.Contains(e.mousePosition))
+			{
+				isResizingDialog = true;
+				resizeStartMouse = e.mousePosition;
+				resizeStartWidth = msg_max_length;
+				resizeStartHeight = msg_height;
+				e.Use();
+			}
+			if (e.type == EventType.MouseDrag && isResizingDialog)
+			{
+				Vector2 delta = e.mousePosition - resizeStartMouse;
+				msg_max_length = Mathf.Clamp(resizeStartWidth + (int)delta.x, 200, 1400);
+				msg_height = Mathf.Clamp(resizeStartHeight + (int)delta.y, 60, 600);
+				e.Use();
+			}
+			if (e.type == EventType.MouseUp && isResizingDialog)
+			{
+				isResizingDialog = false;
+				SaveSettings();
+				e.Use();
+			}
+
+			float scroll = Input.GetAxis("Mouse ScrollWheel");
+			if (Mathf.Abs(scroll) > 0.01f)
+			{
+				fontSize = Mathf.Clamp(fontSize + (int)(scroll * 4f), 10, 60);
+			}
+		}
+
 		if (!windowController.configToken)
 		{
 			return;
@@ -611,6 +709,7 @@ public class GameStart : MonoBehaviour
 				translator.App_id = config.translation_app_id;
 				translator.Private_key = config.translation_key;
 				translator.Salt = config.translation_salt;
+				SaveSettings();
 				onConfig = false;
 			}
 			if (GUI.Button(new Rect(680f, 400f, 90f, 30f), closeButton))
@@ -628,6 +727,7 @@ public class GameStart : MonoBehaviour
 			{
 				llmFormatter.identity = config.identity;
 				llmFormatter.preset_information = config.preset;
+				SaveSettings();
 				onConfig = false;
 			}
 			if (GUI.Button(new Rect(680f, 400f, 90f, 30f), closeButton))

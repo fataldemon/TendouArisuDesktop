@@ -62,4 +62,54 @@ public class Configuration : MonoBehaviour
             simpleVitsApi_TTS.PostURL = simpleVitsApi_url;
         }
     }
+
+    public void ApplyFrom(SettingsData settings)
+    {
+        if (settings == null) return;
+
+        if (!string.IsNullOrEmpty(settings.websocketUrl))
+            websocket_url = settings.websocketUrl;
+
+        tts = settings.ttsMode;
+
+        if (!string.IsNullOrEmpty(settings.gradioUrl))
+            gradio_url = settings.gradioUrl;
+
+        if (!string.IsNullOrEmpty(settings.simpleVitsUrl))
+            simpleVitsApi_url = settings.simpleVitsUrl;
+
+        if (!string.IsNullOrEmpty(settings.translationUrl))
+            translation_url = settings.translationUrl;
+
+        if (!string.IsNullOrEmpty(settings.translationAppId))
+            translation_app_id = settings.translationAppId;
+
+        if (!string.IsNullOrEmpty(settings.translationKey))
+            translation_key = settings.translationKey;
+
+        if (!string.IsNullOrEmpty(settings.translationSalt))
+            translation_salt = settings.translationSalt;
+
+        if (!string.IsNullOrEmpty(settings.identity))
+            identity = settings.identity;
+
+        if (!string.IsNullOrEmpty(settings.preset))
+            preset = settings.preset;
+    }
+
+    public void PopulateTo(SettingsData settings)
+    {
+        if (settings == null) return;
+
+        settings.websocketUrl = websocket_url;
+        settings.ttsMode = tts;
+        settings.gradioUrl = gradio_url;
+        settings.simpleVitsUrl = simpleVitsApi_url;
+        settings.translationUrl = translation_url;
+        settings.translationAppId = translation_app_id;
+        settings.translationKey = translation_key;
+        settings.translationSalt = translation_salt;
+        settings.identity = identity;
+        settings.preset = preset;
+    }
 }

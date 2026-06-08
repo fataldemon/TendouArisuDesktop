@@ -1,4 +1,4 @@
-﻿Shader "Hidden/UniGLTF/StandardMapExporter"
+Shader "Hidden/UniGLTF/StandardMapExporter"
 {
      Properties
      {

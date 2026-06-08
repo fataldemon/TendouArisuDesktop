@@ -1,4 +1,4 @@
-﻿namespace UniGLTF.ShaderPropExporter
+namespace UniGLTF.ShaderPropExporter
 {
     /// <summary>
     /// TODO: MToon にひきとってもらう

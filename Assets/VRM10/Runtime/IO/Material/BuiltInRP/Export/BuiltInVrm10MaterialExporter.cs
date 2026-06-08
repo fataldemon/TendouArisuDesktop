@@ -1,4 +1,4 @@
-﻿using UniGLTF;
+using UniGLTF;
 using UnityEngine;
 using VRMShaders;
 

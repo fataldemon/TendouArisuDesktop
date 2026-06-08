@@ -1,4 +1,4 @@
-﻿namespace VRMShaders.VRM10.MToon10.Editor
+namespace VRMShaders.VRM10.MToon10.Editor
 {
     public enum MToon10EditorEditMode
     {
