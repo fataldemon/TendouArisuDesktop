@@ -10,6 +10,8 @@ public class ActionController : MonoBehaviour
 
 	public Animator animator;
 
+	public ExpressionMappingManager mappingManager;
+
 	private void Start()
 	{
 	}
@@ -49,7 +51,10 @@ public class ActionController : MonoBehaviour
 
 	public void SetFacialExpression(string reply_from_llm)
 	{
-		switch (GetExpression(reply_from_llm))
+		string emotion = GetExpression(reply_from_llm);
+		if (mappingManager != null && mappingManager.TryApplyFacial(emotion))
+			return;
+		switch (emotion)
 		{
 		case "微笑":
 			break;
@@ -273,6 +278,8 @@ public class ActionController : MonoBehaviour
 			animator.SetInteger("action_param", 6);
 			return;
 		}
+		if (mappingManager != null && mappingManager.TryApplyAction(expression))
+			return;
 		switch (expression)
 		{
 		case "认真":

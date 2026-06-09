@@ -52,14 +52,14 @@ public class GameStart : MonoBehaviour
 	public int msg_position_y = 150;
 
 	[SerializeField]
-	private int msg_max_length = 700;
+	private int msg_max_length = 580;
 
 	private int msg_length_receive;
 
 	private int msg_length_send;
 
 	[SerializeField]
-	public int msg_height = 400;
+	public int msg_height = 800;
 
 	public Configuration config;
 
@@ -76,6 +76,8 @@ public class GameStart : MonoBehaviour
 	public ModelManager modelManager;
 
 	public AnimationLibrary animLibrary;
+
+	public ExpressionMappingManager mappingManager;
 
 	public float dialogueInterval = 0.5f;
 
@@ -113,6 +115,8 @@ public class GameStart : MonoBehaviour
 
 	private bool onAnim;
 
+	private bool onExpr;
+
 	private bool onBottom = true;
 
 	private string tips_message = "请在对话框中输入想和爱丽丝说的话，点击对话按钮开始聊天。";
@@ -132,7 +136,7 @@ public class GameStart : MonoBehaviour
 	[SerializeField]
 	private Vector3 screenPos;
 
-	private Vector2 guiOffset = new Vector2(-350f, -200f);
+	private Vector2 guiOffset = new Vector2(-450f, -200f);
 
 	private GUIStyle TextAreaStyle;
 
@@ -205,10 +209,17 @@ public class GameStart : MonoBehaviour
 	private Rect modelWindowRect;
 
 	private Rect animWindowRect;
+
+	private Rect exprWindowRect;
 	
 	private string vrmPath = "";
 	private string animSearch = "";
 	private string animCatFilter = "All";
+
+	private bool onExprEdit;
+	private string exprEditEmotion = "";
+	private string exprEditFacial = "";
+	private int exprEditAction = 0;
 
 	[SerializeField]
 	private int fontSize = 40;
@@ -218,6 +229,8 @@ public class GameStart : MonoBehaviour
 	private Vector2 scrollPosition2 = Vector2.zero;
 
 	private Vector2 animScrollPosition = Vector2.zero;
+
+	private Vector2 exprScrollPosition = Vector2.zero;
 
 	private float scrollSpeed = 5f;
 
@@ -286,6 +299,7 @@ public class GameStart : MonoBehaviour
 		testWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, 150f);
 		modelWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
 		animWindowRect = new Rect(screenPos.x + guiOffset.x - 250f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
+		exprWindowRect = new Rect(screenPos.x + guiOffset.x - 250f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
 		NetManager.M_Instance.Connect(websocket_url);
 		actionController.animator.SetInteger("action_param", 2);
 	}
@@ -665,21 +679,23 @@ public class GameStart : MonoBehaviour
 			return;
 		}
 		Vector3 vector = Camera.main.WorldToScreenPoint(targetTransform.position);
-		float btnX = vector.x + guiOffset.x + (float)msg_max_length - 110f;
+		float btnX = vector.x + guiOffset.x + (float)msg_max_length + 20f;
 		float btnBaseY = Screen.height - 10f;
-		if (GUI.Button(new Rect(btnX, btnBaseY - 140f, 90f, 40f), new GUIContent(historyButton), buttonStyle))
+		if (GUI.Button(new Rect(btnX, btnBaseY - 40f, 90f, 40f), "表情", buttonStyle))
 		{
-			if (onHistory)
-			{
-				onHistory = false;
-			}
-			else
-			{
-				onBottom = true;
-				onHistory = true;
-			}
+			onExpr = !onExpr;
 		}
-		if (GUI.Button(new Rect(btnX, btnBaseY - 90f, 90f, 40f), new GUIContent(configButton), buttonStyle))
+		if (GUI.Button(new Rect(btnX, btnBaseY - 90f, 90f, 40f), "动画", buttonStyle))
+		{
+			if (onAnim && animLibrary != null) animLibrary.StopPreview();
+			else if (animLibrary != null) animLibrary.ScanAll();
+			onAnim = !onAnim;
+		}
+		if (GUI.Button(new Rect(btnX, btnBaseY - 140f, 90f, 40f), "模型", buttonStyle))
+		{
+			onModel = !onModel;
+		}
+		if (GUI.Button(new Rect(btnX, btnBaseY - 190f, 90f, 40f), "配置", buttonStyle))
 		{
 			if (onConfig)
 			{
@@ -691,37 +707,43 @@ public class GameStart : MonoBehaviour
 				onConfig = true;
 			}
 		}
-		if (GUI.Button(new Rect(btnX, btnBaseY - 40f, 90f, 40f), new GUIContent(closeButton), buttonStyle))
+		if (GUI.Button(new Rect(btnX, btnBaseY - 240f, 90f, 40f), "历史", buttonStyle))
+		{
+			if (onHistory)
+			{
+				onHistory = false;
+			}
+			else
+			{
+				onBottom = true;
+				onHistory = true;
+			}
+		}
+		if (GUI.Button(new Rect(btnX, btnBaseY - 290f, 90f, 40f), new GUIContent(closeButton), buttonStyle))
 		{
 			windowController.EnableWindowPenetration();
 		}
-		if (GUI.Button(new Rect(btnX, btnBaseY - 190f, 90f, 40f), "Model", buttonStyle))
-		{
-			onModel = !onModel;
-		}
-		if (GUI.Button(new Rect(btnX, btnBaseY - 240f, 90f, 40f), "Anim", buttonStyle))
-		{
-			if (onAnim && animLibrary != null) animLibrary.StopPreview();
-			else if (animLibrary != null) animLibrary.ScanAll();
-			onAnim = !onAnim;
-		}
 		if (onModel)
 		{
-			modelWindowRect = GUI.Window(3, modelWindowRect, modelFunc, "Model Manager", windowStyle);
+			modelWindowRect = GUI.Window(3, modelWindowRect, modelFunc, "模型管理", windowStyle);
 		}
 		if (onAnim && animLibrary != null)
 		{
-			animWindowRect = GUI.Window(4, animWindowRect, animFunc, "Animation Library", windowStyle);
+			animWindowRect = GUI.Window(4, animWindowRect, animFunc, "动画库", windowStyle);
+		}
+		if (onExpr && mappingManager != null)
+		{
+			exprWindowRect = GUI.Window(5, exprWindowRect, exprFunc, "表情映射", windowStyle);
 		}
 		if (onHistory)
 		{
-			historyWindowRect = GUI.Window(0, historyWindowRect, historyFunc, "Dialogue History", windowStyle);
+			historyWindowRect = GUI.Window(0, historyWindowRect, historyFunc, "对话记录", windowStyle);
 		}
 		if (onConfig)
 		{
 			InformationLabelStyle = new GUIStyle(GUI.skin.label);
 			InformationLabelStyle.fontSize = 16;
-			configWindowRect = GUI.Window(1, configWindowRect, configurationFunc, "Configuration", windowStyle);
+			configWindowRect = GUI.Window(1, configWindowRect, configurationFunc, "配置", windowStyle);
 		}
 		if (onTestVoice)
 		{
@@ -789,7 +811,7 @@ public class GameStart : MonoBehaviour
 			config.translation_key = GUI.PasswordField(new Rect(220f, 320f, 550f, 30f), config.translation_key, '*');
 			GUI.Label(new Rect(20f, 360f, 200f, 30f), "翻译模块Salt：");
 			config.translation_salt = GUI.TextField(new Rect(220f, 360f, 550f, 30f), config.translation_salt);
-			if (GUI.Button(new Rect(560f, 400f, 90f, 30f), yesButton))
+			if (GUI.Button(new Rect(560f, 400f, 90f, 30f), "确定"))
 			{
 				websocket_url = config.websocket_url;
 				tts_page = config.tts;
@@ -809,7 +831,7 @@ public class GameStart : MonoBehaviour
 				SaveSettings();
 				onConfig = false;
 			}
-			if (GUI.Button(new Rect(680f, 400f, 90f, 30f), closeButton))
+			if (GUI.Button(new Rect(680f, 400f, 90f, 30f), "取消"))
 			{
 				onConfig = false;
 			}
@@ -820,14 +842,14 @@ public class GameStart : MonoBehaviour
 			config.identity = GUI.TextField(new Rect(120f, 70f, 650f, 30f), config.identity);
 			GUI.Label(new Rect(20f, 110f, 200f, 30f), "预设信息：");
 			config.preset = GUI.TextField(new Rect(120f, 110f, 650f, 240f), config.preset);
-			if (GUI.Button(new Rect(560f, 400f, 90f, 30f), yesButton))
+			if (GUI.Button(new Rect(560f, 400f, 90f, 30f), "确定"))
 			{
 				llmFormatter.identity = config.identity;
 				llmFormatter.preset_information = config.preset;
 				SaveSettings();
 				onConfig = false;
 			}
-			if (GUI.Button(new Rect(680f, 400f, 90f, 30f), closeButton))
+			if (GUI.Button(new Rect(680f, 400f, 90f, 30f), "取消"))
 			{
 				onConfig = false;
 			}
@@ -841,17 +863,17 @@ public class GameStart : MonoBehaviour
 
 		float y = 30f;
 
-		if (GUI.Button(new Rect(20f, y, 80f, 30f), "Refresh"))
+		if (GUI.Button(new Rect(20f, y, 80f, 30f), "刷新"))
 		{
 			if (animLibrary != null) animLibrary.ScanAll();
 		}
-		if (GUI.Button(new Rect(105f, y, 80f, 30f), "Import"))
+		if (GUI.Button(new Rect(105f, y, 80f, 30f), "导入"))
 		{
 			string path = FileBrowser.OpenFileDialog("Select FBX Animation", "FBX Files|*.fbx");
 			if (!string.IsNullOrEmpty(path) && animLibrary != null)
 				animLibrary.ImportAnimation(path);
 		}
-		GUI.Label(new Rect(195f, y, 100f, 30f), "Search:", labelStyle);
+		GUI.Label(new Rect(195f, y, 80f, 30f), "搜索:", labelStyle);
 		animSearch = GUI.TextField(new Rect(265f, y, 190f, 30f), animSearch);
 		y += 40f;
 
@@ -882,7 +904,7 @@ public class GameStart : MonoBehaviour
 		foreach (var clip in list)
 		{
 			GUI.Label(new Rect(0, iy, 300f, 28f), clip.name + "  [" + clip.category + "]  " + clip.duration.ToString("F1") + "s", labelStyle);
-			if (GUI.Button(new Rect(animWindowRect.width - 140f, iy, 80f, 30f), "Preview"))
+			if (GUI.Button(new Rect(animWindowRect.width - 140f, iy, 80f, 30f), "预览"))
 			{
 				if (animLibrary != null) animLibrary.Preview(clip);
 			}
@@ -890,11 +912,60 @@ public class GameStart : MonoBehaviour
 		}
 		GUI.EndScrollView();
 
-		if (GUI.Button(new Rect(animWindowRect.width - 110f, animWindowRect.height - 40f, 90f, 30f), "Close"))
+		if (GUI.Button(new Rect(animWindowRect.width - 110f, animWindowRect.height - 40f, 90f, 30f), "关闭"))
 		{
 			if (animLibrary != null) animLibrary.StopPreview();
 			onAnim = false;
 		}
+		GUI.DragWindow();
+	}
+
+	public void exprFunc(int window_id)
+	{
+		if (mappingManager == null) return;
+		var mappings = mappingManager.GetAll();
+		float y = 30f;
+
+		if (GUI.Button(new Rect(20f, y, 120f, 30f), "恢复默认"))
+			mappingManager.RestoreDefaults();
+		y += 35f;
+
+		float svH = exprWindowRect.height - y - 80f;
+		var sv = GUI.BeginScrollView(new Rect(20f, y, exprWindowRect.width - 40f, svH), exprScrollPosition,
+			new Rect(0, 0, exprWindowRect.width - 60f, mappings.Count * 28f));
+		exprScrollPosition = sv;
+		float iy = 0;
+		foreach (var m in mappings)
+		{
+			GUI.Label(new Rect(0, iy, 120f, 24f), m.emotion, labelStyle);
+			GUI.Label(new Rect(125f, iy, 100f, 24f), m.facialExpression, labelStyle);
+			GUI.Label(new Rect(230f, iy, 50f, 24f), m.actionParam.ToString(), labelStyle);
+			if (GUI.Button(new Rect(exprWindowRect.width - 170f, iy, 60f, 24f), "编辑"))
+			{
+				onExprEdit = true;
+				exprEditEmotion = m.emotion;
+				exprEditFacial = m.facialExpression;
+				exprEditAction = m.actionParam;
+			}
+			if (GUI.Button(new Rect(exprWindowRect.width - 105f, iy, 60f, 24f), "删除"))
+				mappingManager.RemoveMapping(m.emotion);
+			iy += 28f;
+		}
+		GUI.EndScrollView();
+
+		float by = exprWindowRect.height - 75f;
+		GUI.Label(new Rect(20f, by, 60f, 24f), "情绪:", labelStyle);
+		exprEditEmotion = GUI.TextField(new Rect(80f, by, 100f, 24f), exprEditEmotion);
+		GUI.Label(new Rect(190f, by, 60f, 24f), "面部:", labelStyle);
+		exprEditFacial = GUI.TextField(new Rect(250f, by, 100f, 24f), exprEditFacial);
+		GUI.Label(new Rect(360f, by, 60f, 24f), "动作:", labelStyle);
+		exprEditAction = int.TryParse(GUI.TextField(new Rect(420f, by, 50f, 24f), exprEditAction.ToString()), out int v) ? v : exprEditAction;
+
+		if (GUI.Button(new Rect(480f, by, 60f, 24f), "保存"))
+			mappingManager.SetMapping(exprEditEmotion, exprEditFacial, exprEditAction);
+
+		if (GUI.Button(new Rect(exprWindowRect.width - 110f, exprWindowRect.height - 40f, 90f, 30f), "关闭"))
+			onExpr = false;
 		GUI.DragWindow();
 	}
 
@@ -903,18 +974,18 @@ public class GameStart : MonoBehaviour
 		GUI.Label(new Rect(20f, 30f, 200f, 30f), "VRM Model Path:", labelStyle);
 		vrmPath = GUI.TextField(new Rect(20f, 60f, 460f, 30f), vrmPath);
 
-		if (GUI.Button(new Rect(490f, 60f, 80f, 30f), "Browse"))
+		if (GUI.Button(new Rect(490f, 60f, 80f, 30f), "浏览"))
 		{
 			string path = FileBrowser.OpenFileDialog("Select VRM Model", "VRM Files|*.vrm");
 			if (!string.IsNullOrEmpty(path))
 				vrmPath = path;
 		}
-		if (GUI.Button(new Rect(580f, 60f, 90f, 30f), "Load"))
+		if (GUI.Button(new Rect(580f, 60f, 90f, 30f), "加载"))
 		{
 			if (modelManager != null && !string.IsNullOrEmpty(vrmPath))
 				modelManager.LoadModel(vrmPath);
 		}
-		if (GUI.Button(new Rect(680f, 60f, 90f, 30f), "Restore"))
+		if (GUI.Button(new Rect(680f, 60f, 90f, 30f), "恢复"))
 		{
 			if (modelManager != null)
 				modelManager.RestoreDefault();
@@ -935,7 +1006,7 @@ public class GameStart : MonoBehaviour
 				y += 35f;
 			}
 		}
-		if (GUI.Button(new Rect(modelWindowRect.width - 110f, modelWindowRect.height - 40f, 90f, 30f), "Close"))
+		if (GUI.Button(new Rect(modelWindowRect.width - 110f, modelWindowRect.height - 40f, 90f, 30f), "关闭"))
 		{
 			onModel = false;
 		}
@@ -960,12 +1031,12 @@ public class GameStart : MonoBehaviour
 		scrollPosition2 = GUI.BeginScrollView(new Rect(20f, 70f, 750f, scrollViewHeight), scrollPosition2, new Rect(10f, 60f, 730f, num));
 		GUI.TextArea(new Rect(10f, 60f, 730f, num), llmFormatter.formatted_history, gUIStyle);
 		GUI.EndScrollView();
-		if (GUI.Button(new Rect(580f, historyWindowRect.height - 50f, 90f, 30f), deleteButton))
+		if (GUI.Button(new Rect(580f, historyWindowRect.height - 50f, 90f, 30f), "清空"))
 		{
 			llmFormatter.history.Clear();
 			llmFormatter.formatted_history = string.Empty;
 		}
-		if (GUI.Button(new Rect(680f, historyWindowRect.height - 50f, 90f, 30f), closeButton))
+		if (GUI.Button(new Rect(680f, historyWindowRect.height - 50f, 90f, 30f), "关闭"))
 		{
 			onHistory = false;
 		}
