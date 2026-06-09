@@ -29,6 +29,10 @@ public class SettingsData
     public int winX;
     public int winY;
 
+    public float scaleX = 1f;
+    public float scaleY = 1f;
+    public float scaleZ = 1f;
+
     public static string GetFilePath()
     {
         return System.IO.Path.Combine(Application.persistentDataPath, "settings.json");

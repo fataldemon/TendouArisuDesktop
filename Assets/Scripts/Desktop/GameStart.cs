@@ -72,6 +72,8 @@ public class GameStart : MonoBehaviour
 
 	public BaiduTranslator translator;
 
+	public ModelManager modelManager;
+
 	public float dialogueInterval = 0.5f;
 
 	private float dialogueTimer;
@@ -103,6 +105,8 @@ public class GameStart : MonoBehaviour
 
 	[SerializeField]
 	private bool onTestVoice;
+
+	private bool onModel;
 
 	private bool onBottom = true;
 
@@ -193,6 +197,10 @@ public class GameStart : MonoBehaviour
 
 	private Rect testWindowRect;
 
+	private Rect modelWindowRect;
+	
+	private string vrmPath = "";
+
 	[SerializeField]
 	private int fontSize = 40;
 
@@ -255,6 +263,8 @@ public class GameStart : MonoBehaviour
 			if (settings.fontSize > 0)
 				fontSize = settings.fontSize;
 			config.ApplyFrom(settings);
+			if (modelManager != null && modelManager.currentModel != null)
+				modelManager.currentModel.transform.localScale = new Vector3(settings.scaleX, settings.scaleY, settings.scaleZ);
 		}
 
 		config.initConfiguration(websocket_url, tts_page, translator.Baidu_fanyi_url, translator.App_id, translator.Private_key, translator.Salt, llmFormatter.identity, llmFormatter.preset_information);
@@ -263,12 +273,21 @@ public class GameStart : MonoBehaviour
 		configWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
 		historyWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
 		testWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, 150f);
+		modelWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
 		NetManager.M_Instance.Connect(websocket_url);
 		actionController.animator.SetInteger("action_param", 2);
 	}
 
 	private void Update()
 	{
+		if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+		    && modelManager != null && modelManager.currentModel != null)
+		{
+			float scroll = Input.GetAxis("Mouse ScrollWheel");
+			if (Mathf.Abs(scroll) > 0.01f)
+				modelManager.ScaleModel(scroll * 0.1f);
+		}
+
 		if (onDialogue)
 		{
 			dialogueTimer += Time.deltaTime;
@@ -521,6 +540,11 @@ public class GameStart : MonoBehaviour
 		settings.msgMaxWidth = msg_max_length;
 		settings.msgHeight = msg_height;
 		settings.fontSize = fontSize;
+		if (modelManager != null && modelManager.currentModel != null)
+		{
+			var s = modelManager.currentModel.transform.localScale;
+			settings.scaleX = s.x; settings.scaleY = s.y; settings.scaleZ = s.z;
+		}
 		int wx, wy;
 		windowController.GetWindowPosition(out wx, out wy);
 		settings.winX = wx;
@@ -659,6 +683,14 @@ public class GameStart : MonoBehaviour
 		{
 			windowController.EnableWindowPenetration();
 		}
+		if (GUI.Button(new Rect(btnX, btnBaseY - 190f, 90f, 40f), "Model", buttonStyle))
+		{
+			onModel = !onModel;
+		}
+		if (onModel)
+		{
+			modelWindowRect = GUI.Window(3, modelWindowRect, modelFunc, "Model Manager", windowStyle);
+		}
 		if (onHistory)
 		{
 			historyWindowRect = GUI.Window(0, historyWindowRect, historyFunc, "Dialogue History", windowStyle);
@@ -777,6 +809,50 @@ public class GameStart : MonoBehaviour
 			{
 				onConfig = false;
 			}
+		}
+		GUI.DragWindow();
+	}
+
+	public void modelFunc(int window_id)
+	{
+		GUI.Label(new Rect(20f, 30f, 200f, 30f), "VRM Model Path:", labelStyle);
+		vrmPath = GUI.TextField(new Rect(20f, 60f, 460f, 30f), vrmPath);
+
+		if (GUI.Button(new Rect(490f, 60f, 80f, 30f), "Browse"))
+		{
+			string path = FileBrowser.OpenFileDialog("Select VRM Model", "VRM Files|*.vrm");
+			if (!string.IsNullOrEmpty(path))
+				vrmPath = path;
+		}
+		if (GUI.Button(new Rect(580f, 60f, 90f, 30f), "Load"))
+		{
+			if (modelManager != null && !string.IsNullOrEmpty(vrmPath))
+				modelManager.LoadModel(vrmPath);
+		}
+		if (GUI.Button(new Rect(680f, 60f, 90f, 30f), "Restore"))
+		{
+			if (modelManager != null)
+				modelManager.RestoreDefault();
+		}
+
+		var history = modelManager != null ? modelManager.GetHistory() : null;
+		if (history != null && history.Count > 0)
+		{
+			GUI.Label(new Rect(20f, 110f, 200f, 30f), "History:", labelStyle);
+			float y = 140f;
+			for (int i = 0; i < Mathf.Min(history.Count, 15); i++)
+			{
+				int idx = i;
+				if (GUI.Button(new Rect(20f, y, 600f, 30f), history[i]))
+				{
+					modelManager.LoadFromHistory(idx);
+				}
+				y += 35f;
+			}
+		}
+		if (GUI.Button(new Rect(modelWindowRect.width - 110f, modelWindowRect.height - 40f, 90f, 30f), "Close"))
+		{
+			onModel = false;
 		}
 		GUI.DragWindow();
 	}
