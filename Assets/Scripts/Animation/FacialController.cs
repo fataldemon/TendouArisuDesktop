@@ -87,6 +87,88 @@ public class FacialController : MonoBehaviour
         blushRender2.material = blush;
     }
 
+    public void PreviewBlendShape(string expression, float weight = 1f)
+    {
+        float w = Mathf.Clamp01(weight) * 100f;
+        switch (expression)
+        {
+            case "angry":
+                skinnedMeshRenderer.SetBlendShapeWeight(angryBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(cheekBlendIndex, w);
+                break;
+            case "serious":
+                skinnedMeshRenderer.SetBlendShapeWeight(angryBlendIndex, w);
+                break;
+            case "happy":
+                skinnedMeshRenderer.SetBlendShapeWeight(joyBlendIndex, w);
+                break;
+            case "fun":
+                skinnedMeshRenderer.SetBlendShapeWeight(funBlendIndex, w * 0.5f);
+                break;
+            case "panic":
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthABlendIndex, w * 0.5f);
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthEBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, w * 0.928f);
+                Sweat1.SetActive(true); Sweat2.SetActive(true);
+                break;
+            case "curious":
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthUBlendIndex, w * 0.5f);
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthSorrowBlendIndex, w * 0.5f);
+                break;
+            case "thinking":
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthUBlendIndex, w * 0.3f);
+                skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, w * 0.75f);
+                skinnedMeshRenderer.SetBlendShapeWeight(eyeJoyBlendIndex, w * 0.5f);
+                break;
+            case "disappointed":
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthAngryBlendIndex, w * 0.8f);
+                skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
+                Sweat2.SetActive(true);
+                break;
+            case "sweating":
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthABlendIndex, w * 0.5f);
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthEBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
+                Sweat2.SetActive(true);
+                break;
+            case "confident":
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, w * 0.5f);
+                break;
+            case "cry":
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, w * 0.8f);
+                skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, w * 0.1f);
+                Tear1.SetActive(true); Tear2.SetActive(true);
+                break;
+            case "plain":
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthAngryBlendIndex, w * 0.5f);
+                break;
+            case "shy":
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, w * 0.5f);
+                skinnedMeshRenderer.SetBlendShapeWeight(mouthAngryBlendIndex, w * 0.35f);
+                skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(lookDownBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(lookLeftBlendIndex, w);
+                break;
+            case "touching":
+                skinnedMeshRenderer.SetBlendShapeWeight(joyBlendIndex, w);
+                skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
+                Tear1_Joy.SetActive(true); Tear2_Joy.SetActive(true);
+                break;
+            case "wink":
+                skinnedMeshRenderer.SetBlendShapeWeight(funBlendIndex, w * 0.5f);
+                skinnedMeshRenderer.SetBlendShapeWeight(blinkRightBlendIndex, w * 0.5f);
+                skinnedMeshRenderer.SetBlendShapeWeight(eyeJoyRightBlendIndex, w * 0.5f);
+                break;
+        }
+    }
+
     public void PerformExpression(string expression, Action<bool> _callback)
     {
         switch (expression)
@@ -460,7 +542,19 @@ public class FacialController : MonoBehaviour
         Sweat2.SetActive(false);
         SetNormalBlush();
         Debug.Log("Restore complete.");
-        _callback(false);
+        if (_callback != null) _callback(false);
+    }
+
+    public void ResetBlendShapesInstant()
+    {
+        Tear1.SetActive(false); Tear2.SetActive(false);
+        Tear1_Joy.SetActive(false); Tear2_Joy.SetActive(false);
+        Sweat1.SetActive(false); Sweat2.SetActive(false);
+        SetNormalBlush();
+        for (int i = 0; i < 39; i++)
+            skinnedMeshRenderer.SetBlendShapeWeight(i, 0f);
+        restoreBlendIndexList.Clear();
+        restoreFromWeightList.Clear();
     }
     #endregion
 }

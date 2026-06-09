@@ -2,6 +2,7 @@
 // GameStart
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class GameStart : MonoBehaviour
@@ -119,10 +120,6 @@ public class GameStart : MonoBehaviour
 
 	private bool onBottom = true;
 
-	private string tips_message = "请在对话框中输入想和爱丽丝说的话，点击对话按钮开始聊天。";
-
-	private static string origin_tips_message = "请在对话框中输入想和爱丽丝说的话，点击对话按钮开始聊天。";
-
 	private int config_page;
 
 	private string[] config_page_list = new string[2] { "连接设置", "对话设置" };
@@ -148,6 +145,7 @@ public class GameStart : MonoBehaviour
 
 	private GUIStyle windowStyle;
 	private GUIStyle buttonStyle;
+	private GUIStyle selButtonStyle;
 	private GUIStyle labelStyle;
 	private GUIStyle toolbarStyle;
 
@@ -174,6 +172,7 @@ public class GameStart : MonoBehaviour
 		windowStyle.onFocused.background = winBg;
 		windowStyle.normal.textColor = new Color(0.557f, 0.808f, 0.902f);
 		windowStyle.fontSize = 16;
+		windowStyle.border = new RectOffset(4, 4, 4, 4);
 
 		// 按钮：天蓝色底 + 白字
 		buttonStyle = new GUIStyle(GUI.skin.button);
@@ -196,6 +195,17 @@ public class GameStart : MonoBehaviour
 		TextLabelStyle.normal.textColor = new Color(0.8f, 0.9f, 1f);
 		TextLabelStyle.alignment = TextAnchor.UpperLeft;
 
+		selButtonStyle = new GUIStyle(GUI.skin.button);
+		selButtonStyle.normal.textColor = Color.white;
+		selButtonStyle.fontSize = 16;
+		var selBg = new Texture2D(1, 1);
+		selBg.SetPixel(0, 0, new Color(0.298f, 0.788f, 0.941f, 1f));
+		selBg.Apply();
+		selButtonStyle.normal.background = selBg;
+		selButtonStyle.hover.background = selBg;
+		selButtonStyle.active.background = selBg;
+		selButtonStyle.focused.background = selBg;
+
 		skinReady = true;
 	}
 
@@ -217,9 +227,8 @@ public class GameStart : MonoBehaviour
 	private string animCatFilter = "All";
 
 	private bool onExprEdit;
-	private string exprEditEmotion = "";
-	private string exprEditFacial = "";
-	private int exprEditAction = 0;
+	private Rect exprEditWindowRect;
+	private ExpressionMappingData exprEditTarget;
 
 	[SerializeField]
 	private int fontSize = 40;
@@ -300,6 +309,7 @@ public class GameStart : MonoBehaviour
 		modelWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
 		animWindowRect = new Rect(screenPos.x + guiOffset.x - 250f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
 		exprWindowRect = new Rect(screenPos.x + guiOffset.x - 250f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
+		exprEditWindowRect = new Rect(Screen.width * 0.5f - 375f, Screen.height * 0.05f, 750f, Screen.height * 0.75f);
 		NetManager.M_Instance.Connect(websocket_url);
 		actionController.animator.SetInteger("action_param", 2);
 	}
@@ -735,6 +745,10 @@ public class GameStart : MonoBehaviour
 		{
 			exprWindowRect = GUI.Window(5, exprWindowRect, exprFunc, "表情映射", windowStyle);
 		}
+		if (onExprEdit && mappingManager != null)
+		{
+			exprEditWindowRect = GUI.Window(6, exprEditWindowRect, exprEditFunc, "编辑映射", windowStyle);
+		}
 		if (onHistory)
 		{
 			historyWindowRect = GUI.Window(0, historyWindowRect, historyFunc, "对话记录", windowStyle);
@@ -928,24 +942,29 @@ public class GameStart : MonoBehaviour
 
 		if (GUI.Button(new Rect(20f, y, 120f, 30f), "恢复默认"))
 			mappingManager.RestoreDefaults();
-		y += 35f;
+		if (GUI.Button(new Rect(145f, y, 100f, 30f), "添加映射"))
+		{
+			exprEditTarget = new ExpressionMappingData();
+			onExprEdit = true;
+		}
+		y += 38f;
 
-		float svH = exprWindowRect.height - y - 80f;
+		float svH = exprWindowRect.height - y - 50f;
 		var sv = GUI.BeginScrollView(new Rect(20f, y, exprWindowRect.width - 40f, svH), exprScrollPosition,
 			new Rect(0, 0, exprWindowRect.width - 60f, mappings.Count * 28f));
 		exprScrollPosition = sv;
 		float iy = 0;
-		foreach (var m in mappings)
+		foreach (var m in mappings.ToList())
 		{
-			GUI.Label(new Rect(0, iy, 120f, 24f), m.emotion, labelStyle);
-			GUI.Label(new Rect(125f, iy, 100f, 24f), m.facialExpression, labelStyle);
-			GUI.Label(new Rect(230f, iy, 50f, 24f), m.actionParam.ToString(), labelStyle);
+			GUI.Label(new Rect(0, iy, 100f, 24f), m.emotion, labelStyle);
+			string facDesc = m.facialGroups.Count > 0 ? m.facialGroups[0].preset : "-";
+			string actDesc = m.actionGroups.Count > 0 ? m.actionGroups[0].animationName : "-";
+			GUI.Label(new Rect(105f, iy, 90f, 24f), facDesc, labelStyle);
+			GUI.Label(new Rect(200f, iy, 60f, 24f), actDesc, labelStyle);
 			if (GUI.Button(new Rect(exprWindowRect.width - 170f, iy, 60f, 24f), "编辑"))
 			{
+				exprEditTarget = m;
 				onExprEdit = true;
-				exprEditEmotion = m.emotion;
-				exprEditFacial = m.facialExpression;
-				exprEditAction = m.actionParam;
 			}
 			if (GUI.Button(new Rect(exprWindowRect.width - 105f, iy, 60f, 24f), "删除"))
 				mappingManager.RemoveMapping(m.emotion);
@@ -953,20 +972,154 @@ public class GameStart : MonoBehaviour
 		}
 		GUI.EndScrollView();
 
-		float by = exprWindowRect.height - 75f;
-		GUI.Label(new Rect(20f, by, 60f, 24f), "情绪:", labelStyle);
-		exprEditEmotion = GUI.TextField(new Rect(80f, by, 100f, 24f), exprEditEmotion);
-		GUI.Label(new Rect(190f, by, 60f, 24f), "面部:", labelStyle);
-		exprEditFacial = GUI.TextField(new Rect(250f, by, 100f, 24f), exprEditFacial);
-		GUI.Label(new Rect(360f, by, 60f, 24f), "动作:", labelStyle);
-		exprEditAction = int.TryParse(GUI.TextField(new Rect(420f, by, 50f, 24f), exprEditAction.ToString()), out int v) ? v : exprEditAction;
-
-		if (GUI.Button(new Rect(480f, by, 60f, 24f), "保存"))
-			mappingManager.SetMapping(exprEditEmotion, exprEditFacial, exprEditAction);
-
 		if (GUI.Button(new Rect(exprWindowRect.width - 110f, exprWindowRect.height - 40f, 90f, 30f), "关闭"))
+		{
+			if (actionController != null) actionController.facialController.ResetBlendShapesInstant();
 			onExpr = false;
+		}
 		GUI.DragWindow();
+	}
+
+	public void exprEditFunc(int window_id)
+	{
+		if (exprEditTarget == null) exprEditTarget = new ExpressionMappingData();
+		float y = 30f;
+		float w = exprEditWindowRect.width - 40f;
+
+		// Emotion
+		GUI.Label(new Rect(20f, y, 60f, 24f), "情绪:", labelStyle);
+		exprEditTarget.emotion = GUI.TextField(new Rect(80f, y, 120f, 24f), exprEditTarget.emotion);
+		if (GUI.Button(new Rect(210f, y, 80f, 24f), "预览全部"))
+			PreviewExpressionMapping(exprEditTarget);
+		y += 34f;
+
+		// Facial section
+		GUI.Label(new Rect(20f, y, 80f, 24f), "面部表情:", labelStyle);
+		if (GUI.Button(new Rect(110f, y, 80f, 24f), "预览面部"))
+			PreviewFacialGroups(exprEditTarget.facialGroups);
+		y += 30f;
+
+		for (int i = 0; i < exprEditTarget.facialGroups.Count; i++)
+		{
+			var fg = exprEditTarget.facialGroups[i];
+			int sel = System.Array.IndexOf(FacialPresets.All, fg.preset);
+			if (sel < 0) sel = 0;
+
+			float gx = 20f; int cols = 5; float bw = 130f;
+			for (int k = 0; k < FacialPresets.All.Length; k++)
+			{
+				bool active = k == sel;
+				if (GUI.Button(new Rect(gx, y, bw - 4f, 24f), FacialPresets.All[k], active ? selButtonStyle : buttonStyle))
+				{ sel = k; fg.preset = FacialPresets.All[k]; }
+				gx += bw;
+				if ((k + 1) % cols == 0) { gx = 20f; y += 28f; }
+			}
+			if (FacialPresets.All.Length % cols != 0) y += 28f;
+
+			fg.weight = GUI.HorizontalSlider(new Rect(20f, y, 160f, 20f), fg.weight, 0f, 1f);
+			GUI.Label(new Rect(185f, y, 50f, 20f), fg.weight.ToString("F1"), labelStyle);
+			if (GUI.Button(new Rect(240f, y, 40f, 20f), "删除"))
+			{ exprEditTarget.facialGroups.RemoveAt(i); break; }
+			y += 26f;
+		}
+		if (GUI.Button(new Rect(20f, y, 80f, 24f), "+添加"))
+			exprEditTarget.facialGroups.Add(new FacialGroup { preset = "happy", weight = 1f });
+		y += 34f;
+
+		// Action section
+		GUI.Label(new Rect(20f, y, 80f, 24f), "动作映射:", labelStyle);
+		y += 30f;
+
+		float actSvH = exprEditWindowRect.height - y - 100f;
+		var actSv = GUI.BeginScrollView(new Rect(20f, y, w, Mathf.Max(actSvH, 120f)), Vector2.zero,
+			new Rect(0, 0, w - 20f, exprEditTarget.actionGroups.Count * 90f));
+		float ay = 0;
+		for (int i = 0; i < exprEditTarget.actionGroups.Count; i++)
+		{
+			var ag = exprEditTarget.actionGroups[i];
+
+			ag.animationName = GUI.TextField(new Rect(0, ay, 140f, 24f), ag.animationName);
+			if (GUI.Button(new Rect(145f, ay, 50f, 24f), "预览"))
+			{
+				if (animLibrary != null && !string.IsNullOrEmpty(ag.animationName))
+					PreviewActionClip(ag);
+			}
+			ay += 32f;
+
+			int bpSel = System.Array.IndexOf(BodyParts.All, ag.bodyPart);
+			if (bpSel < 0) bpSel = 0;
+			float gx2 = 0f; int cols2 = 5; float bw2 = (w - 20f) / cols2;
+			for (int k = 0; k < BodyParts.All.Length; k++)
+			{
+				bool active = k == bpSel;
+				string label = BodyParts.All[k].Length > 9 ? BodyParts.All[k].Substring(0, 9) : BodyParts.All[k];
+				if (GUI.Button(new Rect(gx2, ay, bw2 - 4f, 22f), label, active ? selButtonStyle : buttonStyle))
+				{ bpSel = k; ag.bodyPart = BodyParts.All[k]; }
+				gx2 += bw2;
+				if ((k + 1) % cols2 == 0) { gx2 = 0f; ay += 26f; }
+			}
+			if (BodyParts.All.Length % cols2 != 0) ay += 26f;
+
+			ag.weight = GUI.HorizontalSlider(new Rect(0, ay, 160f, 20f), ag.weight, 0f, 1f);
+			GUI.Label(new Rect(165f, ay, 50f, 20f), ag.weight.ToString("F1"), labelStyle);
+			if (GUI.Button(new Rect(220f, ay, 40f, 20f), "删除"))
+			{ exprEditTarget.actionGroups.RemoveAt(i); break; }
+			ay += 30f;
+		}
+		GUI.EndScrollView();
+
+		float btnY = exprEditWindowRect.height - 40f;
+		if (GUI.Button(new Rect(20f, btnY, 70f, 30f), "保存"))
+		{
+			mappingManager.AddOrUpdate(exprEditTarget.emotion, exprEditTarget.facialGroups, exprEditTarget.actionGroups);
+			if (actionController != null) actionController.facialController.ResetBlendShapesInstant();
+			onExprEdit = false;
+		}
+		if (GUI.Button(new Rect(100f, btnY, 70f, 30f), "取消"))
+		{
+			if (actionController != null) actionController.facialController.ResetBlendShapesInstant();
+			onExprEdit = false;
+		}
+		GUI.DragWindow();
+	}
+
+	private void PreviewFacialGroups(List<FacialGroup> groups)
+	{
+		if (actionController?.facialController == null) return;
+		actionController.facialController.ResetBlendShapesInstant();
+		foreach (var fg in groups)
+			if (!string.IsNullOrEmpty(fg.preset))
+				actionController.facialController.PreviewBlendShape(fg.preset, fg.weight);
+	}
+
+	private void PreviewActionClip(ActionGroup ag)
+	{
+		if (animLibrary == null || string.IsNullOrEmpty(ag.animationName)) return;
+		var clip = animLibrary.registry.FirstOrDefault(r => r.name == ag.animationName);
+		if (clip != null) { animLibrary.Preview(clip); return; }
+		if (int.TryParse(ag.animationName, out int ap) && actionController?.animator != null)
+		{
+			actionController.animator.SetInteger("action_param", ap);
+			StartCoroutine(AutoRestoreAnim(3f));
+		}
+	}
+
+	private void PreviewExpressionMapping(ExpressionMappingData data)
+	{
+		if (data == null) return;
+		PreviewFacialGroups(data.facialGroups);
+		if (data.actionGroups.Count > 0)
+			PreviewActionClip(data.actionGroups[0]);
+	}
+
+	private System.Collections.IEnumerator AutoRestoreAnim(float delay)
+	{
+		yield return new WaitForSeconds(delay);
+		if (actionController?.animator != null)
+		{
+			actionController.animator.SetInteger("action_param", 0);
+			actionController.animator.SetInteger("onWaiting", 0);
+		}
 	}
 
 	public void modelFunc(int window_id)

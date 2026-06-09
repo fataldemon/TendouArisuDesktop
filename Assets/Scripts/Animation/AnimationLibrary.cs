@@ -49,7 +49,13 @@ public class AnimationLibrary : MonoBehaviour
     public void ScanAll()
     {
 #if UNITY_EDITOR
-        var guids = AssetDatabase.FindAssets("t:AnimationClip", new[] { "Assets/AnimeGirlIdleAnimations", "Assets/Animvs Game Studio", "Assets/KAWAII_ANIMATIOMS_100", "Assets/Animation", "Assets/ImportedAnimations" });
+        var folders = new[] { "Assets/AnimeGirlIdleAnimations", "Assets/Animvs Game Studio", "Assets/KAWAII_ANIMATIOMS_100", "Assets/Animation", "Assets/ImportedAnimations" };
+        var validFolders = new System.Collections.Generic.List<string>();
+        foreach (var f in folders)
+            if (AssetDatabase.IsValidFolder(f)) validFolders.Add(f);
+
+        if (validFolders.Count == 0) return;
+        var guids = AssetDatabase.FindAssets("t:AnimationClip", validFolders.ToArray());
         var existing = new HashSet<string>(registry.Select(r => r.assetPath));
         foreach (var guid in guids)
         {
@@ -145,6 +151,23 @@ public class AnimationLibrary : MonoBehaviour
         }
         RestoreAnimatorState();
         previewClip = null;
+    }
+
+    public void PreviewOnce(AnimationClipData data)
+    {
+        if (data == null) return;
+#if UNITY_EDITOR
+        var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(data.assetPath);
+        if (clip == null) return;
+        Preview(data);
+        StartCoroutine(AutoStopRoutine(clip.length + 0.5f));
+#endif
+    }
+
+    private System.Collections.IEnumerator AutoStopRoutine(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        StopPreview();
     }
 
     private System.Collections.IEnumerator PreviewCoroutine(AnimationClip clip)

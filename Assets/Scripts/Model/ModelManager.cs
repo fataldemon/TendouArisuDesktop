@@ -12,7 +12,6 @@ public class ModelManager : MonoBehaviour
     public Transform modelParent;
 
     [SerializeField] private List<string> modelHistory = new List<string>();
-    [SerializeField] private int currentModelIndex = -1;
 
     private GameObject defaultModel;
     private Quaternion defaultRotation;
@@ -145,7 +144,6 @@ public class ModelManager : MonoBehaviour
             }
         }
 
-        currentModelIndex = -1;
         SaveHistory();
     }
 
@@ -171,7 +169,6 @@ public class ModelManager : MonoBehaviour
         modelHistory.Insert(0, path + "|" + name);
         if (modelHistory.Count > 20)
             modelHistory.RemoveAt(modelHistory.Count - 1);
-        currentModelIndex = 0;
         SaveHistory();
     }
 
