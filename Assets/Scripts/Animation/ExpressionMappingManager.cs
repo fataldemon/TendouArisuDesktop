@@ -20,9 +20,10 @@ public class ExpressionMappingManager : MonoBehaviour
             if (!string.IsNullOrEmpty(f))
                 d.facialGroups.Add(new FacialGroup { preset = f, weight = 1f });
             d.actionGroups.Add(new ActionGroup { animationName = a.ToString(), bodyPart = "fullBody", weight = 1f });
-            d.actionParam = a; // for TryApplyAction fallback
+            d.actionParam = a;
             list.Add(d);
         }
+        Add("待机", "", 0);
         Add("微笑", "", 1);  Add("认真", "serious", 24);  Add("坚定", "serious", 11);
         Add("承诺", "serious", 11);  Add("生气", "angry", 20);  Add("急切", "angry", 27);
         Add("烦恼", "panic", 1);  Add("专注", "curious", 22);  Add("诚实", "curious", 1);
@@ -87,16 +88,23 @@ public class ExpressionMappingManager : MonoBehaviour
         return true;
     }
 
-    public List<ExpressionMappingData> GetAll() => mappings;
+    public List<ExpressionMappingData> GetAll()
+    {
+        return mappings.OrderByDescending(m => m.emotion == "待机").ThenBy(m => m.emotion).ToList();
+    }
 
     public void AddOrUpdate(string emotion, List<FacialGroup> fg, List<ActionGroup> ag)
     {
         var existing = mappings.FirstOrDefault(m => m.emotion == emotion);
-        if (existing != null) mappings.Remove(existing);
-        var d = new ExpressionMappingData { emotion = emotion };
-        if (fg != null) d.facialGroups = fg;
-        if (ag != null) d.actionGroups = ag;
-        mappings.Add(d);
+        if (existing != null)
+        {
+            existing.facialGroups = fg ?? existing.facialGroups;
+            existing.actionGroups = ag ?? existing.actionGroups;
+        }
+        else
+        {
+            mappings.Add(new ExpressionMappingData { emotion = emotion, facialGroups = fg, actionGroups = ag });
+        }
         Save();
     }
 

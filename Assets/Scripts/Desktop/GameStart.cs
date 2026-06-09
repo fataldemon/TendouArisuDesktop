@@ -268,11 +268,33 @@ public class GameStart : MonoBehaviour
 		exceptionRestore = value;
 	}
 
+	private void ApplyIdleState(bool animated = true)
+	{
+		if (actionController == null) return;
+		actionController.RestoreAnimator();
+		if (animated)
+			actionController.RestoreFacialExpression(SetRestoreEndToken);
+		else
+		{
+			actionController.facialController.ResetBlendShapesInstant();
+			actionController.mappingManager?.TryApplyFacial("待机");
+		}
+	}
+
 	private void SetRestoreEndToken(bool value)
 	{
 		withExpression = value;
 		onVoice = value;
 		onRestore = value;
+		if (actionController != null && actionController.mappingManager != null)
+			StartCoroutine(DelayedIdleApply(0.35f));
+	}
+
+	private System.Collections.IEnumerator DelayedIdleApply(float delay)
+	{
+		yield return new WaitForSeconds(delay);
+		if (actionController != null && actionController.mappingManager != null)
+			actionController.mappingManager.TryApplyFacial("待机");
 	}
 
 	private void Start()
@@ -312,6 +334,7 @@ public class GameStart : MonoBehaviour
 		exprEditWindowRect = new Rect(Screen.width * 0.5f - 375f, Screen.height * 0.05f, 750f, Screen.height * 0.75f);
 		NetManager.M_Instance.Connect(websocket_url);
 		actionController.animator.SetInteger("action_param", 2);
+		withExpression = true;
 	}
 
 	private void Update()
@@ -956,7 +979,8 @@ public class GameStart : MonoBehaviour
 		float iy = 0;
 		foreach (var m in mappings.ToList())
 		{
-			GUI.Label(new Rect(0, iy, 100f, 24f), m.emotion, labelStyle);
+			bool isIdle = m.emotion == "待机";
+			GUI.Label(new Rect(0, iy, 100f, 24f), isIdle ? "★ 待机" : m.emotion, labelStyle);
 			string facDesc = m.facialGroups.Count > 0 ? m.facialGroups[0].preset : "-";
 			string actDesc = m.actionGroups.Count > 0 ? m.actionGroups[0].animationName : "-";
 			GUI.Label(new Rect(105f, iy, 90f, 24f), facDesc, labelStyle);
@@ -966,7 +990,7 @@ public class GameStart : MonoBehaviour
 				exprEditTarget = m;
 				onExprEdit = true;
 			}
-			if (GUI.Button(new Rect(exprWindowRect.width - 105f, iy, 60f, 24f), "删除"))
+			if (!isIdle && GUI.Button(new Rect(exprWindowRect.width - 105f, iy, 60f, 24f), "删除"))
 				mappingManager.RemoveMapping(m.emotion);
 			iy += 28f;
 		}
@@ -974,7 +998,7 @@ public class GameStart : MonoBehaviour
 
 		if (GUI.Button(new Rect(exprWindowRect.width - 110f, exprWindowRect.height - 40f, 90f, 30f), "关闭"))
 		{
-			if (actionController != null) actionController.facialController.ResetBlendShapesInstant();
+			ApplyIdleState(false);
 			onExpr = false;
 		}
 		GUI.DragWindow();
@@ -1072,12 +1096,12 @@ public class GameStart : MonoBehaviour
 		if (GUI.Button(new Rect(20f, btnY, 70f, 30f), "保存"))
 		{
 			mappingManager.AddOrUpdate(exprEditTarget.emotion, exprEditTarget.facialGroups, exprEditTarget.actionGroups);
-			if (actionController != null) actionController.facialController.ResetBlendShapesInstant();
+			ApplyIdleState(false);
 			onExprEdit = false;
 		}
 		if (GUI.Button(new Rect(100f, btnY, 70f, 30f), "取消"))
 		{
-			if (actionController != null) actionController.facialController.ResetBlendShapesInstant();
+			ApplyIdleState(false);
 			onExprEdit = false;
 		}
 		GUI.DragWindow();

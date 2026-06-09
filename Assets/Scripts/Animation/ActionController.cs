@@ -497,6 +497,7 @@ public class ActionController : MonoBehaviour
 
 	public void RestoreAnimator()
 	{
-		animator.SetInteger("action_param", 0);
+		if (mappingManager == null || !mappingManager.TryApplyAction("待机"))
+			animator.SetInteger("action_param", 0);
 	}
 }
