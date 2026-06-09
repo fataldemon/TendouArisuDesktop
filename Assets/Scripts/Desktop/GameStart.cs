@@ -1013,9 +1013,11 @@ public class GameStart : MonoBehaviour
 		}
 		if (GUI.Button(new Rect(105f, y, 80f, 30f), "导入"))
 		{
+#if UNITY_EDITOR
 			string path = FileBrowser.OpenFileDialog("Select FBX Animation", "FBX Files|*.fbx");
 			if (!string.IsNullOrEmpty(path) && animLibrary != null)
 				animLibrary.ImportAnimation(path);
+#endif
 		}
 		GUI.Label(new Rect(195f, y, 80f, 30f), "搜索:", labelStyle);
 		animSearch = GUI.TextField(new Rect(265f, y, 190f, 30f), animSearch);
