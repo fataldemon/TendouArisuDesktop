@@ -1,6 +1,7 @@
 // Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
 // GameStart
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GameStart : MonoBehaviour
@@ -74,6 +75,8 @@ public class GameStart : MonoBehaviour
 
 	public ModelManager modelManager;
 
+	public AnimationLibrary animLibrary;
+
 	public float dialogueInterval = 0.5f;
 
 	private float dialogueTimer;
@@ -107,6 +110,8 @@ public class GameStart : MonoBehaviour
 	private bool onTestVoice;
 
 	private bool onModel;
+
+	private bool onAnim;
 
 	private bool onBottom = true;
 
@@ -198,8 +203,12 @@ public class GameStart : MonoBehaviour
 	private Rect testWindowRect;
 
 	private Rect modelWindowRect;
+
+	private Rect animWindowRect;
 	
 	private string vrmPath = "";
+	private string animSearch = "";
+	private string animCatFilter = "All";
 
 	[SerializeField]
 	private int fontSize = 40;
@@ -207,6 +216,8 @@ public class GameStart : MonoBehaviour
 	private Vector2 scrollPosition = Vector2.zero;
 
 	private Vector2 scrollPosition2 = Vector2.zero;
+
+	private Vector2 animScrollPosition = Vector2.zero;
 
 	private float scrollSpeed = 5f;
 
@@ -274,6 +285,7 @@ public class GameStart : MonoBehaviour
 		historyWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
 		testWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, 150f);
 		modelWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
+		animWindowRect = new Rect(screenPos.x + guiOffset.x - 250f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
 		NetManager.M_Instance.Connect(websocket_url);
 		actionController.animator.SetInteger("action_param", 2);
 	}
@@ -687,9 +699,19 @@ public class GameStart : MonoBehaviour
 		{
 			onModel = !onModel;
 		}
+		if (GUI.Button(new Rect(btnX, btnBaseY - 240f, 90f, 40f), "Anim", buttonStyle))
+		{
+			if (onAnim && animLibrary != null) animLibrary.StopPreview();
+			else if (animLibrary != null) animLibrary.ScanAll();
+			onAnim = !onAnim;
+		}
 		if (onModel)
 		{
 			modelWindowRect = GUI.Window(3, modelWindowRect, modelFunc, "Model Manager", windowStyle);
+		}
+		if (onAnim && animLibrary != null)
+		{
+			animWindowRect = GUI.Window(4, animWindowRect, animFunc, "Animation Library", windowStyle);
 		}
 		if (onHistory)
 		{
@@ -809,6 +831,63 @@ public class GameStart : MonoBehaviour
 			{
 				onConfig = false;
 			}
+		}
+		GUI.DragWindow();
+	}
+
+	public void animFunc(int window_id)
+	{
+		var cats = animLibrary != null ? animLibrary.GetCategories() : new List<string>();
+
+		float y = 30f;
+
+		if (GUI.Button(new Rect(20f, y, 80f, 30f), "Refresh"))
+		{
+			if (animLibrary != null) animLibrary.ScanAll();
+		}
+		GUI.Label(new Rect(110f, y, 100f, 30f), "Search:", labelStyle);
+		animSearch = GUI.TextField(new Rect(180f, y, 200f, 30f), animSearch);
+		y += 40f;
+
+		if (cats.Count > 0)
+		{
+			float cx = 20f;
+			for (int i = 0; i < cats.Count; i++)
+			{
+				bool sel = cats[i] == animCatFilter;
+				if (GUI.Button(new Rect(cx, y, 80f, 25f), cats[i], sel ? toolbarStyle : buttonStyle))
+					animCatFilter = cats[i];
+				cx += 84f;
+			}
+		}
+
+		y += 35f;
+
+		if (animLibrary != null)
+			animLibrary.allowRootMotion = GUI.Toggle(new Rect(20f, y, 180f, 22f), animLibrary.allowRootMotion, " Allow Root Motion");
+		y += 28f;
+
+		string cat = animCatFilter;
+		var list = animLibrary != null ? animLibrary.Filter(cat, animSearch) : new List<AnimationClipData>();
+		float svH = animWindowRect.height - y - 50f;
+		animScrollPosition = GUI.BeginScrollView(new Rect(20f, y, animWindowRect.width - 40f, svH), animScrollPosition,
+			new Rect(0, 0, animWindowRect.width - 60f, list.Count * 32f));
+		float iy = 0;
+		foreach (var clip in list)
+		{
+			GUI.Label(new Rect(0, iy, 300f, 28f), clip.name + "  [" + clip.category + "]  " + clip.duration.ToString("F1") + "s", labelStyle);
+			if (GUI.Button(new Rect(animWindowRect.width - 140f, iy, 80f, 30f), "Preview"))
+			{
+				if (animLibrary != null) animLibrary.Preview(clip);
+			}
+			iy += 32f;
+		}
+		GUI.EndScrollView();
+
+		if (GUI.Button(new Rect(animWindowRect.width - 110f, animWindowRect.height - 40f, 90f, 30f), "Close"))
+		{
+			if (animLibrary != null) animLibrary.StopPreview();
+			onAnim = false;
 		}
 		GUI.DragWindow();
 	}
