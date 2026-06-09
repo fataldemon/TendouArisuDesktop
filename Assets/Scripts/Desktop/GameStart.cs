@@ -142,7 +142,7 @@ public class GameStart : MonoBehaviour
 	private Rect testWindowRect;
 
 	[SerializeField]
-	private int fontSize = 20;
+	private int fontSize = 28;
 
 	private Vector2 scrollPosition = Vector2.zero;
 
@@ -289,10 +289,15 @@ public class GameStart : MonoBehaviour
 			if (!string.IsNullOrEmpty(choice.delta.content))
 				streamBuffer += choice.delta.content;
 
-			// 实时检测表情标签，一旦闭合就立即应用
+			// 实时检测表情标签，仅在 </think> 之后识别
 			if (!expressionApplied)
 			{
-				int tagStart = streamBuffer.IndexOf("【{'expression':");
+				int searchStart = 0;
+				int thinkEndTag = streamBuffer.IndexOf("</think>");
+				if (thinkEndTag >= 0)
+					searchStart = thinkEndTag + "</think>".Length;
+
+				int tagStart = streamBuffer.IndexOf("【{'expression':", searchStart);
 				if (tagStart >= 0)
 				{
 					int tagEnd = streamBuffer.IndexOf("}】", tagStart);
@@ -556,51 +561,6 @@ public class GameStart : MonoBehaviour
 			return;
 		}
 		Vector3 vector = Camera.main.WorldToScreenPoint(targetTransform.position);
-		TextFieldStyle = new GUIStyle(GUI.skin.textField);
-		TextFieldStyle.fontSize = fontSize;
-		TextFieldStyle.wordWrap = true;
-		TextFieldStyle.normal.textColor = Color.white;
-		Rect position2 = new Rect(vector.x + guiOffset.x - (float)(msg_length_send / 2) + (float)(msg_max_length / 2), (float)Screen.height - vector.y + guiOffset.y - (float)msg_height - 10f, 0.82f * (float)msg_length_send, msg_height);
-		msg = GUI.TextField(position2, msg, TextFieldStyle);
-		if (!(messageTimer > dialogueInterval))
-		{
-			return;
-		}
-		if (string.IsNullOrEmpty(msg))
-		{
-			if (tips_message == origin_tips_message)
-			{
-				TextLabelStyle = new GUIStyle(GUI.skin.label);
-				TextLabelStyle.fontSize = fontSize;
-				TextLabelStyle.wordWrap = true;
-				TextLabelStyle.normal.textColor = Color.grey;
-				TextLabelStyle.hover.textColor = Color.grey;
-				TextLabelStyle.alignment = TextAnchor.UpperLeft;
-			}
-			else
-			{
-				TextLabelStyle = new GUIStyle(GUI.skin.label);
-				TextLabelStyle.fontSize = fontSize;
-				TextLabelStyle.wordWrap = true;
-				TextLabelStyle.normal.textColor = Color.grey;
-				TextLabelStyle.hover.textColor = Color.white;
-				TextLabelStyle.alignment = TextAnchor.UpperLeft;
-			}
-			GUI.Label(position2, tips_message, TextLabelStyle);
-		}
-		if (!NetManager.M_Instance.GetNetStatus() || llmFormatter.pending)
-		{
-			GUI.enabled = false;
-		}
-		if (GUI.Button(new Rect(vector.x + guiOffset.x + (float)msg_max_length - 110f, (float)Screen.height - vector.y + guiOffset.y - (float)msg_height, 90f, 40f), new GUIContent(chatButton)) && msg != null && !llmFormatter.pending)
-		{
-			llmFormatter.pending = true;
-			string content = llmFormatter.LLMFormatterForWebsocket("gpt-3.5-turbo", 0.6f, 0.95f, 1.116f, stream: false, msg);
-			NetManager.M_Instance.Send(content);
-			tips_message = "（" + llmFormatter.identity + "对爱丽丝说）" + msg;
-			msg = null;
-		}
-		GUI.enabled = true;
 		if (GUI.Button(new Rect(vector.x + guiOffset.x + (float)msg_max_length - 110f, (float)Screen.height - vector.y + guiOffset.y - (float)msg_height + 50f, 90f, 40f), new GUIContent(historyButton)))
 		{
 			if (onHistory)
