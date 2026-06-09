@@ -58,7 +58,7 @@ public class GameStart : MonoBehaviour
 	private int msg_length_send;
 
 	[SerializeField]
-	public int msg_height = 150;
+	public int msg_height = 400;
 
 	public Configuration config;
 
@@ -134,6 +134,58 @@ public class GameStart : MonoBehaviour
 	private GUIStyle InformationLabelStyle;
 
 	private GUIStyle windowStyle;
+	private GUIStyle buttonStyle;
+	private GUIStyle labelStyle;
+	private GUIStyle toolbarStyle;
+
+	private bool skinReady;
+
+	private void SetupSkin()
+	{
+		if (skinReady) return;
+		fontSize = 30;
+
+		// 窗口背景：深海军蓝
+		var winBg = new Texture2D(1, 1);
+		winBg.SetPixel(0, 0, new Color(0.039f, 0.086f, 0.157f, 0.95f));
+		winBg.Apply();
+
+		windowStyle = new GUIStyle(GUI.skin.window);
+		windowStyle.normal.background = winBg;
+		windowStyle.focused.background = winBg;
+		windowStyle.active.background = winBg;
+		windowStyle.hover.background = winBg;
+		windowStyle.onNormal.background = winBg;
+		windowStyle.onHover.background = winBg;
+		windowStyle.onActive.background = winBg;
+		windowStyle.onFocused.background = winBg;
+		windowStyle.normal.textColor = new Color(0.557f, 0.808f, 0.902f);
+		windowStyle.fontSize = 16;
+
+		// 按钮：天蓝色底 + 白字
+		buttonStyle = new GUIStyle(GUI.skin.button);
+		buttonStyle.normal.textColor = Color.white;
+		buttonStyle.fontSize = 16;
+
+		// 标签：淡蓝灰
+		labelStyle = new GUIStyle(GUI.skin.label);
+		labelStyle.normal.textColor = new Color(0.8f, 0.9f, 1f, 1f);
+		labelStyle.fontSize = 16;
+
+		// Toolbar
+		toolbarStyle = new GUIStyle(GUI.skin.button);
+		toolbarStyle.normal.textColor = Color.white;
+		toolbarStyle.fontSize = 16;
+		toolbarStyle.fixedHeight = 30;
+
+		TextLabelStyle = new GUIStyle(GUI.skin.label);
+		TextLabelStyle.fontSize = 18;
+		TextLabelStyle.normal.textColor = new Color(0.8f, 0.9f, 1f);
+		TextLabelStyle.alignment = TextAnchor.UpperLeft;
+
+		skinReady = true;
+	}
+
 
 	private Rect configWindowRect;
 
@@ -142,7 +194,7 @@ public class GameStart : MonoBehaviour
 	private Rect testWindowRect;
 
 	[SerializeField]
-	private int fontSize = 28;
+	private int fontSize = 40;
 
 	private Vector2 scrollPosition = Vector2.zero;
 
@@ -208,9 +260,9 @@ public class GameStart : MonoBehaviour
 		config.initConfiguration(websocket_url, tts_page, translator.Baidu_fanyi_url, translator.App_id, translator.Private_key, translator.Salt, llmFormatter.identity, llmFormatter.preset_information);
 		TTS_module = config.getTTS(tts_page);
 		screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
-		configWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, (float)Screen.height - screenPos.y + guiOffset.y - (float)msg_height - 150f, msg_max_length + 100, msg_height + 300);
-		historyWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, (float)Screen.height - screenPos.y + guiOffset.y - (float)msg_height - 150f, msg_max_length + 100, msg_height + 300);
-		testWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, (float)Screen.height - screenPos.y + guiOffset.y - (float)msg_height - 50f, msg_max_length + 100, 100f);
+		configWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
+		historyWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, Screen.height * 0.78f);
+		testWindowRect = new Rect(screenPos.x + guiOffset.x - 100f, Screen.height * 0.05f, msg_max_length + 100, 150f);
 		NetManager.M_Instance.Connect(websocket_url);
 		actionController.animator.SetInteger("action_param", 2);
 	}
@@ -479,13 +531,29 @@ public class GameStart : MonoBehaviour
 
 	private void OnGUI()
 	{
+		SetupSkin();
+		GUI.skin.button.fontSize = 16;
+		GUI.skin.button.normal.textColor = Color.white;
+		GUI.skin.label.fontSize = 16;
+		GUI.skin.label.normal.textColor = new Color(0.8f, 0.9f, 1f);
+		GUI.skin.textArea.fontSize = fontSize;
+		GUI.skin.textArea.normal.textColor = Color.white;
+		GUI.skin.textField.fontSize = 18;
+		GUI.skin.textField.normal.textColor = Color.white;
+		GUI.skin.toggle.fontSize = 16;
+
 		if (targetTransform != null && onDialogue)
 		{
 			screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
-			TextAreaStyle = GUI.skin.textArea;
+			TextAreaStyle = new GUIStyle(GUI.skin.textArea);
 			TextAreaStyle.fontSize = fontSize;
 			TextAreaStyle.wordWrap = true;
 			TextAreaStyle.normal.textColor = Color.white;
+			var taBg = new Texture2D(1, 1);
+			taBg.SetPixel(0, 0, new Color(0.024f, 0.059f, 0.122f, 0.85f));
+			taBg.Apply();
+			TextAreaStyle.normal.background = taBg;
+			TextAreaStyle.padding = new RectOffset(8, 8, 6, 6);
 			float height = TextAreaStyle.CalcHeight(new GUIContent(text_answer), msg_length_receive - 20);
 			Rect position = new Rect(screenPos.x + guiOffset.x - (float)(msg_length_receive / 2) + (float)(msg_max_length / 2), (float)Screen.height - screenPos.y + guiOffset.y, msg_length_receive, msg_height);
 			Rect rect = new Rect(screenPos.x + guiOffset.x - (float)(msg_length_receive / 2) + (float)(msg_max_length / 2) - 10f, (float)Screen.height - screenPos.y + guiOffset.y - 10f, msg_length_receive - 20, height);
@@ -561,7 +629,9 @@ public class GameStart : MonoBehaviour
 			return;
 		}
 		Vector3 vector = Camera.main.WorldToScreenPoint(targetTransform.position);
-		if (GUI.Button(new Rect(vector.x + guiOffset.x + (float)msg_max_length - 110f, (float)Screen.height - vector.y + guiOffset.y - (float)msg_height + 50f, 90f, 40f), new GUIContent(historyButton)))
+		float btnX = vector.x + guiOffset.x + (float)msg_max_length - 110f;
+		float btnBaseY = Screen.height - 10f;
+		if (GUI.Button(new Rect(btnX, btnBaseY - 140f, 90f, 40f), new GUIContent(historyButton), buttonStyle))
 		{
 			if (onHistory)
 			{
@@ -573,7 +643,7 @@ public class GameStart : MonoBehaviour
 				onHistory = true;
 			}
 		}
-		if (GUI.Button(new Rect(vector.x + guiOffset.x + (float)msg_max_length - 110f, (float)Screen.height - vector.y + guiOffset.y - (float)msg_height + 100f, 90f, 40f), new GUIContent(configButton)))
+		if (GUI.Button(new Rect(btnX, btnBaseY - 90f, 90f, 40f), new GUIContent(configButton), buttonStyle))
 		{
 			if (onConfig)
 			{
@@ -585,22 +655,10 @@ public class GameStart : MonoBehaviour
 				onConfig = true;
 			}
 		}
-		if (GUI.Button(new Rect(vector.x + guiOffset.x + (float)msg_max_length - 110f, (float)Screen.height - vector.y + guiOffset.y - (float)msg_height - 60f, 90f, 40f), new GUIContent(closeButton)))
+		if (GUI.Button(new Rect(btnX, btnBaseY - 40f, 90f, 40f), new GUIContent(closeButton), buttonStyle))
 		{
 			windowController.EnableWindowPenetration();
 		}
-		windowStyle = GUI.skin.window;
-		Texture2D texture2D = new Texture2D(1, 1);
-		texture2D.SetPixel(0, 0, Color.black);
-		texture2D.Apply();
-		windowStyle.normal.background = texture2D;
-		windowStyle.focused.background = texture2D;
-		windowStyle.active.background = texture2D;
-		windowStyle.hover.background = texture2D;
-		windowStyle.onNormal.background = texture2D;
-		windowStyle.onHover.background = texture2D;
-		windowStyle.onActive.background = texture2D;
-		windowStyle.onFocused.background = texture2D;
 		if (onHistory)
 		{
 			historyWindowRect = GUI.Window(0, historyWindowRect, historyFunc, "Dialogue History", windowStyle);
@@ -608,6 +666,7 @@ public class GameStart : MonoBehaviour
 		if (onConfig)
 		{
 			InformationLabelStyle = new GUIStyle(GUI.skin.label);
+			InformationLabelStyle.fontSize = 16;
 			configWindowRect = GUI.Window(1, configWindowRect, configurationFunc, "Configuration", windowStyle);
 		}
 		if (onTestVoice)
@@ -619,15 +678,15 @@ public class GameStart : MonoBehaviour
 
 	public void configurationFunc(int window_id)
 	{
-		config_page = GUI.Toolbar(new Rect(20f, 30f, 750f, 30f), config_page, config_page_list);
+		config_page = GUI.Toolbar(new Rect(20f, 30f, 750f, 30f), config_page, config_page_list, toolbarStyle);
 		if (config_page == 0)
 		{
 			GUI.Label(new Rect(20f, 70f, 200f, 30f), "Websocket连接地址：");
 			config.websocket_url = GUI.TextField(new Rect(220f, 70f, 550f, 30f), config.websocket_url);
 			if (NetManager.M_Instance.GetNetStatus())
 			{
-				InformationLabelStyle.normal.textColor = Color.cyan;
-				InformationLabelStyle.hover.textColor = Color.cyan;
+				InformationLabelStyle.normal.textColor = new Color(0.298f, 0.788f, 0.941f);
+				InformationLabelStyle.hover.textColor = new Color(0.298f, 0.788f, 0.941f);
 				GUI.Label(new Rect(40f, 110f, 140f, 30f), "<连接中>", InformationLabelStyle);
 				GUI.enabled = false;
 			}
@@ -639,8 +698,8 @@ public class GameStart : MonoBehaviour
 			GUI.enabled = true;
 			if (!NetManager.M_Instance.GetNetStatus())
 			{
-				InformationLabelStyle.normal.textColor = Color.red;
-				InformationLabelStyle.hover.textColor = Color.red;
+				InformationLabelStyle.normal.textColor = new Color(0.976f, 0.384f, 0.49f);
+				InformationLabelStyle.hover.textColor = new Color(0.976f, 0.384f, 0.49f);
 				GUI.Label(new Rect(40f, 110f, 140f, 30f), "<未连接>", InformationLabelStyle);
 				GUI.enabled = false;
 			}
@@ -650,7 +709,7 @@ public class GameStart : MonoBehaviour
 				NetManager.M_Instance.CloseClientWebSocket();
 			}
 			GUI.enabled = true;
-			config.tts = GUI.Toolbar(new Rect(20f, 150f, 750f, 30f), config.tts, tts_list);
+			config.tts = GUI.Toolbar(new Rect(20f, 150f, 750f, 30f), config.tts, tts_list, toolbarStyle);
 			GUI.Label(new Rect(20f, 190f, 200f, 30f), "语音模块API地址：");
 			if (config.tts == 0)
 			{
@@ -727,24 +786,25 @@ public class GameStart : MonoBehaviour
 		GUI.Label(new Rect(20f, 30f, 200f, 30f), "对话记录：", TextLabelStyle);
 		GUIStyle gUIStyle = new GUIStyle(GUI.skin.textArea);
 		float num = gUIStyle.CalcHeight(new GUIContent(llmFormatter.formatted_history), 750f);
-		if (num <= 310f)
+		float scrollViewHeight = historyWindowRect.height - 120f;
+		if (num <= scrollViewHeight)
 		{
-			num = 310f;
+			num = scrollViewHeight;
 		}
 		if (onBottom)
 		{
 			onBottom = false;
-			scrollPosition2.y = num - 310f;
+			scrollPosition2.y = num - scrollViewHeight;
 		}
-		scrollPosition2 = GUI.BeginScrollView(new Rect(20f, 70f, 750f, 310f), scrollPosition2, new Rect(10f, 60f, 730f, num));
+		scrollPosition2 = GUI.BeginScrollView(new Rect(20f, 70f, 750f, scrollViewHeight), scrollPosition2, new Rect(10f, 60f, 730f, num));
 		GUI.TextArea(new Rect(10f, 60f, 730f, num), llmFormatter.formatted_history, gUIStyle);
 		GUI.EndScrollView();
-		if (GUI.Button(new Rect(580f, 390f, 90f, 30f), deleteButton))
+		if (GUI.Button(new Rect(580f, historyWindowRect.height - 50f, 90f, 30f), deleteButton))
 		{
 			llmFormatter.history.Clear();
 			llmFormatter.formatted_history = string.Empty;
 		}
-		if (GUI.Button(new Rect(680f, 390f, 90f, 30f), closeButton))
+		if (GUI.Button(new Rect(680f, historyWindowRect.height - 50f, 90f, 30f), closeButton))
 		{
 			onHistory = false;
 		}
