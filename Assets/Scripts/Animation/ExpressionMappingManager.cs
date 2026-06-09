@@ -118,6 +118,8 @@ public class ExpressionMappingManager : MonoBehaviour
     {
         mappings.Clear();
         defaultsLoaded = false;
+        if (File.Exists(GetPath()))
+            File.Delete(GetPath());
         LoadMerged();
         Save();
     }
