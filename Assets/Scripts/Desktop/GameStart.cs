@@ -845,8 +845,14 @@ public class GameStart : MonoBehaviour
 		{
 			if (animLibrary != null) animLibrary.ScanAll();
 		}
-		GUI.Label(new Rect(110f, y, 100f, 30f), "Search:", labelStyle);
-		animSearch = GUI.TextField(new Rect(180f, y, 200f, 30f), animSearch);
+		if (GUI.Button(new Rect(105f, y, 80f, 30f), "Import"))
+		{
+			string path = FileBrowser.OpenFileDialog("Select FBX Animation", "FBX Files|*.fbx");
+			if (!string.IsNullOrEmpty(path) && animLibrary != null)
+				animLibrary.ImportAnimation(path);
+		}
+		GUI.Label(new Rect(195f, y, 100f, 30f), "Search:", labelStyle);
+		animSearch = GUI.TextField(new Rect(265f, y, 190f, 30f), animSearch);
 		y += 40f;
 
 		if (cats.Count > 0)

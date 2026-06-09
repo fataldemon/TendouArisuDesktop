@@ -49,7 +49,7 @@ public class AnimationLibrary : MonoBehaviour
     public void ScanAll()
     {
 #if UNITY_EDITOR
-        var guids = AssetDatabase.FindAssets("t:AnimationClip", new[] { "Assets/AnimeGirlIdleAnimations", "Assets/Animvs Game Studio", "Assets/KAWAII_ANIMATIOMS_100", "Assets/Animation" });
+        var guids = AssetDatabase.FindAssets("t:AnimationClip", new[] { "Assets/AnimeGirlIdleAnimations", "Assets/Animvs Game Studio", "Assets/KAWAII_ANIMATIOMS_100", "Assets/Animation", "Assets/ImportedAnimations" });
         var existing = new HashSet<string>(registry.Select(r => r.assetPath));
         foreach (var guid in guids)
         {
@@ -64,6 +64,26 @@ public class AnimationLibrary : MonoBehaviour
 #endif
     }
 
+#if UNITY_EDITOR
+    public void ImportAnimation(string sourcePath)
+    {
+        if (string.IsNullOrEmpty(sourcePath) || !System.IO.File.Exists(sourcePath)) return;
+
+        string dir = "Assets/ImportedAnimations";
+        if (!System.IO.Directory.Exists(dir))
+            System.IO.Directory.CreateDirectory(dir);
+
+        string fileName = System.IO.Path.GetFileName(sourcePath);
+        string destPath = System.IO.Path.Combine(dir, fileName);
+
+        System.IO.File.Copy(sourcePath, destPath, true);
+        UnityEditor.AssetDatabase.ImportAsset(destPath);
+        UnityEditor.AssetDatabase.Refresh();
+
+        ScanAll();
+    }
+#endif
+
     private string DetectCategory(string clipName, string path)
     {
         string p = path.ToLower();
@@ -72,6 +92,7 @@ public class AnimationLibrary : MonoBehaviour
         if (p.Contains("/emote") || p.Contains("react") || p.Contains("layer")) return "Emote";
         if (p.Contains("/combat") || p.Contains("attack") || p.Contains("damage")) return "Combat";
         if (p.Contains("/walk") || p.Contains("/run") || p.Contains("/dash") || p.Contains("/crawl")) return "Move";
+        if (p.Contains("/imported")) return "Imported";
         return "Other";
     }
 
