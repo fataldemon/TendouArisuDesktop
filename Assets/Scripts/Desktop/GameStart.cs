@@ -60,7 +60,7 @@ public class GameStart : MonoBehaviour
 	private int msg_length_send;
 
 	[SerializeField]
-	public int msg_height = 800;
+	public int msg_height = 1600;
 
 	public Configuration config;
 
@@ -148,6 +148,7 @@ public class GameStart : MonoBehaviour
 	private GUIStyle selButtonStyle;
 	private GUIStyle labelStyle;
 	private GUIStyle toolbarStyle;
+	private GUIStyle roundedBoxStyle;
 
 	private bool skinReady;
 
@@ -206,9 +207,31 @@ public class GameStart : MonoBehaviour
 		selButtonStyle.active.background = selBg;
 		selButtonStyle.focused.background = selBg;
 
+		roundedBoxStyle = new GUIStyle(GUI.skin.box);
+		roundedBoxStyle.normal.background = CreateRoundedBg(600, 1600, 24, new Color(0.298f, 0.788f, 0.941f, 0.88f));
+
 		skinReady = true;
 	}
 
+	private Texture2D CreateRoundedBg(int width, int height, int radius, Color color)
+	{
+		var tex = new Texture2D(width, height);
+		var pixels = new Color[width * height];
+		float r2 = radius * radius;
+		for (int y = 0; y < height; y++)
+			for (int x = 0; x < width; x++)
+			{
+				bool inside = true;
+				if (x < radius && y < radius && (x - radius) * (x - radius) + (y - radius) * (y - radius) > r2) inside = false;
+				if (x >= width - radius && y < radius && (x - (width - radius - 1)) * (x - (width - radius - 1)) + (y - radius) * (y - radius) > r2) inside = false;
+				if (x < radius && y >= height - radius && (x - radius) * (x - radius) + (y - (height - radius - 1)) * (y - (height - radius - 1)) > r2) inside = false;
+				if (x >= width - radius && y >= height - radius && (x - (width - radius - 1)) * (x - (width - radius - 1)) + (y - (height - radius - 1)) * (y - (height - radius - 1)) > r2) inside = false;
+				pixels[y * width + x] = inside ? color : Color.clear;
+			}
+		tex.SetPixels(pixels);
+		tex.Apply();
+		return tex;
+	}
 
 	private Rect configWindowRect;
 
@@ -230,6 +253,10 @@ public class GameStart : MonoBehaviour
 	private Rect exprEditWindowRect;
 	private ExpressionMappingData exprEditTarget;
 
+	private Texture2D cachedRoundedBg;
+	private int cachedBgWidth;
+	private int cachedBgHeight;
+
 	[SerializeField]
 	private int fontSize = 40;
 
@@ -241,13 +268,18 @@ public class GameStart : MonoBehaviour
 
 	private Vector2 exprScrollPosition = Vector2.zero;
 
-	private float scrollSpeed = 5f;
+	private float scrollSpeed = 7f;
 
 	private float pauseDuration = 1f;
 
 	private bool isScrolling = true;
 
 	private float pauseTimer;
+
+	private bool isCameraZoomed;
+	private Vector3 savedCameraPos;
+	private Quaternion savedCameraRot;
+	private Coroutine cameraZoomRoutine;
 
 	[SerializeField]
 	private float waitingTimer;
@@ -266,11 +298,14 @@ public class GameStart : MonoBehaviour
 	{
 		Debug.Log("捕捉到错误信息。");
 		exceptionRestore = value;
+		if (actionController != null)
+			actionController.RestoreAnimator();
 	}
 
 	private void ApplyIdleState(bool animated = true)
 	{
 		if (actionController == null) return;
+		RestoreCamera();
 		actionController.RestoreAnimator();
 		if (animated)
 			actionController.RestoreFacialExpression(SetRestoreEndToken);
@@ -286,6 +321,8 @@ public class GameStart : MonoBehaviour
 		withExpression = value;
 		onVoice = value;
 		onRestore = value;
+		if (actionController != null)
+			actionController.RestoreAnimator();
 		if (actionController != null && actionController.mappingManager != null)
 			StartCoroutine(DelayedIdleApply(0.35f));
 	}
@@ -295,6 +332,54 @@ public class GameStart : MonoBehaviour
 		yield return new WaitForSeconds(delay);
 		if (actionController != null && actionController.mappingManager != null)
 			actionController.mappingManager.TryApplyFacial("待机");
+	}
+
+	private void ZoomToHead()
+	{
+		if (isCameraZoomed) return;
+		if (actionController?.animator == null) return;
+		var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+		if (head == null) return;
+		if (cameraZoomRoutine != null) StopCoroutine(cameraZoomRoutine);
+		cameraZoomRoutine = StartCoroutine(ZoomCoroutine(head));
+	}
+
+	private System.Collections.IEnumerator ZoomCoroutine(Transform head)
+	{
+		savedCameraPos = Camera.main.transform.position;
+		savedCameraRot = Camera.main.transform.rotation;
+		isCameraZoomed = true;
+		Vector3 target = head.position - (Camera.main.transform.forward * 1.0f) + (Vector3.up * 0.05f);
+		float elapsed = 0f;
+		while (elapsed < 0.3f)
+		{
+			Camera.main.transform.position = Vector3.Lerp(savedCameraPos, target, elapsed / 0.3f);
+			elapsed += Time.deltaTime;
+			yield return null;
+		}
+		Camera.main.transform.position = target;
+	}
+
+	private void RestoreCamera()
+	{
+		if (!isCameraZoomed) return;
+		if (cameraZoomRoutine != null) StopCoroutine(cameraZoomRoutine);
+		cameraZoomRoutine = StartCoroutine(RestoreCoroutine());
+	}
+
+	private System.Collections.IEnumerator RestoreCoroutine()
+	{
+		Vector3 from = Camera.main.transform.position;
+		float elapsed = 0f;
+		while (elapsed < 0.3f)
+		{
+			Camera.main.transform.position = Vector3.Lerp(from, savedCameraPos, elapsed / 0.3f);
+			elapsed += Time.deltaTime;
+			yield return null;
+		}
+		Camera.main.transform.position = savedCameraPos;
+		Camera.main.transform.rotation = savedCameraRot;
+		isCameraZoomed = false;
 	}
 
 	private void Start()
@@ -313,13 +398,9 @@ public class GameStart : MonoBehaviour
 				tts_page = settings.ttsMode;
 			if (settings.msgMaxWidth > 0)
 				msg_max_length = settings.msgMaxWidth;
-			if (settings.msgHeight > 0)
-				msg_height = settings.msgHeight;
 			if (settings.fontSize > 0)
 				fontSize = settings.fontSize;
 			config.ApplyFrom(settings);
-			if (modelManager != null && modelManager.currentModel != null)
-				modelManager.currentModel.transform.localScale = new Vector3(settings.scaleX, settings.scaleY, settings.scaleZ);
 		}
 
 		config.initConfiguration(websocket_url, tts_page, translator.Baidu_fanyi_url, translator.App_id, translator.Private_key, translator.Salt, llmFormatter.identity, llmFormatter.preset_information);
@@ -339,12 +420,34 @@ public class GameStart : MonoBehaviour
 
 	private void Update()
 	{
-		if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
-		    && modelManager != null && modelManager.currentModel != null)
+		if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
 		{
 			float scroll = Input.GetAxis("Mouse ScrollWheel");
 			if (Mathf.Abs(scroll) > 0.01f)
-				modelManager.ScaleModel(scroll * 0.1f);
+			{
+				Vector3 headPos = Camera.main.transform.position + Camera.main.transform.forward;
+				if (actionController?.animator != null)
+				{
+					var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+					if (head != null) headPos = head.position;
+				}
+				Vector3 dir = (headPos - Camera.main.transform.position).normalized;
+				Camera.main.transform.position += dir * scroll * 2f;
+			}
+
+			if (Input.GetMouseButton(1))
+			{
+				float mx = Input.GetAxis("Mouse X");
+				float my = Input.GetAxis("Mouse Y");
+				Vector3 orbitCenter = targetTransform != null ? targetTransform.position : Camera.main.transform.position + Camera.main.transform.forward * 1f;
+				if (actionController?.animator != null)
+				{
+					var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+					if (head != null) orbitCenter = head.position;
+				}
+				Camera.main.transform.RotateAround(orbitCenter, Vector3.up, mx * 3f);
+				Camera.main.transform.RotateAround(orbitCenter, Camera.main.transform.right, -my * 3f);
+			}
 		}
 
 		if (onDialogue)
@@ -498,7 +601,7 @@ public class GameStart : MonoBehaviour
 				}
 			}
 		}
-		else if (waitingTimer > waitingInterval)
+		else if (waitingTimer > waitingInterval && !isCameraZoomed)
 		{
 			int num3 = rand.Next(1, 4);
 			actionController.animator.SetInteger("onWaiting", num3);
@@ -599,11 +702,6 @@ public class GameStart : MonoBehaviour
 		settings.msgMaxWidth = msg_max_length;
 		settings.msgHeight = msg_height;
 		settings.fontSize = fontSize;
-		if (modelManager != null && modelManager.currentModel != null)
-		{
-			var s = modelManager.currentModel.transform.localScale;
-			settings.scaleX = s.x; settings.scaleY = s.y; settings.scaleZ = s.z;
-		}
 		int wx, wy;
 		windowController.GetWindowPosition(out wx, out wy);
 		settings.winX = wx;
@@ -627,19 +725,30 @@ public class GameStart : MonoBehaviour
 
 		if (targetTransform != null && onDialogue)
 		{
-			screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
 			TextAreaStyle = new GUIStyle(GUI.skin.textArea);
 			TextAreaStyle.fontSize = fontSize;
 			TextAreaStyle.wordWrap = true;
 			TextAreaStyle.normal.textColor = Color.white;
-			var taBg = new Texture2D(1, 1);
-			taBg.SetPixel(0, 0, new Color(0.024f, 0.059f, 0.122f, 0.85f));
-			taBg.Apply();
-			TextAreaStyle.normal.background = taBg;
+			TextAreaStyle.normal.background = null;
+			TextAreaStyle.hover.background = null;
+			TextAreaStyle.focused.background = null;
+			TextAreaStyle.active.background = null;
 			TextAreaStyle.padding = new RectOffset(8, 8, 6, 6);
 			float height = TextAreaStyle.CalcHeight(new GUIContent(text_answer), msg_length_receive - 20);
-			Rect position = new Rect(screenPos.x + guiOffset.x - (float)(msg_length_receive / 2) + (float)(msg_max_length / 2), (float)Screen.height - screenPos.y + guiOffset.y, msg_length_receive, msg_height);
+			Rect position = new Rect(screenPos.x + guiOffset.x - (float)(msg_length_receive / 2) + (float)(msg_max_length / 2), Screen.height - msg_height - 160f, msg_length_receive, msg_height);
 			Rect rect = new Rect(screenPos.x + guiOffset.x - (float)(msg_length_receive / 2) + (float)(msg_max_length / 2) - 10f, (float)Screen.height - screenPos.y + guiOffset.y - 10f, msg_length_receive - 20, height);
+
+			Rect boxRect = new Rect(position.x - 12f, position.y - 12f, position.width + 24f, position.height + 24f);
+			int bw = (int)boxRect.width, bh = (int)boxRect.height;
+			if (cachedRoundedBg == null || cachedBgWidth != bw || cachedBgHeight != bh)
+			{
+				if (cachedRoundedBg != null) Destroy(cachedRoundedBg);
+				cachedRoundedBg = CreateRoundedBg(bw, bh, 28, new Color(0.298f, 0.788f, 0.941f, 0.88f));
+				cachedBgWidth = bw; cachedBgHeight = bh;
+				roundedBoxStyle.normal.background = cachedRoundedBg;
+			}
+			GUI.Box(boxRect, "", roundedBoxStyle);
+
 			scrollPosition = GUI.BeginScrollView(position, scrollPosition, rect);
 			GUI.TextArea(rect, text_answer, TextAreaStyle);
 			GUI.EndScrollView();
@@ -665,7 +774,6 @@ public class GameStart : MonoBehaviour
 
 		if (windowController.configToken && targetTransform != null)
 		{
-			screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
 			float gripSize = 24f;
 			float dialogRight = screenPos.x + guiOffset.x + msg_max_length;
 			float dialogBottom = (float)Screen.height - screenPos.y + guiOffset.y + msg_height;
@@ -690,7 +798,7 @@ public class GameStart : MonoBehaviour
 			{
 				Vector2 delta = e.mousePosition - resizeStartMouse;
 				msg_max_length = Mathf.Clamp(resizeStartWidth + (int)delta.x, 200, 1400);
-				msg_height = Mathf.Clamp(resizeStartHeight + (int)delta.y, 60, 600);
+				msg_height = Mathf.Clamp(resizeStartHeight + (int)delta.y, 60, 2000);
 				e.Use();
 			}
 			if (e.type == EventType.MouseUp && isResizingDialog)
@@ -711,8 +819,7 @@ public class GameStart : MonoBehaviour
 		{
 			return;
 		}
-		Vector3 vector = Camera.main.WorldToScreenPoint(targetTransform.position);
-		float btnX = vector.x + guiOffset.x + (float)msg_max_length + 20f;
+		float btnX = screenPos.x + guiOffset.x + (float)msg_max_length + 20f;
 		float btnBaseY = Screen.height - 10f;
 		if (GUI.Button(new Rect(btnX, btnBaseY - 40f, 90f, 40f), "表情", buttonStyle))
 		{
@@ -1110,6 +1217,7 @@ public class GameStart : MonoBehaviour
 	private void PreviewFacialGroups(List<FacialGroup> groups)
 	{
 		if (actionController?.facialController == null) return;
+		ZoomToHead();
 		actionController.facialController.ResetBlendShapesInstant();
 		foreach (var fg in groups)
 			if (!string.IsNullOrEmpty(fg.preset))

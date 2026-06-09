@@ -147,22 +147,6 @@ public class ModelManager : MonoBehaviour
         SaveHistory();
     }
 
-    public void ScaleModel(float delta)
-    {
-        if (currentModel == null) return;
-        Vector3 s = currentModel.transform.localScale;
-        s += Vector3.one * delta;
-        s = new Vector3(
-            Mathf.Clamp(s.x, 0.1f, 5f),
-            Mathf.Clamp(s.y, 0.1f, 5f),
-            Mathf.Clamp(s.z, 0.1f, 5f));
-        currentModel.transform.localScale = s;
-    }
-
-    public Vector3 GetScale() => currentModel != null ? currentModel.transform.localScale : Vector3.one;
-
-    public void SetScale(Vector3 s) { if (currentModel != null) currentModel.transform.localScale = s; }
-
     private void AddToHistory(string path, string name)
     {
         modelHistory.RemoveAll(h => h.StartsWith(path + "|"));
