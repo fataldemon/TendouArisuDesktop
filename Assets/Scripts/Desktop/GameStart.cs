@@ -36,6 +36,8 @@ public class GameStart : MonoBehaviour
 
 	private bool exceptionRestore;
 
+	private bool expressionApplied;
+
 	[SerializeField]
 	private bool onVoice;
 
@@ -282,41 +284,62 @@ public class GameStart : MonoBehaviour
 				var choice = wrapper.choices[0];
 
 		// 流式 chunk（有 delta）
-		if (choice.delta != null && !string.IsNullOrEmpty(choice.delta.content))
+		if (choice.delta != null)
 		{
-			streamBuffer += choice.delta.content;
+			if (!string.IsNullOrEmpty(choice.delta.content))
+				streamBuffer += choice.delta.content;
 
-			// think 结束之前不显示任何内容，结束后只显示 answer
-			int thinkEnd = streamBuffer.IndexOf("</think>");
-			if (thinkEnd >= 0)
+			// 实时检测表情标签，一旦闭合就立即应用
+			if (!expressionApplied)
 			{
-				string displayText = streamBuffer.Substring(thinkEnd + "</think>".Length);
-				if (!string.IsNullOrEmpty(displayText))
+				int tagStart = streamBuffer.IndexOf("【{'expression':");
+				if (tagStart >= 0)
 				{
-					text_answer = "爱丽丝：\n" + LLMFormatter.RemoveEmotion(displayText);
-					onDialogue = true;
+					int tagEnd = streamBuffer.IndexOf("}】", tagStart);
+					if (tagEnd >= 0)
+					{
+						string exprText = streamBuffer.Substring(tagStart, tagEnd + 2 - tagStart);
+						actionController.SetFacialExpression(exprText);
+						actionController.AnimatorControl(exprText);
+						expressionApplied = true;
+						withExpression = true;
+					}
 				}
 			}
 
-				// finish_reason 非空 → 流结束
-				if (!string.IsNullOrEmpty(choice.finish_reason))
+			// finish_reason 到达 → 流结束，无论 content 是否为空都要处理
+			if (!string.IsNullOrEmpty(choice.finish_reason))
+			{
+				if (choice.finish_reason == "abort" || choice.finish_reason == "overthink")
 				{
-					if (choice.finish_reason == "abort" || choice.finish_reason == "overthink")
+					streamBuffer = "";
+					expressionApplied = false;
+					text_answer = "";
+					onDialogue = false;
+				}
+				else
+				{
+					ProcessResponse(streamBuffer, choice.finish_reason, choice.index);
+				}
+				streamBuffer = "";
+				expressionApplied = false;
+			}
+			else if (!string.IsNullOrEmpty(choice.delta.content))
+			{
+				// think 结束之前不显示任何内容，结束后只显示 answer
+				int thinkEnd = streamBuffer.IndexOf("</think>");
+				if (thinkEnd >= 0)
+				{
+					string displayText = streamBuffer.Substring(thinkEnd + "</think>".Length);
+					if (!string.IsNullOrEmpty(displayText))
 					{
-						streamBuffer = "";
-						text_answer = "";
-						onDialogue = false;
-					}
-					else
-					{
-						answer = streamBuffer;
-						finish_reason = choice.finish_reason;
-						streamBuffer = "";
-						ProcessResponse(answer, finish_reason, choice.index);
+						text_answer = "爱丽丝：" + LLMFormatter.RemoveEmotion(displayText);
+						onDialogue = true;
 					}
 				}
-				return;
 			}
+			return;
+		}
 			// 非流式新格式（有 message 无 delta）
 			else if (choice.message != null && !string.IsNullOrEmpty(choice.message.content))
 			{
@@ -399,7 +422,7 @@ public class GameStart : MonoBehaviour
 			llmFormatter.SaveResponse(toSave);
 		}
 		string text = LLMFormatter.RemoveAction(LLMFormatter.RemoveEmotion(answerPure));
-		text_answer = "爱丽丝：\n" + text;
+		text_answer = "爱丽丝：" + text;
 		if (string.IsNullOrEmpty(text))
 		{
 			text_answer += "唔...";
@@ -410,6 +433,7 @@ public class GameStart : MonoBehaviour
 		actionController.SetFacialExpression(answerPure);
 		actionController.AnimatorControl(answerPure);
 		translator.translate(text, "jp", GenerateVoice, SetExceptionRestore);
+		llmFormatter.pending = false;
 	}
 
 	private void OnApplicationQuit()
@@ -571,7 +595,7 @@ public class GameStart : MonoBehaviour
 		if (GUI.Button(new Rect(vector.x + guiOffset.x + (float)msg_max_length - 110f, (float)Screen.height - vector.y + guiOffset.y - (float)msg_height, 90f, 40f), new GUIContent(chatButton)) && msg != null && !llmFormatter.pending)
 		{
 			llmFormatter.pending = true;
-			string content = llmFormatter.LLMFormatterForWebsocket("gpt-3.5-turbo", 0.93f, 0.7f, 1.116f, stream: false, msg);
+			string content = llmFormatter.LLMFormatterForWebsocket("gpt-3.5-turbo", 0.6f, 0.95f, 1.116f, stream: false, msg);
 			NetManager.M_Instance.Send(content);
 			tips_message = "（" + llmFormatter.identity + "对爱丽丝说）" + msg;
 			msg = null;
