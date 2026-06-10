@@ -289,9 +289,12 @@ public class PipeServer : MonoBehaviour
                 case "preview_animation":
                     if (!string.IsNullOrEmpty(cmd.name))
                     {
+                        WriteLog("Preview: looking for '" + cmd.name + "' refs=" + (animLibrary?.clipReferences?.Length ?? -1));
                         animLibrary?.StopPreview();
                         var clip = animLibrary?.registry.Find(r => r.name == cmd.name);
-                        if (clip != null) animLibrary?.Preview(clip);
+                        WriteLog("Preview: clip found=" + (clip != null) + " actionParam=" + (clip?.actionParam ?? -1));
+                        if (clip != null) { animLibrary?.Preview(clip); WriteLog("Preview: called"); }
+                        else WriteLog("Preview: clip not found in registry");
                     }
                     break;
                 case "stop_preview":
@@ -300,7 +303,6 @@ public class PipeServer : MonoBehaviour
                 case "preview_expression":
                     if (actionController?.facialController != null && !string.IsNullOrEmpty(cmd.emotion))
                     {
-                        gameStart.ZoomToHeadPublic();
                         actionController.facialController.ResetBlendShapesInstant();
                         mappingManager?.TryApplyFacial(cmd.emotion);
                     }

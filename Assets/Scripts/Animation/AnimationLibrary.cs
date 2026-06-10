@@ -9,6 +9,7 @@ using UnityEditor;
 public class AnimationLibrary : MonoBehaviour
 {
     public List<AnimationClipData> registry = new List<AnimationClipData>();
+    public AnimationClip[] clipReferences = System.Array.Empty<AnimationClip>();
     public ActionController actionController;
     public bool allowRootMotion;
 
@@ -57,6 +58,15 @@ public class AnimationLibrary : MonoBehaviour
         if (validFolders.Count == 0) return;
         var guids = AssetDatabase.FindAssets("t:AnimationClip", validFolders.ToArray());
         var existing = new HashSet<string>(registry.Select(r => r.assetPath));
+
+        // Load existing clips from registry to preserve references for build
+        var allClips = new List<AnimationClip>();
+        foreach (var item in registry)
+        {
+            var c = AssetDatabase.LoadAssetAtPath<AnimationClip>(item.assetPath);
+            if (c != null) allClips.Add(c);
+        }
+
         foreach (var guid in guids)
         {
             var path = AssetDatabase.GUIDToAssetPath(guid);
@@ -64,8 +74,11 @@ public class AnimationLibrary : MonoBehaviour
             var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
             if (clip == null) continue;
             registry.Add(new AnimationClipData(clip.name, DetectCategory(clip.name, path), clip.length, path));
+            allClips.Add(clip);
         }
+        clipReferences = allClips.ToArray();
         registry = registry.OrderBy(r => r.category).ThenBy(r => r.name).ToList();
+        UnityEditor.EditorUtility.SetDirty(this);
         SaveLibrary();
 #endif
     }
@@ -113,9 +126,14 @@ public class AnimationLibrary : MonoBehaviour
     public void Preview(AnimationClipData data)
     {
         if (data == null) return;
+        AnimationClip? clip = null;
 #if UNITY_EDITOR
-        previewClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(data.assetPath);
-        if (previewClip == null) return;
+        clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(data.assetPath);
+#else
+        foreach (var c in clipReferences)
+            if (c.name == data.name) { clip = c; break; }
+#endif
+        if (clip == null) { Debug.Log("[Preview] clip not found in references: " + data.name + " refs=" + clipReferences.Length); return; }
 
         if (actionController != null)
             animator = actionController.animator;
@@ -135,15 +153,9 @@ public class AnimationLibrary : MonoBehaviour
         rootLocalPos = rootBone != null ? rootBone.localPosition : Vector3.zero;
         rootLocalRot = rootBone != null ? rootBone.localRotation : Quaternion.identity;
 
+        previewClip = clip;
         isPreviewing = true;
         previewRoutine = StartCoroutine(PreviewCoroutine(previewClip));
-#else
-        if (actionController != null && actionController.animator != null)
-        {
-            actionController.animator.SetInteger("action_param", data.actionParam);
-            isPreviewing = true;
-        }
-#endif
     }
 
     public void StopPreview()
@@ -258,6 +270,19 @@ public class AnimationLibrary : MonoBehaviour
             var w = JsonUtility.FromJson<RegistryWrapper>(File.ReadAllText(path));
             if (w != null) registry = w.items ?? new List<AnimationClipData>();
         }
+#if UNITY_EDITOR
+        var clips = new List<AnimationClip>();
+        foreach (var item in registry)
+        {
+            var c = AssetDatabase.LoadAssetAtPath<AnimationClip>(item.assetPath);
+            if (c != null) clips.Add(c);
+        }
+        if (clips.Count > 0)
+        {
+            clipReferences = clips.ToArray();
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+#endif
     }
 
     private string GetPath() => Path.Combine(Application.persistentDataPath, "animation_library.json");
