@@ -2,10 +2,13 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 public class GameStart : MonoBehaviour
 {
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
     private string msg;
     private string reply;
     private string thought;
@@ -253,7 +256,7 @@ public class GameStart : MonoBehaviour
             trayManager.OnExit += () =>
             {
 #if !UNITY_EDITOR
-                try { System.Diagnostics.Process.GetProcessesByName("AliceBotSettings").ToList().ForEach(p => p.Kill()); } catch { }
+                try { System.Diagnostics.Process.Start("taskkill", "/f /im AliceBotSettings.exe").WaitForExit(500); } catch { }
 #endif
                 Application.Quit();
             };
@@ -356,6 +359,26 @@ public class GameStart : MonoBehaviour
         }
     }
 
+    public void ZoomToHeadPublic()
+    {
+        ZoomToHead();
+    }
+
+    public void ScheduleActionRestore(float delay)
+    {
+        StartCoroutine(AutoRestoreAnim(delay));
+    }
+
+    private System.Collections.IEnumerator AutoRestoreAnim(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (actionController?.animator != null)
+        {
+            actionController.animator.SetInteger("action_param", 0);
+            actionController.animator.SetInteger("onWaiting", 0);
+        }
+    }
+
     public void PlayVoicePublic(AudioClip _clip, string _response)
     {
         PlayVoice(_clip, _response);
@@ -363,7 +386,7 @@ public class GameStart : MonoBehaviour
 
     void Update()
     {
-        bool ctrlDown = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+        bool ctrlDown = (GetAsyncKeyState(0x11) & 0x8000) != 0;
 
         if (ctrlDown)
         {

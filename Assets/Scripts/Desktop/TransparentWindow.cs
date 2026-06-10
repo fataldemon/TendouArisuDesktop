@@ -3,6 +3,10 @@ using System.Collections;
 using System;
 using System.Runtime.InteropServices;
 
+[ComImport, Guid("56FDF342-FD6D-11d0-958A-006097C9A090")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface ITaskbarList { void HrInit(); void AddTab(IntPtr hwnd); void DeleteTab(IntPtr hwnd); void ActivateTab(IntPtr hwnd); void SetActiveAlt(IntPtr hwnd); }
+
 public enum EnumWinStyle
 {
     WinTop,
@@ -60,6 +64,9 @@ public class TransparentWindow : MonoBehaviour
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+
     private const int WS_POPUP = 0x800000;
     private const int GWL_EXSTYLE = -20;
     private const int GWL_STYLE = -16;
@@ -83,6 +90,9 @@ public class TransparentWindow : MonoBehaviour
     public int currentX = 0;
     public int currentY = 0;
 
+    public SystemTrayManager trayManager;
+
+    private int _realWidth, _realHeight, _realX, _realY;
     private IntPtr hwnd = IntPtr.Zero;
     private bool _transparentEnabled;
     private bool _ctrlWasDown;
@@ -92,14 +102,13 @@ public class TransparentWindow : MonoBehaviour
 #if !UNITY_EDITOR
         SettingsData settings = SettingsData.Load();
 
-        // Match primary display resolution on startup
         int displayW = Display.main.systemWidth;
         int displayH = Display.main.systemHeight;
 
-        ResWidth = (settings.winWidth > 0) ? settings.winWidth : displayW;
-        ResHeight = (settings.winHeight > 0) ? settings.winHeight : displayH;
-        currentX = (settings.winX > 0) ? settings.winX : 0;
-        currentY = (settings.winY > 0) ? settings.winY : 0;
+        _realWidth = (settings.winWidth > 0) ? settings.winWidth : displayW;
+        _realHeight = (settings.winHeight > 0) ? settings.winHeight : displayH;
+        _realX = (settings.winX > 0) ? settings.winX : 0;
+        _realY = (settings.winY > 0) ? settings.winY : 0;
 
         Application.runInBackground = true;
         Screen.fullScreen = false;
@@ -114,19 +123,27 @@ public class TransparentWindow : MonoBehaviour
         yield return new WaitForEndOfFrame();
         yield return null;
 
-        Screen.SetResolution(ResWidth, ResHeight, FullScreenMode.Windowed);
-        yield return null;
-
-        // Transparent borderless window
+        // Switch to real transparent overlay in minimal frames
+        Screen.SetResolution(_realWidth, _realHeight, FullScreenMode.Windowed);
         SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED);
         int intExTemp = GetWindowLong(hwnd, GWL_EXSTYLE);
         SetWindowLong(hwnd, GWL_EXSTYLE, intExTemp | WS_EX_TRANSPARENT | WS_EX_LAYERED);
         SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_BORDER & ~WS_CAPTION);
-        SetWindowPos(hwnd, -1, currentX, currentY, ResWidth, ResHeight, SWP_SHOWWINDOW);
+        SetWindowPos(hwnd, -1, _realX, _realY, _realWidth, _realHeight, SWP_SHOWWINDOW);
 
         yield return null;
         var margins = new MARGINS() { cxLeftWidth = -1 };
         DwmExtendFrameIntoClientArea(hwnd, ref margins);
+
+        // Remove from taskbar
+        try
+        {
+            var tbl = (ITaskbarList)new TaskbarList();
+            tbl.HrInit();
+            tbl.DeleteTab(hwnd);
+            Marshal.ReleaseComObject(tbl);
+        }
+        catch { }
 
         _transparentEnabled = true;
     }
@@ -146,7 +163,7 @@ public class TransparentWindow : MonoBehaviour
 #if !UNITY_EDITOR
         if (hwnd == IntPtr.Zero) return;
 
-        bool ctrlDown = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+        bool ctrlDown = (GetAsyncKeyState(0x11) & 0x8000) != 0;
 
         // Ctrl pressed → temporarily disable penetration for interaction
         if (ctrlDown && !_ctrlWasDown)
@@ -192,8 +209,7 @@ public class TransparentWindow : MonoBehaviour
 #if !UNITY_EDITOR
         if (hwnd != IntPtr.Zero)
         {
-            GetWindowRect(hwnd, out RECT r);
-            return (GetWindowLong(hwnd, GWL_STYLE) & 0x10000000) == 0; // WS_VISIBLE check (approx)
+            return (_transparentEnabled);
         }
 #endif
         return true;
@@ -225,4 +241,25 @@ public class TransparentWindow : MonoBehaviour
             y = currentY;
         }
     }
+
+    void OnApplicationQuit()
+    {
+#if !UNITY_EDITOR
+        if (hwnd != IntPtr.Zero)
+        {
+            try
+            {
+                var tbl = (ITaskbarList)new TaskbarList();
+                tbl.HrInit();
+                tbl.AddTab(hwnd);
+                Marshal.ReleaseComObject(tbl);
+            }
+            catch { }
+            SetWindowPos(hwnd, -1, 0, 0, 1, 1, SWP_SHOWWINDOW);
+        }
+#endif
+    }
 }
+
+[ComImport, Guid("56FDF344-FD6D-11d0-958A-006097C9A090")]
+class TaskbarList { }

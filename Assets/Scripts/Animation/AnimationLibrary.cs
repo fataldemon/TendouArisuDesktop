@@ -137,6 +137,12 @@ public class AnimationLibrary : MonoBehaviour
 
         isPreviewing = true;
         previewRoutine = StartCoroutine(PreviewCoroutine(previewClip));
+#else
+        if (actionController != null && actionController.animator != null)
+        {
+            actionController.animator.SetInteger("action_param", data.actionParam);
+            isPreviewing = true;
+        }
 #endif
     }
 

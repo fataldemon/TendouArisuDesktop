@@ -49,7 +49,7 @@ public class PipeServer : MonoBehaviour
     public void StopServer()
     {
         _running = false;
-        try { _serverThread?.Join(2000); } catch { }
+        try { _serverThread?.Join(100); } catch { }
     }
 
     private void ServerLoop()
@@ -282,11 +282,17 @@ public class PipeServer : MonoBehaviour
                     break;
                 case "preview_expression":
                     if (mappingManager != null && !string.IsNullOrEmpty(cmd.emotion))
+                    {
+                        gameStart.ZoomToHeadPublic();
                         mappingManager.TryApplyFacial(cmd.emotion);
+                    }
                     break;
                 case "preview_action":
-                    if (actionController?.animator != null && int.TryParse(cmd.name, out int ap))
-                        actionController.animator.SetInteger("action_param", ap);
+                    if (actionController?.animator != null && int.TryParse(cmd.name, out int ap2))
+                    {
+                        actionController.animator.SetInteger("action_param", ap2);
+                        gameStart.ScheduleActionRestore(3f);
+                    }
                     break;
                 case "test_tts":
                     if (!string.IsNullOrEmpty(cmd.text))

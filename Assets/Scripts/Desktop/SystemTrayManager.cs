@@ -397,7 +397,6 @@ public class SystemTrayManager : MonoBehaviour
 
         GetCursorPos(out POINT pt);
         TrackPopupMenu(hMenu, TPM_RIGHTBUTTON | TPM_BOTTOMALIGN, pt.x, pt.y, 0, _trayHwnd, IntPtr.Zero);
-
         DestroyMenu(hMenu);
     }
 }
