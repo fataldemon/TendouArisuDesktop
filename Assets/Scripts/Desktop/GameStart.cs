@@ -227,6 +227,12 @@ public class GameStart : MonoBehaviour
             if (settings.fontSize > 0)
                 fontSize = settings.fontSize;
             config.ApplyFrom(settings);
+            // Restore camera
+            if (settings.camZ != 0f || settings.camX != 0f || settings.camY != 0f)
+            {
+                Camera.main.transform.position = new Vector3(settings.camX, settings.camY, settings.camZ);
+                Camera.main.transform.rotation = new Quaternion(settings.camRotX, settings.camRotY, settings.camRotZ, settings.camRotW);
+            }
         }
 
         int ttsMode = config.tts;
@@ -769,6 +775,14 @@ public class GameStart : MonoBehaviour
         settings.winY = wy;
         settings.winWidth = windowController.ResWidth;
         settings.winHeight = windowController.ResHeight;
+        var cam = Camera.main.transform;
+        settings.camX = cam.position.x;
+        settings.camY = cam.position.y;
+        settings.camZ = cam.position.z;
+        settings.camRotX = cam.rotation.x;
+        settings.camRotY = cam.rotation.y;
+        settings.camRotZ = cam.rotation.z;
+        settings.camRotW = cam.rotation.w;
         config.PopulateTo(settings);
         settings.Save();
     }

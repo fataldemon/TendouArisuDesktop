@@ -108,7 +108,7 @@ public class TransparentWindow : MonoBehaviour
         _realWidth = (settings.winWidth > 0) ? settings.winWidth : displayW;
         _realHeight = (settings.winHeight > 0) ? settings.winHeight : displayH;
         _realX = (settings.winX > 0) ? settings.winX : 0;
-        _realY = (settings.winY > 0) ? settings.winY - 400 : 0;
+        _realY = (settings.winY > 0) ? settings.winY : 0;
         _realHeight += 400;
 
         Application.runInBackground = true;
@@ -256,7 +256,6 @@ public class TransparentWindow : MonoBehaviour
                 Marshal.ReleaseComObject(tbl);
             }
             catch { }
-            SetWindowPos(hwnd, -1, 0, 0, 1, 1, SWP_SHOWWINDOW);
         }
 #endif
     }

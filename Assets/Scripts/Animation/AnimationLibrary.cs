@@ -17,6 +17,7 @@ public class AnimationLibrary : MonoBehaviour
     private float previewTimer;
     private Animator animator;
     private bool isPreviewing;
+    public bool IsPreviewing => isPreviewing;
     private Coroutine previewRoutine;
 
     private Vector3 savedPos;

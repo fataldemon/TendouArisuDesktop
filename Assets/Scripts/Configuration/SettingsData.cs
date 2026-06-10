@@ -31,6 +31,14 @@ public class SettingsData
     public int winWidth;
     public int winHeight;
 
+    public float camX;
+    public float camY;
+    public float camZ;
+    public float camRotX;
+    public float camRotY;
+    public float camRotZ;
+    public float camRotW;
+
     public static string GetFilePath()
     {
         return System.IO.Path.Combine(Application.persistentDataPath, "settings.json");
