@@ -168,7 +168,6 @@ public class SystemTrayManager : MonoBehaviour
     private const uint TPM_RIGHTBUTTON = 0x0002;
     private const uint TPM_BOTTOMALIGN = 0x0020;
     private const uint TPM_RETURNCMD = 0x0100;
-    private const int SW_SHOW = 5;
     private const uint CW_USEDEFAULT = 0x80000000;
     private static readonly IntPtr HWND_MESSAGE = new IntPtr(-3);
 
@@ -281,8 +280,6 @@ public class SystemTrayManager : MonoBehaviour
         // Create 1x1 popup window for menu dismiss
         _handleHwnd = CreateWindowExW(0, "AliceBotTrayClass", "AliceBotHandle", 0u,
             0, 0, 1, 1, IntPtr.Zero, IntPtr.Zero, hInstance, IntPtr.Zero);
-        if (_handleHwnd != IntPtr.Zero)
-            ShowWindow(_handleHwnd, (int)SW_SHOW);
 
         CreateTrayIcon();
 
