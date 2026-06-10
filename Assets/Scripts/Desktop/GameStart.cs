@@ -393,6 +393,9 @@ public class GameStart : MonoBehaviour
                 }
                 Vector3 dir = (headPos - Camera.main.transform.position).normalized;
                 Camera.main.transform.position += dir * scroll * 2f;
+                float d = Vector3.Distance(Camera.main.transform.position, headPos);
+                if (d < 0.7f) Camera.main.transform.position = headPos - dir * 0.7f;
+                if (d > 3.0f) Camera.main.transform.position = headPos - dir * 3.0f;
             }
 
             if (Input.GetMouseButton(1))
