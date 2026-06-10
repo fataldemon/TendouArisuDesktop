@@ -168,6 +168,7 @@ public class SystemTrayManager : MonoBehaviour
     private const uint TPM_RIGHTBUTTON = 0x0002;
     private const uint TPM_BOTTOMALIGN = 0x0020;
     private const uint TPM_RETURNCMD = 0x0100;
+    private const int SW_SHOW = 5;
     private const uint CW_USEDEFAULT = 0x80000000;
     private static readonly IntPtr HWND_MESSAGE = new IntPtr(-3);
 
@@ -191,6 +192,7 @@ public class SystemTrayManager : MonoBehaviour
     private IntPtr _trayHwnd;
     private IntPtr _hIcon;
     private IntPtr _mainHwnd;
+    private IntPtr _handleHwnd;
     private Thread? _messageThread;
     private volatile bool _running;
     private GCHandle _wndProcHandle;
@@ -219,6 +221,7 @@ public class SystemTrayManager : MonoBehaviour
             PostMessageW(_trayHwnd, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
             RemoveTrayIcon();
         }
+        if (_handleHwnd != IntPtr.Zero) { DestroyWindow(_handleHwnd); _handleHwnd = IntPtr.Zero; }
         if (_hIcon != IntPtr.Zero) DestroyIcon(_hIcon);
         if (_wndProcHandle.IsAllocated) _wndProcHandle.Free();
 #endif
@@ -275,6 +278,12 @@ public class SystemTrayManager : MonoBehaviour
         }
         Debug.Log("[Tray] CreateWindowEx ok");
 
+        // Create 1x1 popup window for menu dismiss
+        _handleHwnd = CreateWindowExW(0, "AliceBotTrayClass", "AliceBotHandle", 0u,
+            0, 0, 1, 1, IntPtr.Zero, IntPtr.Zero, hInstance, IntPtr.Zero);
+        if (_handleHwnd != IntPtr.Zero)
+            ShowWindow(_handleHwnd, (int)SW_SHOW);
+
         CreateTrayIcon();
 
         while (_running)
@@ -293,6 +302,7 @@ public class SystemTrayManager : MonoBehaviour
 
         DestroyWindow(_trayHwnd);
         _trayHwnd = IntPtr.Zero;
+        if (_handleHwnd != IntPtr.Zero) { DestroyWindow(_handleHwnd); _handleHwnd = IntPtr.Zero; }
     }
 
     private void CreateTrayIcon()
@@ -359,23 +369,6 @@ public class SystemTrayManager : MonoBehaviour
             }
             return IntPtr.Zero;
         }
-        else if (msg == WM_COMMAND)
-        {
-            int cmdId = (int)wParam;
-            UnityMainThreadDispatcher.Enqueue(() =>
-            {
-                switch (cmdId)
-                {
-                    case IDM_SETTINGS: OnOpenPanel?.Invoke(0); break;
-                    case IDM_MODEL: OnOpenPanel?.Invoke(2); break;
-                    case IDM_ANIMATION: OnOpenPanel?.Invoke(3); break;
-                    case IDM_EXPRESSION: OnOpenPanel?.Invoke(4); break;
-                    case IDM_HISTORY: OnOpenPanel?.Invoke(5); break;
-                    case IDM_EXIT: OnExit?.Invoke(); break;
-                }
-            });
-            return IntPtr.Zero;
-        }
         return DefWindowProcW(hWnd, msg, wParam, lParam);
     }
 
@@ -392,11 +385,29 @@ public class SystemTrayManager : MonoBehaviour
         AppendMenuW(hMenu, MF_SEPARATOR, IntPtr.Zero, "");
         AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_EXIT), "退出");
 
-        if (_mainHwnd != IntPtr.Zero)
-            SetForegroundWindow(_mainHwnd);
+        if (_handleHwnd != IntPtr.Zero)
+            SetForegroundWindow(_handleHwnd);
 
         GetCursorPos(out POINT pt);
-        TrackPopupMenu(hMenu, TPM_RIGHTBUTTON | TPM_BOTTOMALIGN, pt.x, pt.y, 0, _trayHwnd, IntPtr.Zero);
+        int cmdId = TrackPopupMenu(hMenu, TPM_RIGHTBUTTON | TPM_BOTTOMALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, _handleHwnd, IntPtr.Zero);
+        PostMessageW(_handleHwnd, 0 /*WM_NULL*/, IntPtr.Zero, IntPtr.Zero);
         DestroyMenu(hMenu);
+
+        if (cmdId > 0)
+        {
+            int id = cmdId;
+            UnityMainThreadDispatcher.Enqueue(() =>
+            {
+                switch (id)
+                {
+                    case IDM_SETTINGS: OnOpenPanel?.Invoke(0); break;
+                    case IDM_MODEL: OnOpenPanel?.Invoke(2); break;
+                    case IDM_ANIMATION: OnOpenPanel?.Invoke(3); break;
+                    case IDM_EXPRESSION: OnOpenPanel?.Invoke(4); break;
+                    case IDM_HISTORY: OnOpenPanel?.Invoke(5); break;
+                    case IDM_EXIT: OnExit?.Invoke(); break;
+                }
+            });
+        }
     }
 }
