@@ -28,6 +28,8 @@ public class SettingsData
 
     public int winX;
     public int winY;
+    public int winWidth;
+    public int winHeight;
 
     public static string GetFilePath()
     {

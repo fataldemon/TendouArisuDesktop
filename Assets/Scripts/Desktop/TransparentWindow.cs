@@ -2,34 +2,19 @@ using UnityEngine;
 using System.Collections;
 using System;
 using System.Runtime.InteropServices;
-using UnityEngine.XR;
-
-
-
-/// <summary>
-/// 一共可选择三种样式
-/// </summary>
 
 public enum EnumWinStyle
 {
-    /// <summary>
-    /// 置顶
-    /// </summary>
-    WinTop,
-    /// <summary>
-    /// 置顶并且透明
-    /// </summary>
-    WinTopApha,
-    /// <summary>
-    /// 置顶透明并且可以穿透
-    /// </summary>
-    WinTopAphaPenetrate
+    WinTop,
+    WinTopApha,
+    WinTopAphaPenetrate
 }
 
 public class TransparentWindow : MonoBehaviour
 {
-    #region Win函数常量
-    private struct MARGINS
+    #region Win32 Interop
+
+    private struct MARGINS
     {
         public int cxLeftWidth;
         public int cxRightWidth;
@@ -51,7 +36,6 @@ public class TransparentWindow : MonoBehaviour
     [DllImport("user32.dll")]
     static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
-
     [DllImport("user32.dll")]
     static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
@@ -60,11 +44,6 @@ public class TransparentWindow : MonoBehaviour
 
     [DllImport("user32.dll")]
     static extern int SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int X, int Y, int cx, int cy, int uFlags);
-
-
-    [DllImport("user32.dll")]
-    static extern int SetLayeredWindowAttributes(IntPtr hwnd, int crKey, int bAlpha, int dwFlags);
-
 
     [DllImport("Dwmapi.dll")]
     static extern uint DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS margins);
@@ -78,6 +57,9 @@ public class TransparentWindow : MonoBehaviour
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
 
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
     private const int WS_POPUP = 0x800000;
     private const int GWL_EXSTYLE = -20;
     private const int GWL_STYLE = -16;
@@ -85,70 +67,42 @@ public class TransparentWindow : MonoBehaviour
     private const int WS_BORDER = 0x00800000;
     private const int WS_CAPTION = 0x00C00000;
     private const int SWP_SHOWWINDOW = 0x0040;
-    private const int LWA_COLORKEY = 0x00000001;
-    private const int LWA_ALPHA = 0x00000002;
     private const int WS_EX_TRANSPARENT = 0x20;
     private const int WM_NCLBUTTONDOWN = 0x00A1;
     private const int HTCAPTION = 2;
+    private const int SW_HIDE = 0;
+    private const int SW_SHOW = 5;
 
-    //
-    private const int ULW_COLORKEY = 0x00000001;
-    private const int ULW_ALPHA = 0x00000002;
-    private const int ULW_OPAQUE = 0x00000004;
-    private const int ULW_EX_NORESIZE = 0x00000008;
-    #endregion
+    #endregion
 
-    private Vector3 mousePosition = Vector3.zero;
+    public EnumWinStyle WinStyle = EnumWinStyle.WinTopAphaPenetrate;
 
-    //
-    public string strProduct;//项目名称
-    public EnumWinStyle WinStyle = EnumWinStyle.WinTop;//窗体样式
-    //
+    public int ResWidth = 800;
+    public int ResHeight = 800;
 
-    public int ResWidth = 800;//窗口宽度
-    public int ResHeight = 800;//窗口高度
-
-    //
-    public int currentX = 1700;//窗口左上角坐标x
-    public int currentY = 670;//窗口左上角坐标y
-
-    //
-    private bool isApha;//是否透明
-    private bool isAphaPenetrate;//是否要穿透窗体
-
-    //是否允许输入
-    public bool configToken = false;
+    public int currentX = 0;
+    public int currentY = 0;
 
     private IntPtr hwnd = IntPtr.Zero;
     private bool _transparentEnabled;
+    private bool _ctrlWasDown;
 
     void Start()
     {
 #if !UNITY_EDITOR
         SettingsData settings = SettingsData.Load();
-        if (settings != null && settings.winX > 0) currentX = settings.winX;
-        if (settings != null && settings.winY > 0) currentY = settings.winY;
+
+        // Match primary display resolution on startup
+        int displayW = Display.main.systemWidth;
+        int displayH = Display.main.systemHeight;
+
+        ResWidth = (settings.winWidth > 0) ? settings.winWidth : displayW;
+        ResHeight = (settings.winHeight > 0) ? settings.winHeight : displayH;
+        currentX = (settings.winX > 0) ? settings.winX : 0;
+        currentY = (settings.winY > 0) ? settings.winY : 0;
 
         Application.runInBackground = true;
         Screen.fullScreen = false;
-
-        switch (WinStyle)
-        {
-            case EnumWinStyle.WinTop:
-                isApha = false;
-                isAphaPenetrate = false;
-                break;
-
-            case EnumWinStyle.WinTopApha:
-                isApha = true;
-                isAphaPenetrate = false;
-                break;
-
-            case EnumWinStyle.WinTopAphaPenetrate:
-                isApha = true;
-                isAphaPenetrate = true;
-                break;
-        }
 
         hwnd = GetActiveWindow();
         StartCoroutine(ApplyWindowStyleDelayed());
@@ -163,29 +117,18 @@ public class TransparentWindow : MonoBehaviour
         Screen.SetResolution(ResWidth, ResHeight, FullScreenMode.Windowed);
         yield return null;
 
-        if (isApha)
-        {
-            SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED);
-            int intExTemp = GetWindowLong(hwnd, GWL_EXSTYLE);
-            if (isAphaPenetrate)
-            {
-                SetWindowLong(hwnd, GWL_EXSTYLE, intExTemp | WS_EX_TRANSPARENT | WS_EX_LAYERED);
-            }
+        // Transparent borderless window
+        SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED);
+        int intExTemp = GetWindowLong(hwnd, GWL_EXSTYLE);
+        SetWindowLong(hwnd, GWL_EXSTYLE, intExTemp | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+        SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_BORDER & ~WS_CAPTION);
+        SetWindowPos(hwnd, -1, currentX, currentY, ResWidth, ResHeight, SWP_SHOWWINDOW);
 
-            SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_BORDER & ~WS_CAPTION);
-            SetWindowPos(hwnd, -1, currentX, currentY, ResWidth, ResHeight, SWP_SHOWWINDOW);
+        yield return null;
+        var margins = new MARGINS() { cxLeftWidth = -1 };
+        DwmExtendFrameIntoClientArea(hwnd, ref margins);
 
-            yield return null;
-            var margins = new MARGINS() { cxLeftWidth = -1 };
-            DwmExtendFrameIntoClientArea(hwnd, ref margins);
-        }
-        else
-        {
-            SetWindowLong(hwnd, GWL_STYLE, WS_POPUP);
-            SetWindowPos(hwnd, -1, currentX, currentY, ResWidth, ResHeight, SWP_SHOWWINDOW);
-        }
-
-        _transparentEnabled = isAphaPenetrate;
+        _transparentEnabled = true;
     }
 
     private void SetTransparent(bool enable)
@@ -198,65 +141,80 @@ public class TransparentWindow : MonoBehaviour
             SetWindowLong(hwnd, GWL_EXSTYLE, (uint)(GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TRANSPARENT));
     }
 
-    private void Update()
+    void Update()
     {
 #if !UNITY_EDITOR
         if (hwnd == IntPtr.Zero) return;
 
-        if (Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl))
+        bool ctrlDown = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+
+        // Ctrl pressed → temporarily disable penetration for interaction
+        if (ctrlDown && !_ctrlWasDown)
         {
             SetTransparent(false);
         }
 
-        if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+        // Ctrl+drag to move the window
+        if (ctrlDown && Input.GetMouseButtonDown(0))
         {
-            if (Input.GetMouseButtonDown(0))
-            {
-                ReleaseCapture();
-                SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
-            }
+            ReleaseCapture();
+            SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
         }
 
-        if (Input.GetKeyUp(KeyCode.LeftControl) || Input.GetKeyUp(KeyCode.RightControl))
+        // Ctrl released → restore penetration
+        if (!ctrlDown && _ctrlWasDown)
         {
-            if (!configToken)
-            {
-                SetTransparent(true);
-            }
+            SetTransparent(true);
         }
-#endif
 
-        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-        {
-            if (!configToken)
-            {
-                configToken = true;
-#if !UNITY_EDITOR
-                SetTransparent(false);
+        _ctrlWasDown = ctrlDown;
 #endif
-            }
-            else
-            {
-                configToken = false;
-#if !UNITY_EDITOR
-                SetTransparent(true);
-#endif
-            }
-        }
     }
 
-    public void EnableWindowPenetration()
+    public void ShowAppWindow()
     {
-        configToken = false;
 #if !UNITY_EDITOR
-        SetTransparent(true);
+        if (hwnd != IntPtr.Zero)
+            ShowWindow(hwnd, SW_SHOW);
+#endif
+    }
+
+    public void HideAppWindow()
+    {
+#if !UNITY_EDITOR
+        if (hwnd != IntPtr.Zero)
+            ShowWindow(hwnd, SW_HIDE);
+#endif
+    }
+
+    public bool IsWindowVisible()
+    {
+#if !UNITY_EDITOR
+        if (hwnd != IntPtr.Zero)
+        {
+            GetWindowRect(hwnd, out RECT r);
+            return (GetWindowLong(hwnd, GWL_STYLE) & 0x10000000) == 0; // WS_VISIBLE check (approx)
+        }
+#endif
+        return true;
+    }
+
+    public void SetWindowSize(int w, int h)
+    {
+        ResWidth = w;
+        ResHeight = h;
+#if !UNITY_EDITOR
+        if (hwnd != IntPtr.Zero)
+        {
+            Screen.SetResolution(w, h, FullScreenMode.Windowed);
+            SetWindowPos(hwnd, -1, currentX, currentY, w, h, SWP_SHOWWINDOW);
+        }
 #endif
     }
 
     public void GetWindowPosition(out int x, out int y)
     {
-        RECT rect;
-        if (hwnd != IntPtr.Zero && GetWindowRect(hwnd, out rect))
+        if (hwnd != IntPtr.Zero && GetWindowRect(hwnd, out RECT rect))
         {
             x = rect.Left;
             y = rect.Top;
