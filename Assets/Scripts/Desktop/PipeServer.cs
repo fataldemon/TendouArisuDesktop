@@ -22,6 +22,8 @@ public class PipeServer : MonoBehaviour
 
     private const int Port = 19876;
     private Thread? _serverThread;
+    private Stream? _currentStream;
+    private readonly object _streamLock = new();
     private volatile bool _running;
     private string _logPath;
 
@@ -76,6 +78,7 @@ public class PipeServer : MonoBehaviour
                 using var client = listener.AcceptTcpClient();
                 WriteLog("Client connected");
                 using var stream = client.GetStream();
+                lock (_streamLock) { _currentStream = stream; }
 
                 var initJson = BuildInitJson();
                 var initBytes = Encoding.UTF8.GetBytes(initJson + "\n");
@@ -97,10 +100,12 @@ public class PipeServer : MonoBehaviour
                     catch (ObjectDisposedException) { break; }
                 }
                 WriteLog("Client disconnected");
+                lock (_streamLock) { _currentStream = null; }
             }
             catch (Exception ex)
             {
                 WriteLog("Session error: " + ex.GetType().Name + " - " + ex.Message);
+                lock (_streamLock) { _currentStream = null; }
                 if (_running) Thread.Sleep(500);
             }
         }
@@ -224,6 +229,17 @@ public class PipeServer : MonoBehaviour
 
     public void RefreshInitData()
     {
+        Stream? s;
+        lock (_streamLock) { s = _currentStream; }
+        if (s == null) return;
+        try
+        {
+            var json = BuildInitJson();
+            var bytes = Encoding.UTF8.GetBytes(json + "\n");
+            s.Write(bytes, 0, bytes.Length);
+            s.Flush();
+        }
+        catch { lock (_streamLock) { _currentStream = null; } }
     }
 
     public void SendStatus(bool connected)
@@ -299,6 +315,7 @@ public class PipeServer : MonoBehaviour
                     break;
                 case "restore_expression":
                     gameStart.RestoreCharacterPublic();
+                    mappingManager?.TryApplyFacial("待机");
                     break;
                 case "preview_action":
                     if (actionController?.animator != null && int.TryParse(cmd.name, out int ap2))
@@ -319,17 +336,21 @@ public class PipeServer : MonoBehaviour
                     break;
                 case "restore_default_mappings":
                     mappingManager?.RestoreDefaults();
+                    RefreshInitData();
                     break;
                 case "update_expression_mapping":
                     UpdateExpressionMapping(cmd);
+                    RefreshInitData();
                     break;
                 case "delete_expression_mapping":
                     if (!string.IsNullOrEmpty(cmd.emotion))
                         mappingManager?.RemoveMapping(cmd.emotion);
+                    RefreshInitData();
                     break;
                 case "clear_history":
                     llmFormatter.history.Clear();
                     llmFormatter.formatted_history = "";
+                    RefreshInitData();
                     break;
             }
         }
