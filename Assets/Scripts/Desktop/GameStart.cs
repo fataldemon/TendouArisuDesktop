@@ -364,19 +364,11 @@ public class GameStart : MonoBehaviour
         ZoomToHead();
     }
 
-    public void ScheduleActionRestore(float delay)
+    public void RestoreCharacterPublic()
     {
-        StartCoroutine(AutoRestoreAnim(delay));
-    }
-
-    private System.Collections.IEnumerator AutoRestoreAnim(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        if (actionController?.animator != null)
-        {
-            actionController.animator.SetInteger("action_param", 0);
-            actionController.animator.SetInteger("onWaiting", 0);
-        }
+        RestoreCamera();
+        actionController?.RestoreAnimator();
+        actionController?.facialController?.ResetBlendShapesInstant();
     }
 
     public void PlayVoicePublic(AudioClip _clip, string _response)

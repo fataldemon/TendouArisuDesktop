@@ -273,6 +273,7 @@ public class PipeServer : MonoBehaviour
                 case "preview_animation":
                     if (!string.IsNullOrEmpty(cmd.name))
                     {
+                        animLibrary?.StopPreview();
                         var clip = animLibrary?.registry.Find(r => r.name == cmd.name);
                         if (clip != null) animLibrary?.Preview(clip);
                     }
@@ -281,18 +282,27 @@ public class PipeServer : MonoBehaviour
                     animLibrary?.StopPreview();
                     break;
                 case "preview_expression":
-                    if (mappingManager != null && !string.IsNullOrEmpty(cmd.emotion))
+                    if (actionController?.facialController != null && !string.IsNullOrEmpty(cmd.emotion))
                     {
                         gameStart.ZoomToHeadPublic();
-                        mappingManager.TryApplyFacial(cmd.emotion);
+                        actionController.facialController.ResetBlendShapesInstant();
+                        mappingManager?.TryApplyFacial(cmd.emotion);
                     }
+                    break;
+                case "preview_facial":
+                    if (actionController?.facialController != null && !string.IsNullOrEmpty(cmd.facialX))
+                    {
+                        gameStart.ZoomToHeadPublic();
+                        actionController.facialController.ResetBlendShapesInstant();
+                        actionController.facialController.PreviewBlendShape(cmd.facialX, cmd.facialW > 0 ? cmd.facialW : 1f);
+                    }
+                    break;
+                case "restore_expression":
+                    gameStart.RestoreCharacterPublic();
                     break;
                 case "preview_action":
                     if (actionController?.animator != null && int.TryParse(cmd.name, out int ap2))
-                    {
                         actionController.animator.SetInteger("action_param", ap2);
-                        gameStart.ScheduleActionRestore(3f);
-                    }
                     break;
                 case "test_tts":
                     if (!string.IsNullOrEmpty(cmd.text))
