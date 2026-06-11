@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "VUnwMZy0QTo=",
+  "success": true,
+  "projectFilePath": "F:\\GitRepository\\IconConverter\\IconConverter.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Windows\\.nuget\\packages\\skiasharp\\2.88.9\\skiasharp.2.88.9.nupkg.sha512",
+    "C:\\Users\\Windows\\.nuget\\packages\\skiasharp.nativeassets.macos\\2.88.9\\skiasharp.nativeassets.macos.2.88.9.nupkg.sha512",
+    "C:\\Users\\Windows\\.nuget\\packages\\skiasharp.nativeassets.win32\\2.88.9\\skiasharp.nativeassets.win32.2.88.9.nupkg.sha512"
+  ],
+  "logs": []
+}
