@@ -244,6 +244,17 @@ public class PipeServer : MonoBehaviour
 
     public void SendStatus(bool connected)
     {
+        Stream? s;
+        lock (_streamLock) { s = _currentStream; }
+        if (s == null) return;
+        try
+        {
+            var json = "{\"type\":\"status\",\"connected\":" + (connected ? "true" : "false") + "}\n";
+            var bytes = Encoding.UTF8.GetBytes(json);
+            s.Write(bytes, 0, bytes.Length);
+            s.Flush();
+        }
+        catch { lock (_streamLock) { _currentStream = null; } }
     }
 
     private void ProcessMessage(string line)
