@@ -16,13 +16,14 @@ public class PipeClient : IDisposable
     private StreamWriter? _writer;
     private CancellationTokenSource? _cts;
     private bool _disposed;
+    private bool _reconnecting;
 
     public event Action<InitData>? OnInitReceived;
     public event Action<JsonElement>? OnMessageReceived;
     public event Action<bool>? OnConnectionChanged;
     public event Action<string>? OnError;
 
-    public bool IsConnected => _client?.Connected ?? false;
+    public bool IsConnected => _writer != null && !_reconnecting;
 
     private static readonly string LogPath = Path.Combine(Path.GetTempPath(), "wpf_tcp.log");
 
@@ -35,61 +36,72 @@ public class PipeClient : IDisposable
         catch { }
     }
 
-    public async Task ConnectAsync()
+    public async Task StartAsync()
     {
-        Log("ConnectAsync start");
         _cts = new CancellationTokenSource();
+        while (!_cts.IsCancellationRequested && !_disposed)
+        {
+            try
+            {
+                _reconnecting = true;
+                OnConnectionChanged?.Invoke(false);
+                await TryConnectAsync(_cts.Token);
+                return;
+            }
+            catch (OperationCanceledException) { return; }
+            catch (Exception ex)
+            {
+                Log("Connect failed: " + ex.GetType().Name + " - " + ex.Message);
+                await Task.Delay(2000, _cts.Token);
+            }
+        }
+    }
+
+    private async Task TryConnectAsync(CancellationToken ct)
+    {
+        Log("Connecting to 127.0.0.1:" + Port + "...");
+        CleanupConnection();
+
         _client = new TcpClient();
+        await _client.ConnectAsync("127.0.0.1", Port, ct);
+        Log("TCP connected");
+
+        var stream = _client.GetStream();
+        stream.ReadTimeout = 30000;
+        _reader = new StreamReader(stream, Encoding.UTF8);
+        _writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+
+        Log("Reading init data...");
+        var initLine = await _reader.ReadLineAsync(ct);
+        if (initLine == null)
+        {
+            Log("Init data: null");
+            throw new IOException("No init data received");
+        }
+        Log("Init received: " + initLine.Length + " bytes");
 
         try
         {
-            Log("Connecting to 127.0.0.1:" + Port + "...");
-            await _client.ConnectAsync("127.0.0.1", Port, _cts.Token);
-            Log("TCP connected");
-
-            var stream = _client.GetStream();
-            _reader = new StreamReader(stream, Encoding.UTF8);
-            _writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
-
-            Log("Reading init data...");
-            var initLine = await _reader.ReadLineAsync();
-            if (initLine == null)
+            var doc = JsonDocument.Parse(initLine);
+            var root = doc.RootElement;
+            var type = root.GetProperty("type").GetString();
+            if (type == "init")
             {
-                Log("Init data: null (disconnected)");
-                OnError?.Invoke("未收到配置数据");
-                OnConnectionChanged?.Invoke(false);
-                return;
-            }
-            Log("Init received: " + initLine.Length + " bytes");
-
-            try
-            {
-                var doc = JsonDocument.Parse(initLine);
-                var root = doc.RootElement;
-                var type = root.GetProperty("type").GetString();
-                if (type == "init")
+                var init = JsonSerializer.Deserialize<InitData>(root.GetProperty("data").GetRawText(), JsonConfig.Options);
+                if (init != null)
                 {
-                    var init = JsonSerializer.Deserialize<InitData>(root.GetProperty("data").GetRawText(), JsonConfig.Options);
-                    if (init != null)
-                    {
-                        Log("Init parsed ok, mappings=" + init.ExpressionMappings.Count + " anims=" + init.AnimationList.Count);
-                        OnInitReceived?.Invoke(init);
-                    }
+                    Log("Init parsed ok");
+                    OnInitReceived?.Invoke(init);
                 }
             }
-            catch (JsonException ex) { Log("Init parse error: " + ex.Message); }
+        }
+        catch (JsonException ex) { Log("Init parse error: " + ex.Message); }
 
-            OnConnectionChanged?.Invoke(true);
-            Log("Connection complete");
-            _ = ReadLoopAsync(_cts.Token);
-        }
-        catch (OperationCanceledException) { Log("Connect cancelled"); }
-        catch (Exception ex)
-        {
-            Log("Connect error: " + ex.GetType().Name + " - " + ex.Message);
-            OnError?.Invoke($"连接失败: {ex.Message}");
-            OnConnectionChanged?.Invoke(false);
-        }
+        _reconnecting = false;
+        OnConnectionChanged?.Invoke(true);
+        Log("Connection complete");
+
+        await ReadLoopAsync(ct);
     }
 
     private async Task ReadLoopAsync(CancellationToken ct)
@@ -100,7 +112,7 @@ public class PipeClient : IDisposable
             while (!ct.IsCancellationRequested && _reader != null)
             {
                 var line = await _reader.ReadLineAsync(ct);
-                if (line == null) { Log("ReadLoop: null line (disconnected)"); break; }
+                if (line == null) { Log("ReadLoop: null (disconnected)"); break; }
                 try
                 {
                     var doc = JsonDocument.Parse(line);
@@ -125,16 +137,36 @@ public class PipeClient : IDisposable
         finally
         {
             Log("ReadLoop ended");
-            OnConnectionChanged?.Invoke(false);
+            CleanupConnection();
+            if (!_disposed)
+                _ = StartAsync();
         }
     }
 
     public async Task SendCommand(string action, object? data = null)
     {
-        if (_writer == null || !IsConnected) return;
+        if (_writer == null || _reconnecting) return;
         var json = BuildCommandJson(action, data);
         try { await _writer.WriteLineAsync(json); }
-        catch { }
+        catch (Exception ex)
+        {
+            Log("SendCommand error: " + ex.Message);
+            _reconnecting = true;
+            OnConnectionChanged?.Invoke(false);
+            CleanupConnection();
+            _ = StartAsync();
+        }
+    }
+
+    private void CleanupConnection()
+    {
+        try { _client?.Close(); } catch { }
+        _writer?.Dispose();
+        _reader?.Dispose();
+        _client?.Dispose();
+        _writer = null;
+        _reader = null;
+        _client = null;
     }
 
     private static string BuildCommandJson(string action, object? data)
@@ -156,21 +188,12 @@ public class PipeClient : IDisposable
         return sb.ToString();
     }
 
-    public void Disconnect()
-    {
-        Log("Disconnect");
-        _cts?.Cancel();
-        try { _client?.Close(); } catch { }
-        _writer?.Dispose();
-        _reader?.Dispose();
-        _client?.Dispose();
-    }
-
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
-        Disconnect();
+        _cts?.Cancel();
+        CleanupConnection();
         _cts?.Dispose();
     }
 }

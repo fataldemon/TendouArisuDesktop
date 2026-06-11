@@ -51,7 +51,7 @@ public class PipeServer : MonoBehaviour
     public void StopServer()
     {
         _running = false;
-        try { _serverThread?.Join(100); } catch { }
+        try { _serverThread?.Join(2000); } catch { }
     }
 
     private void ServerLoop()
@@ -78,6 +78,7 @@ public class PipeServer : MonoBehaviour
                 using var client = listener.AcceptTcpClient();
                 WriteLog("Client connected");
                 using var stream = client.GetStream();
+                stream.ReadTimeout = 30000;
                 lock (_streamLock) { _currentStream = stream; }
 
                 var initJson = BuildInitJson();

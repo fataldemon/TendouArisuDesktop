@@ -28,8 +28,7 @@ public partial class MainWindow : Window
         _pipe.OnError += e => Dispatcher.Invoke(() => MessageBox.Show(e, "连接错误", MessageBoxButton.OK, MessageBoxImage.Warning));
         Loaded += async (_, _) =>
         {
-            try { await _pipe.ConnectAsync(); }
-            catch (Exception ex) { MessageBox.Show("无法启动连接: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error); }
+            _ = _pipe.StartAsync();
         };
         Closing += async (_, _) =>
         {
