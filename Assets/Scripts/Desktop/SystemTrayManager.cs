@@ -378,7 +378,7 @@ public class SystemTrayManager : MonoBehaviour
         AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_SETTINGS), "设置");
         AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_MODEL), "模型管理");
         AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_ANIMATION), "动画库");
-        AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_EXPRESSION), "表情映射");
+        AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_EXPRESSION), "情绪映射");
         AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_HISTORY), "对话记录");
         AppendMenuW(hMenu, MF_SEPARATOR, IntPtr.Zero, "");
         AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_EXIT), "退出");

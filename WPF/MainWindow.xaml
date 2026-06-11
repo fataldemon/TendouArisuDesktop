@@ -218,10 +218,20 @@
                             <ListBox x:Name="LstPresets" Grid.Row="1" SelectionChanged="OnPresetSelect">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" FontWeight="Bold"/>
-                                            <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextSecondary}" FontSize="11"/>
-                                        </StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding DisplayName}" FontWeight="Bold"/>
+                                                <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextSecondary}" FontSize="11"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                <Button Content="编辑" Width="48" Style="{StaticResource SmallButton}" Tag="{Binding Name}" Click="OnPresetEditClick"/>
+                                                <Button Content="删" Width="40" Style="{StaticResource SmallButton}" Tag="{Binding Name}" Click="OnPresetDeleteClick" Margin="4,0,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
