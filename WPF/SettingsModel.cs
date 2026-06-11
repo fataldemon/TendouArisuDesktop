@@ -55,8 +55,8 @@ public class AnimationEntry
 public class ExpressionMappingEntry
 {
     public string Emotion { get; set; } = "";
-    public List<FacialGroupEntry> FacialGroups { get; set; } = new();
-    public List<ActionGroupEntry> ActionGroups { get; set; } = new();
+    public FacialGroupEntry? FacialGroup { get; set; }
+    public ActionGroupEntry? ActionGroup { get; set; }
 }
 
 public class FacialGroupEntry

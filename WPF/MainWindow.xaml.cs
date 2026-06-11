@@ -147,8 +147,8 @@ public partial class MainWindow : Window
         {
             m.Emotion,
             EmotionDisplay = m.Emotion == "待机" ? "★ 待机" : m.Emotion,
-            FacialSummary = m.FacialGroups.Count > 0 ? m.FacialGroups[0].Preset : "-",
-            ActionSummary = m.ActionGroups.Count > 0 ? m.ActionGroups[0].AnimationName : "-",
+            FacialSummary = m.FacialGroup?.Preset ?? "-",
+            ActionSummary = m.ActionGroup?.AnimationName ?? "-",
             IsIdle = m.Emotion == "待机"
         }).ToList();
         LstExprMappings.ItemsSource = displayList;
@@ -311,8 +311,8 @@ public partial class MainWindow : Window
         _exprEditing = new ExpressionMappingEntry
         {
             Emotion = "",
-            FacialGroups = new List<FacialGroupEntry>(),
-            ActionGroups = new List<ActionGroupEntry>()
+            FacialGroup = new FacialGroupEntry { Preset = "happy", Weight = 1f },
+            ActionGroup = new ActionGroupEntry { AnimationName = "0", BodyPart = "fullBody", Weight = 1f }
         };
         BuildExprEditPanel();
     }
@@ -354,88 +354,40 @@ public partial class MainWindow : Window
 
         var sp = PanelExprEdit;
 
-        // Emotion
+        // Emotion name
         var emoPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
         emoPanel.Children.Add(new TextBlock { Text = "情绪:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
         var txtEmotion = new TextBox { Width = 120, Text = _exprEditing.Emotion };
         txtEmotion.TextChanged += (_, _) => _exprEditing.Emotion = txtEmotion.Text;
         emoPanel.Children.Add(txtEmotion);
-        var btnPreviewAll = new Button { Content = "预览全部", Width = 80, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(8, 0, 0, 0) };
+        var btnPreviewAll = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(8, 0, 0, 0) };
         btnPreviewAll.Click += (_, _) =>
         {
             _ = _pipe.SendCommand("preview_expression", new { emotion = _exprEditing.Emotion });
-            if (_exprEditing.ActionGroups.Count > 0)
-                _ = _pipe.SendCommand("preview_action", new { name = _exprEditing.ActionGroups[0].AnimationName });
         };
         emoPanel.Children.Add(btnPreviewAll);
         sp.Children.Add(emoPanel);
 
-        // Facial section header
-        var fgHeader = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 4) };
-        fgHeader.Children.Add(new TextBlock { Text = "面部表情:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-        var btnPreviewFg = new Button { Content = "预览面部", Width = 80, Style = (Style)FindResource("SmallButton") };
-        btnPreviewFg.Click += (_, _) =>
-        {
-            foreach (var fg in _exprEditing.FacialGroups)
-                if (!string.IsNullOrEmpty(fg.Preset))
-                    _ = _pipe.SendCommand("preview_facial", new { facialX = fg.Preset, facialW = fg.Weight });
-        };
-        fgHeader.Children.Add(btnPreviewFg);
-        sp.Children.Add(fgHeader);
+        // Facial section
+        var fg = _exprEditing.FacialGroup ?? new FacialGroupEntry();
+        _exprEditing.FacialGroup = fg;
+        sp.Children.Add(new TextBlock { Text = "面部表情:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, Margin = new Thickness(0, 8, 0, 4) });
+        sp.Children.Add(BuildFacialPresetSelector(fg));
+        sp.Children.Add(BuildWeightSlider(fg.Weight, w => { fg.Weight = w; }));
 
-        for (int i = 0; i < _exprEditing.FacialGroups.Count; i++)
-        {
-            var idx = i;
-            var fg = _exprEditing.FacialGroups[idx];
-            var fgPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
-            fgPanel.Children.Add(BuildFacialPresetSelector(fg));
-            fgPanel.Children.Add(BuildWeightSlider(fg.Weight, w => { fg.Weight = w; BuildExprEditPanel(); }));
-            var btnDel = new Button { Content = "删除此组", Style = (Style)FindResource("DangerButton"), Width = 80, FontSize = 11 };
-            btnDel.Click += (_, _) => { _exprEditing.FacialGroups.RemoveAt(idx); BuildExprEditPanel(); };
-            fgPanel.Children.Add(btnDel);
-            var sep = new Border { Height = 1, Background = (System.Windows.Media.Brush)FindResource("BorderColor"), Margin = new Thickness(0, 6, 0, 6) };
-            sp.Children.Add(fgPanel);
-            sp.Children.Add(sep);
-        }
+        // Action section
+        var ag = _exprEditing.ActionGroup ?? new ActionGroupEntry();
+        _exprEditing.ActionGroup = ag;
+        sp.Children.Add(new TextBlock { Text = "动作:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, Margin = new Thickness(0, 12, 0, 4) });
+        var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+        var txtName = new TextBox { Width = 120, Text = ag.AnimationName };
+        txtName.TextChanged += (_, _) => ag.AnimationName = txtName.Text;
+        nameRow.Children.Add(txtName);
+        sp.Children.Add(nameRow);
+        sp.Children.Add(BuildBodyPartSelector(ag));
+        sp.Children.Add(BuildWeightSlider(ag.Weight, w => { ag.Weight = w; }));
 
-        var btnAddFg = new Button { Content = "+ 添加表情组", Width = 100, Style = (Style)FindResource("SmallButton") };
-        btnAddFg.Click += (_, _) => { _exprEditing.FacialGroups.Add(new FacialGroupEntry { Preset = "happy", Weight = 1f }); BuildExprEditPanel(); };
-        sp.Children.Add(btnAddFg);
-
-        // Action Groups
-        sp.Children.Add(new TextBlock { Text = "动作组", Foreground = (System.Windows.Media.Brush)FindResource("Accent"), FontWeight = FontWeights.Bold, Margin = new Thickness(0, 12, 0, 4) });
-
-        for (int i = 0; i < _exprEditing.ActionGroups.Count; i++)
-        {
-            var idx = i;
-            var ag = _exprEditing.ActionGroups[idx];
-            var agPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
-
-            var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-            var txtName = new TextBox { Width = 120, Text = ag.AnimationName };
-            txtName.TextChanged += (_, _) => ag.AnimationName = txtName.Text;
-            nameRow.Children.Add(txtName);
-            var btnPreviewAct = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(6, 0, 0, 0) };
-            btnPreviewAct.Click += (_, _) => _ = _pipe.SendCommand("preview_action", new { name = ag.AnimationName });
-            nameRow.Children.Add(btnPreviewAct);
-            agPanel.Children.Add(nameRow);
-
-            agPanel.Children.Add(BuildBodyPartSelector(ag));
-            agPanel.Children.Add(BuildWeightSlider(ag.Weight, w => { ag.Weight = w; BuildExprEditPanel(); }));
-
-            var btnDelAct = new Button { Content = "删除此组", Style = (Style)FindResource("DangerButton"), Width = 80, FontSize = 11 };
-            btnDelAct.Click += (_, _) => { _exprEditing.ActionGroups.RemoveAt(idx); BuildExprEditPanel(); };
-            agPanel.Children.Add(btnDelAct);
-            var sep = new Border { Height = 1, Background = (System.Windows.Media.Brush)FindResource("BorderColor"), Margin = new Thickness(0, 6, 0, 6) };
-            sp.Children.Add(agPanel);
-            sp.Children.Add(sep);
-        }
-
-        var btnAddAct = new Button { Content = "+ 添加动作组", Width = 100, Style = (Style)FindResource("SmallButton") };
-        btnAddAct.Click += (_, _) => { _exprEditing.ActionGroups.Add(new ActionGroupEntry { AnimationName = "0", BodyPart = "fullBody", Weight = 1f }); BuildExprEditPanel(); };
-        sp.Children.Add(btnAddAct);
-
-        // Save/Cancel
+        // Save / Cancel
         var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
         var btnSave = new Button { Content = "保存", Width = 70, Style = (Style)FindResource("PrimaryButton") };
         btnSave.Click += (_, _) =>
@@ -445,16 +397,14 @@ public partial class MainWindow : Window
                 MessageBox.Show("请输入情绪名称", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            var fg0 = _exprEditing.FacialGroups.Count > 0 ? _exprEditing.FacialGroups[0] : null;
-            var ag0 = _exprEditing.ActionGroups.Count > 0 ? _exprEditing.ActionGroups[0] : null;
             _ = _pipe.SendCommand("update_expression_mapping", new
             {
                 emotion = _exprEditing.Emotion,
-                facialX = fg0?.Preset ?? "",
-                facialW = fg0?.Weight ?? 1f,
-                actionX = ag0?.AnimationName ?? "",
-                actionP = ag0?.BodyPart ?? "fullBody",
-                actionY = ag0?.Weight ?? 1f
+                facialX = fg.Preset,
+                facialW = fg.Weight,
+                actionX = ag.AnimationName,
+                actionP = ag.BodyPart,
+                actionY = ag.Weight
             });
             _ = _pipe.SendCommand("restore_expression");
             _exprEditing = null;

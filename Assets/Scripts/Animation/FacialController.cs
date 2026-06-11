@@ -169,54 +169,54 @@ public class FacialController : MonoBehaviour
         }
     }
 
-    public void PerformExpression(string expression, Action<bool> _callback)
+    public void PerformExpression(string expression, Action<bool> _callback, float _weight = 1f)
     {
         switch (expression)
         {
             case "angry":
-                StartCoroutine(AngryCoroutine());
+                StartCoroutine(AngryCoroutine(_weight));
                 break;
             case "serious":
-                StartCoroutine(SeriousCoroutine());
+                StartCoroutine(SeriousCoroutine(_weight));
                 break;
             case "happy":
-                StartCoroutine(HappyCoroutine());
+                StartCoroutine(HappyCoroutine(_weight));
                 break;
             case "fun":
-                StartCoroutine(FunCoroutine());
+                StartCoroutine(FunCoroutine(_weight));
                 break;
             case "panic":
-                StartCoroutine(PanicCoroutine());
+                StartCoroutine(PanicCoroutine(_weight));
                 break;
             case "curious":
-                StartCoroutine(CuriousCoroutine());
+                StartCoroutine(CuriousCoroutine(_weight));
                 break;
             case "thinking":
-                StartCoroutine(ThinkingCoroutine());
+                StartCoroutine(ThinkingCoroutine(_weight));
                 break;
             case "disappointed":
-                StartCoroutine(DisappointedCoroutine());
+                StartCoroutine(DisappointedCoroutine(_weight));
                 break;
             case "sweating":
-                StartCoroutine(SweatingCoroutine());
+                StartCoroutine(SweatingCoroutine(_weight));
                 break;
             case "confident":
-                StartCoroutine(ConfidentCoroutine());
+                StartCoroutine(ConfidentCoroutine(_weight));
                 break;
             case "cry":
-                StartCoroutine(CryCoroutine());
+                StartCoroutine(CryCoroutine(_weight));
                 break;
             case "plain":
-                StartCoroutine(PlainCoroutine());
+                StartCoroutine(PlainCoroutine(_weight));
                 break;
             case "shy":
-                StartCoroutine(ShyCoroutine());
+                StartCoroutine(ShyCoroutine(_weight));
                 break;
             case "touching":
-                StartCoroutine(TouchingCoroutine());
+                StartCoroutine(TouchingCoroutine(_weight));
                 break;
             case "wink":
-                StartCoroutine(WinkCoroutine());
+                StartCoroutine(WinkCoroutine(_weight));
                 break;
 
             case "restore":
@@ -226,289 +226,280 @@ public class FacialController : MonoBehaviour
     }
 
     #region Expression Coroutines
-    IEnumerator AngryCoroutine() 
+    IEnumerator AngryCoroutine(float _weight)
     {
         Debug.Log("Expression: angry");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(angryBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(cheekBlendIndex, weight);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(angryBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(cheekBlendIndex, w);
             yield return null;
         }
         restoreBlendIndexList.Add(angryBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(cheekBlendIndex);
-        restoreFromWeightList.Add(100f);
-        
+        restoreFromWeightList.Add(100f * _weight);
     }
 
-    IEnumerator SeriousCoroutine()
+    IEnumerator SeriousCoroutine(float _weight)
     {
         Debug.Log("Expression: serious");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(angryBlendIndex, weight);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(angryBlendIndex, w);
             yield return null;
         }
         restoreBlendIndexList.Add(angryBlendIndex);
-        restoreFromWeightList.Add(100f);
-        
+        restoreFromWeightList.Add(100f * _weight);
     }
 
-    IEnumerator HappyCoroutine()
+    IEnumerator HappyCoroutine(float _weight)
     {
         Debug.Log("Expression: happy");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(joyBlendIndex, weight);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(joyBlendIndex, w);
             yield return null;
         }
         restoreBlendIndexList.Add(joyBlendIndex);
-        restoreFromWeightList.Add(100f);
-        
+        restoreFromWeightList.Add(100f * _weight);
     }
 
-    IEnumerator FunCoroutine()
+    IEnumerator FunCoroutine(float _weight)
     {
         Debug.Log("Expression: fun");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(funBlendIndex, weight*0.5f);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(funBlendIndex, w * 0.5f);
             yield return null;
         }
         restoreBlendIndexList.Add(funBlendIndex);
-        restoreFromWeightList.Add(50f);
-        
+        restoreFromWeightList.Add(50f * _weight);
     }
 
-    IEnumerator PanicCoroutine()
+    IEnumerator PanicCoroutine(float _weight)
     {
         Debug.Log("Expression: panic");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthABlendIndex, weight/2);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthEBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, weight*0.928f);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthABlendIndex, w / 2);
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthEBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, w * 0.928f);
             yield return null;
         }
         restoreBlendIndexList.Add(mouthABlendIndex);
-        restoreFromWeightList.Add(50f);
+        restoreFromWeightList.Add(50f * _weight);
         restoreBlendIndexList.Add(mouthEBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(eyeSorrowBlendIndex);
-        restoreFromWeightList.Add(100f);           
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(browSorrowBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(blinkBlendIndex);
-        restoreFromWeightList.Add(92.8f);
+        restoreFromWeightList.Add(92.8f * _weight);
         Sweat1.SetActive(true);
         Sweat2.SetActive(true);
     }
 
-    IEnumerator CuriousCoroutine()
+    IEnumerator CuriousCoroutine(float _weight)
     {
         Debug.Log("Expression: curious");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 50.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthUBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthSorrowBlendIndex, weight);
+            float w = Mathf.Lerp(0.0f, 50.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthUBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthSorrowBlendIndex, w);
             yield return null;
         }
         restoreBlendIndexList.Add(mouthUBlendIndex);
-        restoreFromWeightList.Add(50f);
+        restoreFromWeightList.Add(50f * _weight);
         restoreBlendIndexList.Add(mouthSorrowBlendIndex);
-        restoreFromWeightList.Add(50f);
-        
+        restoreFromWeightList.Add(50f * _weight);
     }
 
-    IEnumerator ThinkingCoroutine()
+    IEnumerator ThinkingCoroutine(float _weight)
     {
         Debug.Log("Expression: thinking");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthUBlendIndex, weight*0.3f);
-            skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, weight * 0.75f);
-            skinnedMeshRenderer.SetBlendShapeWeight(eyeJoyBlendIndex, weight * 0.5f);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthUBlendIndex, w * 0.3f);
+            skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, w * 0.75f);
+            skinnedMeshRenderer.SetBlendShapeWeight(eyeJoyBlendIndex, w * 0.5f);
             yield return null;
         }
         restoreBlendIndexList.Add(mouthIBlendIndex);
-        restoreFromWeightList.Add(100f);          
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(mouthUBlendIndex);
-        restoreFromWeightList.Add(30f);
+        restoreFromWeightList.Add(30f * _weight);
         restoreBlendIndexList.Add(blinkBlendIndex);
-        restoreFromWeightList.Add(75f);
+        restoreFromWeightList.Add(75f * _weight);
         restoreBlendIndexList.Add(eyeJoyBlendIndex);
-        restoreFromWeightList.Add(50f);
-        
+        restoreFromWeightList.Add(50f * _weight);
     }
 
-    IEnumerator DisappointedCoroutine()
+    IEnumerator DisappointedCoroutine(float _weight)
     {
         Debug.Log("Expression: disappointed");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthAngryBlendIndex, weight * 0.8f);
-            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, weight);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthAngryBlendIndex, w * 0.8f);
+            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
             yield return null;
         }
         restoreBlendIndexList.Add(mouthAngryBlendIndex);
-        restoreFromWeightList.Add(80f);
+        restoreFromWeightList.Add(80f * _weight);
         restoreBlendIndexList.Add(browSorrowBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         Sweat2.SetActive(true);
     }
 
-    IEnumerator SweatingCoroutine()
+    IEnumerator SweatingCoroutine(float _weight)
     {
         Debug.Log("Expression: sweating");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthABlendIndex, weight / 2);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthEBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, weight);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthABlendIndex, w / 2);
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthEBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
             yield return null;
         }
         restoreBlendIndexList.Add(mouthABlendIndex);
-        restoreFromWeightList.Add(50f);
+        restoreFromWeightList.Add(50f * _weight);
         restoreBlendIndexList.Add(mouthEBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(eyeSorrowBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(browSorrowBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         Sweat2.SetActive(true);
     }
 
-    IEnumerator ConfidentCoroutine()
+    IEnumerator ConfidentCoroutine(float _weight)
     {
         Debug.Log("Expression: confident");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, weight / 2);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, w / 2);
             yield return null;
         }
         restoreBlendIndexList.Add(mouthIBlendIndex);
-        restoreFromWeightList.Add(50f);
-
+        restoreFromWeightList.Add(50f * _weight);
     }
 
-    IEnumerator CryCoroutine()
+    IEnumerator CryCoroutine(float _weight)
     {
         Debug.Log("Expression: cry");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, weight*0.8f);
-            skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, weight*0.1f);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, w * 0.8f);
+            skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, w * 0.1f);
             yield return null;
         }
         restoreBlendIndexList.Add(mouthIBlendIndex);
-        restoreFromWeightList.Add(50f);
+        restoreFromWeightList.Add(80f * _weight);
         restoreBlendIndexList.Add(eyeSorrowBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(browSorrowBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(blinkBlendIndex);
-        restoreFromWeightList.Add(10f);
+        restoreFromWeightList.Add(10f * _weight);
         Tear1.SetActive(true);
         Tear2.SetActive(true);
     }
 
-    IEnumerator PlainCoroutine()
+    IEnumerator PlainCoroutine(float _weight)
     {
         Debug.Log("Expression: plain");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthAngryBlendIndex, weight * 0.5f);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthAngryBlendIndex, w * 0.5f);
             yield return null;
         }
         restoreBlendIndexList.Add(mouthAngryBlendIndex);
-        restoreFromWeightList.Add(50f);
-
+        restoreFromWeightList.Add(50f * _weight);
     }
 
-    IEnumerator ShyCoroutine()
+    IEnumerator ShyCoroutine(float _weight)
     {
         Debug.Log("Expression: shy");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, weight * 0.5f);
-            skinnedMeshRenderer.SetBlendShapeWeight(mouthAngryBlendIndex, weight * 0.35f);
-            skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(lookDownBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(lookLeftBlendIndex, weight);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthIBlendIndex, w * 0.5f);
+            skinnedMeshRenderer.SetBlendShapeWeight(mouthAngryBlendIndex, w * 0.35f);
+            skinnedMeshRenderer.SetBlendShapeWeight(eyeSorrowBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(lookDownBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(lookLeftBlendIndex, w);
             yield return null;
         }
+        restoreBlendIndexList.Add(mouthIBlendIndex);
+        restoreFromWeightList.Add(50f * _weight);
         restoreBlendIndexList.Add(mouthAngryBlendIndex);
-        restoreFromWeightList.Add(50f);
-        restoreBlendIndexList.Add(mouthAngryBlendIndex);
-        restoreFromWeightList.Add(35f);
+        restoreFromWeightList.Add(35f * _weight);
         restoreBlendIndexList.Add(eyeSorrowBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(browSorrowBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(lookDownBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(lookLeftBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         SetShyBlush();
     }
 
-    IEnumerator TouchingCoroutine()
+    IEnumerator TouchingCoroutine(float _weight)
     {
         Debug.Log("Expression: touching");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(joyBlendIndex, weight);
-            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, weight);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(joyBlendIndex, w);
+            skinnedMeshRenderer.SetBlendShapeWeight(browSorrowBlendIndex, w);
             yield return null;
         }
         restoreBlendIndexList.Add(joyBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         restoreBlendIndexList.Add(browSorrowBlendIndex);
-        restoreFromWeightList.Add(100f);
+        restoreFromWeightList.Add(100f * _weight);
         Tear1_Joy.SetActive(true);
         Tear2_Joy.SetActive(true);
     }
 
-    IEnumerator WinkCoroutine()
+    IEnumerator WinkCoroutine(float _weight)
     {
         Debug.Log("Expression: wink");
         for (float t = 0.0f; t < transformDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(0.0f, 100.0f, t / transformDuration);
-            skinnedMeshRenderer.SetBlendShapeWeight(funBlendIndex, weight*0.5f);
-            skinnedMeshRenderer.SetBlendShapeWeight(blinkRightBlendIndex, weight*0.5f);
-            skinnedMeshRenderer.SetBlendShapeWeight(eyeJoyRightBlendIndex, weight*0.5f);
+            float w = Mathf.Lerp(0.0f, 100.0f, t / transformDuration) * _weight;
+            skinnedMeshRenderer.SetBlendShapeWeight(funBlendIndex, w * 0.5f);
+            skinnedMeshRenderer.SetBlendShapeWeight(blinkRightBlendIndex, w * 0.5f);
+            skinnedMeshRenderer.SetBlendShapeWeight(eyeJoyRightBlendIndex, w * 0.5f);
             yield return null;
         }
         restoreBlendIndexList.Add(funBlendIndex);
-        restoreFromWeightList.Add(50f);
+        restoreFromWeightList.Add(50f * _weight);
         restoreBlendIndexList.Add(blinkRightBlendIndex);
-        restoreFromWeightList.Add(50f);
+        restoreFromWeightList.Add(50f * _weight);
         restoreBlendIndexList.Add(eyeJoyRightBlendIndex);
-        restoreFromWeightList.Add(50f);
-
+        restoreFromWeightList.Add(50f * _weight);
     }
 
     IEnumerator RollbackCoroutine(Action<bool> _callback)

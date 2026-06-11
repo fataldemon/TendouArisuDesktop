@@ -18,8 +18,8 @@ public class ExpressionMappingManager : MonoBehaviour
         {
             var d = new ExpressionMappingData { emotion = e };
             if (!string.IsNullOrEmpty(f))
-                d.facialGroups.Add(new FacialGroup { preset = f, weight = 1f });
-            d.actionGroups.Add(new ActionGroup { animationName = a.ToString(), bodyPart = "fullBody", weight = 1f });
+                d.facialGroup = new FacialGroup { preset = f, weight = 1f };
+            d.actionGroup = new ActionGroup { animationName = a.ToString(), bodyPart = "fullBody", weight = 1f };
             d.actionParam = a;
             list.Add(d);
         }
@@ -59,10 +59,9 @@ public class ExpressionMappingManager : MonoBehaviour
     {
         if (actionController == null || string.IsNullOrEmpty(emotion)) return false;
         var map = mappings.FirstOrDefault(m => m.emotion == emotion);
-        if (map == null || map.facialGroups.Count == 0) return false;
+        if (map == null || map.facialGroup == null || string.IsNullOrEmpty(map.facialGroup.preset)) return false;
         if (actionController.facialController == null) return true;
-        var fg = map.facialGroups[0];
-        actionController.facialController.PerformExpression(fg.preset, null);
+        actionController.facialController.PerformExpression(map.facialGroup.preset, null, map.facialGroup.weight);
         return true;
     }
 
@@ -70,21 +69,15 @@ public class ExpressionMappingManager : MonoBehaviour
     {
         if (actionController == null || string.IsNullOrEmpty(emotion)) return false;
         var map = mappings.FirstOrDefault(m => m.emotion == emotion);
-        if (map == null) return false;
-        if (map.actionGroups.Count > 0)
-        {
-            var ag = map.actionGroups[0];
-            var clip = animLibrary != null ? animLibrary.registry.FirstOrDefault(r => r.name == ag.animationName) : null;
-            if (clip != null)
-                actionController.animator.SetInteger("action_param", clip.actionParam);
-            else if (map.actionParam > 0)
-                actionController.animator.SetInteger("action_param", map.actionParam);
-        }
-        else if (map.actionParam > 0)
-        {
-            actionController.animator.SetInteger("action_param", map.actionParam);
-        }
-        else return false;
+        if (map == null || map.actionGroup == null) return false;
+        var ag = map.actionGroup;
+        var clip = animLibrary != null ? animLibrary.registry.FirstOrDefault(r => r.name == ag.animationName) : null;
+        if (clip != null)
+            actionController.animator.SetInteger("action_param", clip.actionParam);
+        else if (int.TryParse(ag.animationName, out int ap) && ap > 0)
+            actionController.animator.SetInteger("action_param", ap);
+        else
+            return false;
         return true;
     }
 
@@ -93,17 +86,17 @@ public class ExpressionMappingManager : MonoBehaviour
         return mappings.OrderByDescending(m => m.emotion == "待机").ThenBy(m => m.emotion).ToList();
     }
 
-    public void AddOrUpdate(string emotion, List<FacialGroup> fg, List<ActionGroup> ag)
+    public void AddOrUpdate(string emotion, FacialGroup fg, ActionGroup ag)
     {
         var existing = mappings.FirstOrDefault(m => m.emotion == emotion);
         if (existing != null)
         {
-            existing.facialGroups = fg ?? existing.facialGroups;
-            existing.actionGroups = ag ?? existing.actionGroups;
+            existing.facialGroup = fg ?? existing.facialGroup;
+            existing.actionGroup = ag ?? existing.actionGroup;
         }
         else
         {
-            mappings.Add(new ExpressionMappingData { emotion = emotion, facialGroups = fg, actionGroups = ag });
+            mappings.Add(new ExpressionMappingData { emotion = emotion, facialGroup = fg, actionGroup = ag });
         }
         Save();
     }
@@ -145,10 +138,14 @@ public class ExpressionMappingManager : MonoBehaviour
 
     private void MigrateLegacy(ExpressionMappingData d)
     {
-        if (d.facialGroups.Count == 0 && !string.IsNullOrEmpty(d.facialExpression))
-            d.facialGroups.Add(new FacialGroup { preset = d.facialExpression, weight = 1f });
-        if (d.actionGroups.Count == 0 && d.actionParam > 0)
-            d.actionGroups.Add(new ActionGroup { animationName = d.actionParam.ToString(), bodyPart = "fullBody", weight = 1f });
+        if (d.facialGroup == null && d.facialGroups != null && d.facialGroups.Count > 0)
+            d.facialGroup = d.facialGroups[0];
+        if (d.facialGroup == null && !string.IsNullOrEmpty(d.facialExpression))
+            d.facialGroup = new FacialGroup { preset = d.facialExpression, weight = 1f };
+        if (d.actionGroup == null && d.actionGroups != null && d.actionGroups.Count > 0)
+            d.actionGroup = d.actionGroups[0];
+        if (d.actionGroup == null && d.actionParam > 0)
+            d.actionGroup = new ActionGroup { animationName = d.actionParam.ToString(), bodyPart = "fullBody", weight = 1f };
     }
 
     private List<ExpressionMappingData> LoadCustom()

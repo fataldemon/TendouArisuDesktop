@@ -403,27 +403,11 @@ public class PipeServer : MonoBehaviour
     private void UpdateExpressionMapping(PipeCommand cmd)
     {
         if (mappingManager == null || string.IsNullOrEmpty(cmd.emotion)) return;
-        var fg = new List<FacialGroup>();
-        var ag = new List<ActionGroup>();
-        if (!string.IsNullOrEmpty(cmd.facialGroupsJson))
-        {
-            var wrapper = JsonUtility.FromJson<FacialGroupWrapper>("{\"items\":" + cmd.facialGroupsJson + "}");
-            if (wrapper?.items != null) fg.AddRange(wrapper.items);
-        }
-        else if (!string.IsNullOrEmpty(cmd.facialX))
-        {
-            fg.Add(new FacialGroup { preset = cmd.facialX, weight = cmd.facialW > 0 ? cmd.facialW : 1f });
-        }
-        if (!string.IsNullOrEmpty(cmd.actionGroupsJson))
-        {
-            var wrapper = JsonUtility.FromJson<ActionGroupWrapper>("{\"items\":" + cmd.actionGroupsJson + "}");
-            if (wrapper?.items != null) ag.AddRange(wrapper.items);
-        }
-        else if (!string.IsNullOrEmpty(cmd.actionX))
-        {
-            ag.Add(new ActionGroup { animationName = cmd.actionX, bodyPart = cmd.actionP ?? "fullBody", weight = cmd.actionY > 0 ? cmd.actionY : 1f });
-        }
-        mappingManager.AddOrUpdate(cmd.emotion, fg.Count > 0 ? fg : null, ag.Count > 0 ? ag : null);
+        var fg = new FacialGroup { preset = cmd.facialX, weight = cmd.facialW > 0 ? cmd.facialW : 1f };
+        var ag = new ActionGroup { animationName = cmd.actionX, bodyPart = cmd.actionP ?? "fullBody", weight = cmd.actionY > 0 ? cmd.actionY : 1f };
+        if (string.IsNullOrEmpty(fg.preset)) fg = null;
+        if (string.IsNullOrEmpty(ag.animationName)) ag = null;
+        mappingManager.AddOrUpdate(cmd.emotion, fg, ag);
     }
 
     void OnDestroy() { StopServer(); }
@@ -458,9 +442,3 @@ public class PipeCommand
     public string facialGroupsJson = "";
     public string actionGroupsJson = "";
 }
-
-[Serializable]
-public class FacialGroupWrapper { public FacialGroup[] items; }
-
-[Serializable]
-public class ActionGroupWrapper { public ActionGroup[] items; }

@@ -20,12 +20,14 @@ public class ActionGroup
 public class ExpressionMappingData
 {
     public string emotion;
-    public List<FacialGroup> facialGroups = new List<FacialGroup>();
-    public List<ActionGroup> actionGroups = new List<ActionGroup>();
+    public FacialGroup facialGroup;
+    public ActionGroup actionGroup;
 
     // legacy migration
     public string facialExpression;
     public int actionParam;
+    public List<FacialGroup> facialGroups;
+    public List<ActionGroup> actionGroups;
 }
 
 [Serializable]
