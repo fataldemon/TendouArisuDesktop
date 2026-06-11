@@ -639,6 +639,49 @@ public class GameStart : MonoBehaviour
         GUI.skin.textArea.active.background = null;
         GUI.skin.textArea.padding = new RectOffset(8, 8, 6, 6);
 
+        // Pre-calc bubble position for grip (based on static size)
+        float gripBubbleX = 0f, gripBubbleY = 0f;
+        if (targetTransform != null)
+        {
+            gripBubbleX = Mathf.Clamp(screenPos.x + guiOffset.x, -msg_max_length + 80f, Screen.width - 80f);
+            gripBubbleY = Mathf.Clamp(Screen.height - msg_height - 160f, 0f, Screen.height - msg_height);
+        }
+
+        // Ctrl grip event handling FIRST (before dialogue renders)
+        if (_ctrlDown && targetTransform != null)
+        {
+            float gripSize = 24f;
+            Rect gripRect = new Rect(gripBubbleX + msg_max_length / 2f - gripSize / 2f,
+                gripBubbleY + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
+
+            Event e = Event.current;
+            if (e.type == EventType.MouseDown && gripRect.Contains(e.mousePosition))
+            {
+                isResizingDialog = true;
+                resizeStartMouse = e.mousePosition;
+                resizeStartWidth = msg_max_length;
+                resizeStartHeight = msg_height;
+                e.Use();
+            }
+            if (e.type == EventType.MouseDrag && isResizingDialog)
+            {
+                Vector2 delta = e.mousePosition - resizeStartMouse;
+                msg_max_length = Mathf.Clamp(resizeStartWidth + (int)delta.x, 200, 1400);
+                msg_height = Mathf.Clamp(resizeStartHeight + (int)delta.y, 60, 2000);
+                e.Use();
+            }
+            if (e.type == EventType.MouseUp && isResizingDialog)
+            {
+                isResizingDialog = false;
+                SaveSettings();
+                e.Use();
+            }
+
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            if (Mathf.Abs(scroll) > 0.01f)
+                fontSize = Mathf.Clamp(fontSize + (int)(scroll * 4f), 10, 60);
+        }
+
         // Dialogue bubble rendering
         if (targetTransform != null && onDialogue)
         {
@@ -654,7 +697,6 @@ public class GameStart : MonoBehaviour
 
             float height = TextAreaStyle.CalcHeight(new GUIContent(text_answer), msg_length_receive - 20);
 
-            // Clamp: keep dialogue within screen bounds
             float bubbleX = Mathf.Clamp(screenPos.x + guiOffset.x - (float)(msg_length_receive / 2) + (float)(msg_max_length / 2),
                 -msg_length_receive + 80f, Screen.width - 80f);
             float bubbleY = Mathf.Clamp(Screen.height - msg_height - 160f,
@@ -699,54 +741,18 @@ public class GameStart : MonoBehaviour
             }
         }
 
-        // Ctrl interaction: resize grip + font size
+        // Grip visual rendered ON TOP of dialogue
         if (_ctrlDown && targetTransform != null)
         {
             float gripSize = 24f;
-            float bubbleX = Mathf.Clamp(screenPos.x + guiOffset.x - (float)(msg_max_length / 2) + (float)(msg_max_length / 2),
-                -msg_max_length + 80f, Screen.width - 80f);
-            float bubbleY = Mathf.Clamp(Screen.height - msg_height - 160f,
-                0f, Screen.height - msg_height);
-
-            float dialogRight = bubbleX + msg_max_length;
-            float dialogBottom = bubbleY + msg_height;
-            Rect gripRect = new Rect(bubbleX + msg_max_length / 2f - gripSize / 2f,
-                bubbleY + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
+            Rect gripRect = new Rect(gripBubbleX + msg_max_length / 2f - gripSize / 2f,
+                gripBubbleY + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
 
             Color prevColor = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, 0.5f);
             GUI.Box(gripRect, "");
             GUI.Label(gripRect, "╋");
             GUI.color = prevColor;
-
-            Event e = Event.current;
-            if (e.type == EventType.MouseDown && gripRect.Contains(e.mousePosition))
-            {
-                isResizingDialog = true;
-                resizeStartMouse = e.mousePosition;
-                resizeStartWidth = msg_max_length;
-                resizeStartHeight = msg_height;
-                e.Use();
-            }
-            if (e.type == EventType.MouseDrag && isResizingDialog)
-            {
-                Vector2 delta = e.mousePosition - resizeStartMouse;
-                msg_max_length = Mathf.Clamp(resizeStartWidth + (int)delta.x, 200, 1400);
-                msg_height = Mathf.Clamp(resizeStartHeight + (int)delta.y, 60, 2000);
-                e.Use();
-            }
-            if (e.type == EventType.MouseUp && isResizingDialog)
-            {
-                isResizingDialog = false;
-                SaveSettings();
-                e.Use();
-            }
-
-            float scroll = Input.GetAxis("Mouse ScrollWheel");
-            if (Mathf.Abs(scroll) > 0.01f)
-            {
-                fontSize = Mathf.Clamp(fontSize + (int)(scroll * 4f), 10, 60);
-            }
         }
     }
 
