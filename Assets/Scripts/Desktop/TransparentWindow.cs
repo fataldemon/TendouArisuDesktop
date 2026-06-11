@@ -35,9 +35,6 @@ public class TransparentWindow : MonoBehaviour
     }
 
     [DllImport("user32.dll")]
-    private static extern IntPtr GetActiveWindow();
-
-    [DllImport("user32.dll")]
     static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
     [DllImport("user32.dll")]
@@ -63,6 +60,9 @@ public class TransparentWindow : MonoBehaviour
 
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
@@ -114,7 +114,7 @@ public class TransparentWindow : MonoBehaviour
         Application.runInBackground = true;
         Screen.fullScreen = false;
 
-        hwnd = GetActiveWindow();
+        hwnd = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
         StartCoroutine(ApplyWindowStyleDelayed());
 #endif
     }
@@ -124,11 +124,13 @@ public class TransparentWindow : MonoBehaviour
         yield return new WaitForEndOfFrame();
         yield return null;
 
-        // Switch to real transparent overlay in minimal frames
+        // Bring to foreground briefly so style changes apply reliably
+        SetForegroundWindow(hwnd);
+        yield return null;
+
         Screen.SetResolution(_realWidth, _realHeight, FullScreenMode.Windowed);
-        SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED);
-        int intExTemp = GetWindowLong(hwnd, GWL_EXSTYLE);
-        SetWindowLong(hwnd, GWL_EXSTYLE, intExTemp | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+        int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TRANSPARENT);
         SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_BORDER & ~WS_CAPTION);
         SetWindowPos(hwnd, -1, _realX, _realY, _realWidth, _realHeight, SWP_SHOWWINDOW);
 
@@ -136,7 +138,6 @@ public class TransparentWindow : MonoBehaviour
         var margins = new MARGINS() { cxLeftWidth = -1 };
         DwmExtendFrameIntoClientArea(hwnd, ref margins);
 
-        // Remove from taskbar
         try
         {
             var tbl = (ITaskbarList)new TaskbarList();
@@ -209,9 +210,7 @@ public class TransparentWindow : MonoBehaviour
     {
 #if !UNITY_EDITOR
         if (hwnd != IntPtr.Zero)
-        {
-            return (_transparentEnabled);
-        }
+            return (GetWindowLong(hwnd, GWL_EXSTYLE) & WS_EX_TRANSPARENT) != 0;
 #endif
         return true;
     }
