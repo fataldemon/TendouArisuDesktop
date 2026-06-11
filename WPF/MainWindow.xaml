@@ -149,56 +149,93 @@
             </Grid>
         </TabItem>
 
-        <!-- ===== 表情映射 ===== -->
-        <TabItem Header="表情映射">
-            <Grid Margin="20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" MinWidth="300"/>
-                    <ColumnDefinition Width="3*" MinWidth="400"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- left: mapping list -->
-                <Grid Grid.Column="0" Margin="0,0,8,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,6">
-                        <Button Content="恢复默认" Width="80" Click="OnExprRestoreDefaults"/>
-                        <Button Content="添加映射" Width="80" Click="OnExprAdd" Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <ListBox x:Name="LstExprMappings" Grid.Row="1" SelectionChanged="OnExprMappingSelect">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="50"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding EmotionDisplay}" VerticalAlignment="Center" FontWeight="Bold"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding FacialSummary}" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ActionSummary}" VerticalAlignment="Center"/>
-                                    <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <Button Content="编辑" Width="48" Style="{StaticResource SmallButton}" Tag="{Binding Emotion}" Click="OnExprEditClick"/>
-                                        <Button Content="删" Width="40" Style="{StaticResource SmallButton}" Tag="{Binding Emotion}" Click="OnExprDeleteClick" Margin="4,0,0,0"/>
-                                    </StackPanel>
-                                </Grid>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Grid>
-
-                <!-- right: edit panel -->
-                <Border Grid.Column="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Padding="12" CornerRadius="4">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel x:Name="PanelExprEdit">
-                            <TextBlock Text="选择或添加一个映射进行编辑" Foreground="{StaticResource TextSecondary}" FontSize="13"/>
-                        </StackPanel>
-                    </ScrollViewer>
-                </Border>
-            </Grid>
+        <!-- ===== 情绪映射 ===== -->
+        <TabItem Header="情绪映射">
+            <TabControl x:Name="SubTabs" Margin="-2,-5,-2,0">
+                <!-- 子TAB 1: 情绪映射 -->
+                <TabItem Header="情绪映射">
+                    <Grid Margin="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="240"/>
+                            <ColumnDefinition Width="2*" MinWidth="360"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0" Margin="0,0,8,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,6">
+                                <Button Content="恢复默认" Width="80" Click="OnExprRestoreDefaults"/>
+                                <Button Content="添加映射" Width="80" Click="OnExprAdd" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            <ListBox x:Name="LstExprMappings" Grid.Row="1" SelectionChanged="OnExprMappingSelect">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="50"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding EmotionDisplay}" VerticalAlignment="Center" FontWeight="Bold"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding FacialSummary}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding ActionSummary}" VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button Content="编辑" Width="48" Style="{StaticResource SmallButton}" Tag="{Binding Emotion}" Click="OnExprEditClick"/>
+                                                <Button Content="删" Width="40" Style="{StaticResource SmallButton}" Tag="{Binding Emotion}" Click="OnExprDeleteClick" Margin="4,0,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                        <Border Grid.Column="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Padding="12" CornerRadius="4">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="PanelExprEdit">
+                                    <TextBlock Text="选择或添加一个映射进行编辑" Foreground="{StaticResource TextSecondary}" FontSize="13"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </TabItem>
+                <!-- 子TAB 2: 动作预设 -->
+                <TabItem Header="动作预设">
+                    <Grid Margin="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="220"/>
+                            <ColumnDefinition Width="2*" MinWidth="360"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0" Margin="0,0,8,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,6">
+                                <Button Content="恢复默认" Width="80" Click="OnPresetRestoreDefaults"/>
+                                <Button Content="新建" Width="60" Click="OnPresetAdd" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            <ListBox x:Name="LstPresets" Grid.Row="1" SelectionChanged="OnPresetSelect">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextSecondary}" FontSize="11"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                        <Border Grid.Column="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Padding="12" CornerRadius="4">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="PanelPresetEdit">
+                                    <TextBlock Text="选择一个预设进行编辑" Foreground="{StaticResource TextSecondary}" FontSize="13"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </TabItem>
+            </TabControl>
         </TabItem>
 
         <!-- ===== 对话记录 ===== -->

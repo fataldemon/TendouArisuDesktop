@@ -41,6 +41,7 @@ public class InitData
     public List<string> ModelHistory { get; set; } = new();
     public List<AnimationEntry> AnimationList { get; set; } = new();
     public List<ExpressionMappingEntry> ExpressionMappings { get; set; } = new();
+    public List<ActionPresetEntry> ActionPresets { get; set; } = new();
     public string DialogueHistory { get; set; } = "";
 }
 
@@ -76,4 +77,11 @@ public class StatusUpdate
 {
     public bool Connected { get; set; }
     public string? CurrentModel { get; set; }
+}
+
+public class ActionPresetEntry
+{
+    public string Name { get; set; } = "";
+    public int ActionParam { get; set; }
+    public bool IsDefault { get; set; }
 }

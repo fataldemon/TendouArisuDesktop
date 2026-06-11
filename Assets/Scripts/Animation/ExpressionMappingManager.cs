@@ -7,6 +7,7 @@ public class ExpressionMappingManager : MonoBehaviour
 {
     public ActionController actionController;
     public AnimationLibrary animLibrary;
+    public ActionPresetManager presetManager;
 
     private List<ExpressionMappingData> mappings = new List<ExpressionMappingData>();
     private static bool defaultsLoaded;
@@ -14,45 +15,70 @@ public class ExpressionMappingManager : MonoBehaviour
     private static List<ExpressionMappingData> BuildDefaults()
     {
         var list = new List<ExpressionMappingData>();
-        void Add(string e, string f, int a)
+        void Add(string e, string f, string a)
         {
             var d = new ExpressionMappingData { emotion = e };
             if (!string.IsNullOrEmpty(f))
                 d.facialGroup = new FacialGroup { preset = f, weight = 1f };
-            d.actionGroup = new ActionGroup { animationName = a.ToString(), bodyPart = "fullBody", weight = 1f };
-            d.actionParam = a;
+            d.actionGroup = new ActionGroup { animationName = a, bodyPart = "fullBody", weight = 1f };
             list.Add(d);
         }
-        Add("待机", "plain", 0);
-        Add("微笑", "", 1);  Add("认真", "serious", 24);  Add("坚定", "serious", 11);
-        Add("承诺", "serious", 11);  Add("生气", "angry", 20);  Add("急切", "angry", 27);
-        Add("烦恼", "panic", 1);  Add("专注", "curious", 22);  Add("诚实", "curious", 1);
-        Add("期待", "fun", 19);  Add("回答", "curious", 24);  Add("回忆", "thinking", 17);
-        Add("发愣", "curious", 15);  Add("察觉", "curious", 1);  Add("建议", "fun", 24);
-        Add("好奇", "curious", 22);  Add("自信", "confident", 4);  Add("自豪", "confident", 4);
-        Add("解释", "fun", 24);  Add("失望", "disappointed", 25);  Add("委屈", "cry", 7);
-        Add("伤心", "cry", 28);  Add("高兴", "fun", 25);  Add("开心", "happy", 25);
-        Add("欢迎", "fun", 5);  Add("崇拜", "fun", 19);  Add("愉快", "fun", 1);
-        Add("贴心", "fun", 22);  Add("赞同", "fun", 16);  Add("邀请", "fun", 13);
-        Add("兴奋", "happy", 25);  Add("快乐", "happy", 25);  Add("难过", "disappointed", 1);
-        Add("为难", "disappointed", 24);  Add("尴尬", "disappointed", 24);  Add("紧张", "disappointed", 1);
-        Add("困惑", "disappointed", 24);  Add("困扰", "disappointed", 24);  Add("疑惑", "disappointed", 1);
-        Add("害怕", "sweating", 23);  Add("平和", "plain", 1);  Add("无聊", "plain", 1);
-        Add("冷漠", "plain", 1);  Add("慌张", "panic", 23);  Add("害羞", "shy", 28);
-        Add("羞涩", "shy", 7);  Add("惊喜", "fun", 25);  Add("理解", "fun", 16);
-        Add("喜悦", "fun", 25);  Add("担忧", "sweating", 24);  Add("流汗", "sweating", 24);
-        Add("犹豫", "disappointed", 24);  Add("震惊", "sweating", 23);  Add("惊讶", "sweating", 23);
-        Add("思考", "thinking", 26);  Add("沉思", "thinking", 17);  Add("否认", "thinking", 14);
-        Add("睡觉", "thinking", 18);  Add("陈述", "plain", 1);  Add("祈祷", "thinking", 1);
-        Add("拒绝", "serious", 10);  Add("感动", "touching", 25);  Add("感激", "touching", 25);
-        Add("道歉", "sweating", 29);  Add("可爱", "wink", 12);  Add("俏皮", "wink", 15);
-        Add("调皮", "wink", 15);  Add("卖萌", "wink", 3);  Add("眨眼", "wink", 12);
+        Add("待机", "plain", "Idle");
+        Add("微笑", "", "Speak Normal");  Add("认真", "serious", "Speak Explain");  Add("坚定", "serious", "Determine");
+        Add("承诺", "serious", "Determine");  Add("生气", "angry", "Angry");  Add("急切", "angry", "Speak Chatty");
+        Add("烦恼", "panic", "Speak Normal");  Add("专注", "curious", "Focused");  Add("诚实", "curious", "Speak Normal");
+        Add("期待", "fun", "Expectation");  Add("回答", "curious", "Speak Explain");  Add("回忆", "thinking", "Think");
+        Add("发愣", "curious", "Confuse");  Add("察觉", "curious", "Speak Normal");  Add("建议", "fun", "Speak Explain");
+        Add("好奇", "curious", "Focused");  Add("自信", "confident", "Doya");  Add("自豪", "confident", "Doya");
+        Add("解释", "fun", "Speak Explain");  Add("失望", "disappointed", "Speak Excited");  Add("委屈", "cry", "Shy");
+        Add("伤心", "cry", "Speak Shy");  Add("高兴", "fun", "Speak Excited");  Add("开心", "happy", "Speak Excited");
+        Add("欢迎", "fun", "Welcome");  Add("崇拜", "fun", "Expectation");  Add("愉快", "fun", "Speak Normal");
+        Add("贴心", "fun", "Focused");  Add("赞同", "fun", "Agree");  Add("邀请", "fun", "Invite Give");
+        Add("兴奋", "happy", "Speak Excited");  Add("快乐", "happy", "Speak Excited");  Add("难过", "disappointed", "Speak Normal");
+        Add("为难", "disappointed", "Speak Explain");  Add("尴尬", "disappointed", "Speak Explain");  Add("紧张", "disappointed", "Speak Normal");
+        Add("困惑", "disappointed", "Speak Explain");  Add("困扰", "disappointed", "Speak Explain");  Add("疑惑", "disappointed", "Speak Normal");
+        Add("害怕", "sweating", "Afraid");  Add("平和", "plain", "Speak Normal");  Add("无聊", "plain", "Speak Normal");
+        Add("冷漠", "plain", "Speak Normal");  Add("慌张", "panic", "Afraid");  Add("害羞", "shy", "Speak Shy");
+        Add("羞涩", "shy", "Shy");  Add("惊喜", "fun", "Speak Excited");  Add("理解", "fun", "Agree");
+        Add("喜悦", "fun", "Speak Excited");  Add("担忧", "sweating", "Speak Explain");  Add("流汗", "sweating", "Speak Explain");
+        Add("犹豫", "disappointed", "Speak Explain");  Add("震惊", "sweating", "Afraid");  Add("惊讶", "sweating", "Afraid");
+        Add("思考", "thinking", "Speak Thinking");  Add("沉思", "thinking", "Think");  Add("否认", "thinking", "Disagree");
+        Add("睡觉", "thinking", "Sleepy");  Add("陈述", "plain", "Speak Normal");  Add("祈祷", "thinking", "Speak Normal");
+        Add("拒绝", "serious", "Deny");  Add("感动", "touching", "Speak Excited");  Add("感激", "touching", "Speak Excited");
+        Add("道歉", "sweating", "Apologize");  Add("可爱", "wink", "Cute");  Add("俏皮", "wink", "Confuse");
+        Add("调皮", "wink", "Confuse");  Add("卖萌", "wink", "Cat");  Add("眨眼", "wink", "Cute");
         return list;
     }
 
     private void Awake()
     {
         LoadMerged();
+    }
+
+    private void Start()
+    {
+        MigrateActionNames();
+    }
+
+    private void MigrateActionNames()
+    {
+        if (presetManager == null) return;
+        bool changed = false;
+        foreach (var m in mappings)
+        {
+            if (m.actionGroup == null || string.IsNullOrEmpty(m.actionGroup.animationName)) continue;
+            if (m.actionGroup.animationName.All(char.IsDigit))
+            {
+                int ap = int.Parse(m.actionGroup.animationName);
+                if (ap == 0) { m.actionGroup.animationName = "Idle"; changed = true; }
+                else
+                {
+                    var preset = presetManager.GetByParam(ap);
+                    if (preset != null) { m.actionGroup.animationName = preset.name; changed = true; }
+                }
+            }
+        }
+        if (changed) Save();
     }
 
     public bool TryApplyFacial(string emotion)
@@ -71,14 +97,27 @@ public class ExpressionMappingManager : MonoBehaviour
         var map = mappings.FirstOrDefault(m => m.emotion == emotion);
         if (map == null || map.actionGroup == null) return false;
         var ag = map.actionGroup;
+
+        var preset = presetManager != null ? presetManager.GetByName(ag.animationName) : null;
+        if (preset != null)
+        {
+            actionController.animator.SetInteger("action_param", preset.actionParam);
+            return true;
+        }
+
         var clip = animLibrary != null ? animLibrary.registry.FirstOrDefault(r => r.name == ag.animationName) : null;
         if (clip != null)
+        {
             actionController.animator.SetInteger("action_param", clip.actionParam);
-        else if (int.TryParse(ag.animationName, out int ap) && ap > 0)
+            return true;
+        }
+
+        if (int.TryParse(ag.animationName, out int ap) && ap > 0)
+        {
             actionController.animator.SetInteger("action_param", ap);
-        else
-            return false;
-        return true;
+            return true;
+        }
+        return false;
     }
 
     public List<ExpressionMappingData> GetAll()

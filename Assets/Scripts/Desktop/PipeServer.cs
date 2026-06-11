@@ -19,6 +19,7 @@ public class PipeServer : MonoBehaviour
     public AnimationLibrary animLibrary;
     public ExpressionMappingManager mappingManager;
     public ActionController actionController;
+    public ActionPresetManager presetManager;
 
     private const int Port = 19876;
     private Thread? _serverThread;
@@ -147,6 +148,9 @@ public class PipeServer : MonoBehaviour
         sb.Append("\"expressionMappings\":");
         AppendExpressionMappings(sb);
         sb.Append(',');
+        sb.Append("\"actionPresets\":");
+        AppendActionPresets(sb);
+        sb.Append(',');
         AppendJsonProperty(sb, "dialogueHistory", llmFormatter.formatted_history);
         sb.Append("}}");
         return sb.ToString();
@@ -223,6 +227,21 @@ public class PipeServer : MonoBehaviour
             {
                 if (i > 0) sb.Append(',');
                 sb.Append(JsonUtility.ToJson(mappings[i]));
+            }
+        }
+        sb.Append(']');
+    }
+
+    private void AppendActionPresets(StringBuilder sb)
+    {
+        sb.Append('[');
+        if (presetManager != null)
+        {
+            var all = presetManager.GetAll();
+            for (int i = 0; i < all.Count; i++)
+            {
+                if (i > 0) sb.Append(',');
+                sb.Append(JsonUtility.ToJson(all[i]));
             }
         }
         sb.Append(']');
@@ -332,8 +351,14 @@ public class PipeServer : MonoBehaviour
                     mappingManager?.TryApplyFacial("待机");
                     break;
                 case "preview_action":
-                    if (actionController?.animator != null && int.TryParse(cmd.name, out int ap2))
-                        actionController.animator.SetInteger("action_param", ap2);
+                    if (!string.IsNullOrEmpty(cmd.name))
+                    {
+                        var p = presetManager?.GetByName(cmd.name);
+                        if (p != null)
+                            actionController.animator.SetInteger("action_param", p.actionParam);
+                        else if (int.TryParse(cmd.name, out int ap2))
+                            actionController.animator.SetInteger("action_param", ap2);
+                    }
                     break;
                 case "test_tts":
                     if (!string.IsNullOrEmpty(cmd.text))
@@ -361,6 +386,20 @@ public class PipeServer : MonoBehaviour
                 case "delete_expression_mapping":
                     if (!string.IsNullOrEmpty(cmd.emotion))
                         mappingManager?.RemoveMapping(cmd.emotion);
+                    RefreshInitData();
+                    break;
+                case "restore_default_presets":
+                    presetManager?.RestoreDefaults();
+                    RefreshInitData();
+                    break;
+                case "save_action_preset":
+                    if (!string.IsNullOrEmpty(cmd.name) && cmd.actionParam >= 0)
+                        presetManager?.AddOrUpdate(cmd.name, cmd.actionParam);
+                    RefreshInitData();
+                    break;
+                case "delete_action_preset":
+                    if (!string.IsNullOrEmpty(cmd.name))
+                        presetManager?.Remove(cmd.name);
                     RefreshInitData();
                     break;
                 case "clear_history":
@@ -455,4 +494,5 @@ public class PipeCommand
     public float actionY;
     public string facialGroupsJson = "";
     public string actionGroupsJson = "";
+    public int actionParam = -1;
 }

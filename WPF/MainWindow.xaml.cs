@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private int _ttsMode;
     private string _animCatFilter = "All";
     private ExpressionMappingEntry? _exprEditing;
+    private ActionPresetEntry? _presetEditing;
 
     public MainWindow()
     {
@@ -94,6 +95,7 @@ public partial class MainWindow : Window
         PopulateModelHistory(d.ModelHistory);
         PopulateAnimationList(d.AnimationList);
         PopulateExpressionList(d.ExpressionMappings);
+        PopulatePresetList(d.ActionPresets);
         TxtHistory.Text = d.DialogueHistory;
     }
 
@@ -396,9 +398,12 @@ public partial class MainWindow : Window
         agHeader.Children.Add(btnAgPreview);
         sp.Children.Add(agHeader);
         var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-        var txtName = new TextBox { Width = 120, Text = ag.AnimationName };
-        txtName.TextChanged += (_, _) => ag.AnimationName = txtName.Text;
-        nameRow.Children.Add(txtName);
+        var cboAction = new ComboBox { Width = 140 };
+        if (_initData?.ActionPresets != null)
+            foreach (var p in _initData.ActionPresets.OrderBy(p => p.Name)) cboAction.Items.Add(p.Name);
+        foreach (var item in cboAction.Items) { if (item.ToString() == ag.AnimationName) cboAction.SelectedItem = item; }
+        cboAction.SelectionChanged += (_, _) => { if (cboAction.SelectedItem != null) ag.AnimationName = cboAction.SelectedItem.ToString()!; };
+        nameRow.Children.Add(cboAction);
         sp.Children.Add(nameRow);
         sp.Children.Add(BuildBodyPartSelector(ag));
         sp.Children.Add(BuildWeightSlider(ag.Weight, w => { ag.Weight = w; }));
@@ -484,6 +489,108 @@ public partial class MainWindow : Window
         sp.Children.Add(slider);
         sp.Children.Add(lbl);
         return sp;
+    }
+
+    #endregion
+
+    #region Action Preset Tab Events
+
+    private void PopulatePresetList(List<ActionPresetEntry> presets)
+    {
+        var displayList = presets.OrderBy(p => p.ActionParam).Select(p => new
+        {
+            p.Name, p.ActionParam, p.IsDefault,
+            DisplayName = (p.IsDefault ? "★ " : "") + p.Name,
+            Summary = "param=" + p.ActionParam
+        }).ToList();
+        LstPresets.ItemsSource = displayList;
+    }
+
+    private void OnPresetRestoreDefaults(object sender, RoutedEventArgs e)
+    {
+        _ = _pipe.SendCommand("restore_default_presets");
+    }
+
+    private void OnPresetAdd(object sender, RoutedEventArgs e)
+    {
+        _presetEditing = new ActionPresetEntry { Name = "", ActionParam = 0 };
+        BuildPresetEditPanel();
+    }
+
+    private void OnPresetSelect(object sender, SelectionChangedEventArgs e) { }
+
+    private void OnPresetEditClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string name && _initData != null)
+        {
+            _presetEditing = _initData.ActionPresets.FirstOrDefault(p => p.Name == name);
+            if (_presetEditing != null) BuildPresetEditPanel();
+        }
+    }
+
+    private void OnPresetDeleteClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string name)
+            _ = _pipe.SendCommand("delete_action_preset", new { name });
+    }
+
+    private void OnPresetPreviewClick(object sender, RoutedEventArgs e)
+    {
+        if (_presetEditing != null)
+            _ = _pipe.SendCommand("preview_action", new { name = _presetEditing.Name });
+    }
+
+    private void BuildPresetEditPanel()
+    {
+        PanelPresetEdit.Children.Clear();
+        if (_presetEditing == null) return;
+        var p = _presetEditing;
+        var sp = PanelPresetEdit;
+
+        // Name
+        var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+        nameRow.Children.Add(new TextBlock { Text = "名称:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        var txtName = new TextBox { Width = 160, Text = p.Name, IsReadOnly = p.IsDefault };
+        txtName.TextChanged += (_, _) => p.Name = txtName.Text;
+        nameRow.Children.Add(txtName);
+        var btnPreview = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(8, 0, 0, 0) };
+        btnPreview.Click += OnPresetPreviewClick;
+        nameRow.Children.Add(btnPreview);
+        sp.Children.Add(nameRow);
+
+        // ActionParam
+        var apRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 12) };
+        apRow.Children.Add(new TextBlock { Text = "ActionParam:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        var txtAp = new TextBox { Width = 60, Text = p.ActionParam.ToString(), IsReadOnly = p.IsDefault };
+        txtAp.TextChanged += (_, _) => { if (int.TryParse(txtAp.Text, out int v)) p.ActionParam = v; };
+        apRow.Children.Add(txtAp);
+        sp.Children.Add(apRow);
+
+        // Save / Cancel
+        var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
+        var btnSave = new Button { Content = "保存", Width = 70, Style = (Style)FindResource("PrimaryButton") };
+        btnSave.Click += (_, _) =>
+        {
+            if (string.IsNullOrEmpty(p.Name))
+            {
+                MessageBox.Show("请输入预设名称", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            _ = _pipe.SendCommand("save_action_preset", new { name = p.Name, actionParam = p.ActionParam });
+            _presetEditing = null;
+            PanelPresetEdit.Children.Clear();
+            PanelPresetEdit.Children.Add(new TextBlock { Text = "已保存", Foreground = (System.Windows.Media.Brush)FindResource("Accent"), FontSize = 13 });
+        };
+        actionRow.Children.Add(btnSave);
+        var btnCancel = new Button { Content = "取消", Width = 70, Margin = new Thickness(8, 0, 0, 0) };
+        btnCancel.Click += (_, _) =>
+        {
+            _presetEditing = null;
+            PanelPresetEdit.Children.Clear();
+            PanelPresetEdit.Children.Add(new TextBlock { Text = "选择一个预设进行编辑", Foreground = (System.Windows.Media.Brush)FindResource("TextSecondary"), FontSize = 13 });
+        };
+        actionRow.Children.Add(btnCancel);
+        sp.Children.Add(actionRow);
     }
 
     #endregion
