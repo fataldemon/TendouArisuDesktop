@@ -144,7 +144,7 @@ public partial class MainWindow : Window
         var displayList = mappings.Select(m => new
         {
             m.Emotion,
-            EmotionDisplay = m.Emotion == "待机" ? "★ 待机" : m.Emotion,
+            EmotionDisplay = (m.Emotion == "待机" || m.Emotion == "触摸" || m.Emotion == "拖拽") ? "★ " + m.Emotion : m.Emotion,
             FacialSummary = m.FacialGroup?.Preset ?? "-",
             ActionSummary = m.ActionGroup?.AnimationName ?? "-",
             IsIdle = m.Emotion == "待机"
@@ -328,7 +328,7 @@ public partial class MainWindow : Window
     {
         if (sender is Button btn && btn.Tag is string emotion)
         {
-            if (emotion == "待机")
+            if (emotion is "待机" or "触摸" or "拖拽")
             {
                 MessageBox.Show("待机映射不可删除", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
@@ -361,7 +361,9 @@ public partial class MainWindow : Window
         var btnPreviewAll = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(8, 0, 0, 0) };
         btnPreviewAll.Click += (_, _) =>
         {
-            _ = _pipe.SendCommand("preview_expression", new { emotion = _exprEditing.Emotion });
+            _ = _pipe.SendCommand("restore_expression");
+            if (_exprEditing.FacialGroup != null && !string.IsNullOrEmpty(_exprEditing.FacialGroup.Preset))
+                _ = _pipe.SendCommand("preview_facial", new { facialX = _exprEditing.FacialGroup.Preset, facialW = _exprEditing.FacialGroup.Weight, noZoom = true });
             if (_exprEditing.ActionGroup != null)
                 _ = _pipe.SendCommand("preview_action", new { name = _exprEditing.ActionGroup.AnimationName });
         };
@@ -369,41 +371,56 @@ public partial class MainWindow : Window
         sp.Children.Add(emoPanel);
 
         // Facial section
-        var fg = _exprEditing.FacialGroup ?? new FacialGroupEntry();
-        _exprEditing.FacialGroup = fg;
-
-        var fgHeader = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 4) };
-        fgHeader.Children.Add(new TextBlock { Text = "面部表情:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-        var btnFgPreview = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton") };
-        btnFgPreview.Click += (_, _) =>
+        var fg = _exprEditing.FacialGroup;
+        if (fg == null || string.IsNullOrEmpty(fg.Preset))
         {
-            if (!string.IsNullOrEmpty(fg.Preset))
-                _ = _pipe.SendCommand("preview_facial", new { facialX = fg.Preset, facialW = fg.Weight });
-        };
-        fgHeader.Children.Add(btnFgPreview);
-        sp.Children.Add(fgHeader);
-        sp.Children.Add(BuildFacialPresetSelector(fg));
-        sp.Children.Add(BuildWeightSlider(fg.Weight, w => { fg.Weight = w; }));
+            var btnAddFg = new Button { Content = "+ 添加面部", Width = 100, Style = (Style)FindResource("SmallButton") };
+            btnAddFg.Click += (_, _) => { _exprEditing.FacialGroup = new FacialGroupEntry { Preset = "happy", Weight = 1f }; BuildExprEditPanel(); };
+            sp.Children.Add(btnAddFg);
+        }
+        else
+        {
+            var fgHeader = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 4) };
+            fgHeader.Children.Add(new TextBlock { Text = "面部表情:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+            var btnFgPreview = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton") };
+            btnFgPreview.Click += (_, _) =>
+            {
+                if (!string.IsNullOrEmpty(fg.Preset))
+                    _ = _pipe.SendCommand("preview_facial", new { facialX = fg.Preset, facialW = fg.Weight });
+            };
+            fgHeader.Children.Add(btnFgPreview);
+            sp.Children.Add(fgHeader);
+            sp.Children.Add(BuildFacialPresetSelector(fg));
+            sp.Children.Add(BuildWeightSlider(fg.Weight, w => { fg.Weight = w; }));
+        }
 
         // Action section
-        var ag = _exprEditing.ActionGroup ?? new ActionGroupEntry();
-        _exprEditing.ActionGroup = ag;
-        var agHeader = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 12, 0, 4) };
-        agHeader.Children.Add(new TextBlock { Text = "动作:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-        var btnAgPreview = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton") };
-        btnAgPreview.Click += (_, _) => _ = _pipe.SendCommand("preview_action", new { name = ag.AnimationName });
-        agHeader.Children.Add(btnAgPreview);
-        sp.Children.Add(agHeader);
-        var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-        var cboAction = new ComboBox { Width = 140 };
-        if (_initData?.ActionPresets != null)
-            foreach (var p in _initData.ActionPresets.OrderBy(p => p.Name)) cboAction.Items.Add(p.Name);
-        foreach (var item in cboAction.Items) { if (item.ToString() == ag.AnimationName) cboAction.SelectedItem = item; }
-        cboAction.SelectionChanged += (_, _) => { if (cboAction.SelectedItem != null) ag.AnimationName = cboAction.SelectedItem.ToString()!; };
-        nameRow.Children.Add(cboAction);
-        sp.Children.Add(nameRow);
-        sp.Children.Add(BuildBodyPartSelector(ag));
-        sp.Children.Add(BuildWeightSlider(ag.Weight, w => { ag.Weight = w; }));
+        var ag = _exprEditing.ActionGroup;
+        if (ag == null || string.IsNullOrEmpty(ag.AnimationName))
+        {
+            var btnAddAg = new Button { Content = "+ 添加动作", Width = 100, Style = (Style)FindResource("SmallButton") };
+            btnAddAg.Click += (_, _) => { _exprEditing.ActionGroup = new ActionGroupEntry { AnimationName = "Speak Normal", BodyPart = "fullBody", Weight = 1f }; BuildExprEditPanel(); };
+            sp.Children.Add(btnAddAg);
+        }
+        else
+        {
+            var agHeader = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 12, 0, 4) };
+            agHeader.Children.Add(new TextBlock { Text = "动作:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+            var btnAgPreview = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton") };
+            btnAgPreview.Click += (_, _) => _ = _pipe.SendCommand("preview_action", new { name = ag.AnimationName });
+            agHeader.Children.Add(btnAgPreview);
+            sp.Children.Add(agHeader);
+            var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+            var cboAction = new ComboBox { Width = 140 };
+            if (_initData?.ActionPresets != null)
+                foreach (var p in _initData.ActionPresets.OrderBy(p => p.Name)) cboAction.Items.Add(p.Name);
+            foreach (var item in cboAction.Items) { if (item.ToString() == ag.AnimationName) cboAction.SelectedItem = item; }
+            cboAction.SelectionChanged += (_, _) => { if (cboAction.SelectedItem != null) ag.AnimationName = cboAction.SelectedItem.ToString()!; };
+            nameRow.Children.Add(cboAction);
+            sp.Children.Add(nameRow);
+            sp.Children.Add(BuildBodyPartSelector(ag));
+            sp.Children.Add(BuildWeightSlider(ag.Weight, w => { ag.Weight = w; }));
+        }
 
         // Save / Cancel
         var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
@@ -418,11 +435,11 @@ public partial class MainWindow : Window
             _ = _pipe.SendCommand("update_expression_mapping", new
             {
                 emotion = _exprEditing.Emotion,
-                facialX = fg.Preset,
-                facialW = fg.Weight,
-                actionX = ag.AnimationName,
-                actionP = ag.BodyPart,
-                actionY = ag.Weight
+                facialX = fg?.Preset ?? "",
+                facialW = fg?.Weight ?? 1f,
+                actionX = ag?.AnimationName ?? "",
+                actionP = ag?.BodyPart ?? "fullBody",
+                actionY = ag?.Weight ?? 1f
             });
             _ = _pipe.SendCommand("restore_expression");
             _exprEditing = null;
@@ -497,7 +514,7 @@ public partial class MainWindow : Window
         var displayList = presets.OrderBy(p => p.ActionParam).Select(p => new
         {
             p.Name, p.ActionParam, p.IsDefault,
-            DisplayName = (p.IsDefault ? "★ " : "") + p.Name,
+            DisplayName = p.Name,
             Summary = "param=" + p.ActionParam
         }).ToList();
         LstPresets.ItemsSource = displayList;

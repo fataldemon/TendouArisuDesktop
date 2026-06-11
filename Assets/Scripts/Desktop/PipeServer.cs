@@ -342,7 +342,7 @@ public class PipeServer : MonoBehaviour
                 case "preview_facial":
                     if (actionController?.facialController != null && !string.IsNullOrEmpty(cmd.facialX))
                     {
-                        gameStart.ZoomToHeadPublic();
+                        if (!cmd.noZoom) gameStart.ZoomToHeadPublic();
                         actionController.facialController.ResetBlendShapesInstant();
                         actionController.facialController.PreviewBlendShape(cmd.facialX, cmd.facialW > 0 ? cmd.facialW : 1f);
                     }
@@ -394,6 +394,7 @@ public class PipeServer : MonoBehaviour
                     RefreshInitData();
                     break;
                 case "save_action_preset":
+                    WriteLog("Cmd save_action_preset: name=" + cmd.name + " ap=" + cmd.actionParam);
                     if (!string.IsNullOrEmpty(cmd.name) && cmd.actionParam >= 0)
                         presetManager?.AddOrUpdate(cmd.name, cmd.actionParam);
                     RefreshInitData();
@@ -496,4 +497,5 @@ public class PipeCommand
     public string facialGroupsJson = "";
     public string actionGroupsJson = "";
     public int actionParam = -1;
+    public bool noZoom;
 }

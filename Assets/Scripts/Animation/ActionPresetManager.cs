@@ -32,6 +32,7 @@ public class ActionPresetManager : MonoBehaviour
         (21, "Hurry"),           (22, "Focused"),         (23, "Afraid"),
         (24, "Speak Explain"),   (25, "Speak Excited"),   (26, "Speak Thinking"),
         (27, "Speak Chatty"),    (28, "Speak Shy"),       (29, "Apologize"),
+        (7,  "Touch"),          (0,  "Drag"),
     };
 
     private void Awake() { LoadMerged(); }
@@ -43,6 +44,7 @@ public class ActionPresetManager : MonoBehaviour
     public void AddOrUpdate(string name, int actionParam)
     {
         var existing = presets.FirstOrDefault(p => p.name == name);
+        Debug.Log("[Preset] AddOrUpdate name=" + name + " ap=" + actionParam + " found=" + (existing != null));
         if (existing != null)
             existing.actionParam = actionParam;
         else

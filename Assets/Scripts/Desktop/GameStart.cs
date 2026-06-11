@@ -90,6 +90,11 @@ public class GameStart : MonoBehaviour
     private bool skinReady;
     private bool _ctrlDown;
 
+    private bool _isTouching;
+    private bool _isDragging;
+    private const float TouchScreenRadius = 150f;
+    private int _touchLogFrame;
+
     private void SetupSkin()
     {
         if (skinReady) return;
@@ -273,6 +278,23 @@ public class GameStart : MonoBehaviour
         else
         {
             Debug.LogError("[GameStart] TrayManager is null - system tray will not work");
+        }
+
+        if (windowController != null)
+        {
+            windowController.OnDragStart += () =>
+            {
+                if (actionController.getIdleStatus() && !_isTouching && (_eyeTracking == null || !_eyeTracking.expressionActive))
+                {
+                    mappingManager?.TryApplyFacial("拖拽");
+                    mappingManager?.TryApplyAction("拖拽");
+                    _isDragging = true;
+                }
+            };
+            windowController.OnDragEnd += () =>
+            {
+                if (_isDragging) { actionController.RestoreFacialExpression(null); actionController.RestoreAnimator(); _isDragging = false; }
+            };
         }
 
         // Pre-scan animations so the WPF library is populated
@@ -579,6 +601,47 @@ public class GameStart : MonoBehaviour
         else if (actionController.getIdleStatus())
         {
             waitingTimer += Time.deltaTime;
+        }
+
+        // Touch detection
+        {
+            bool leftDown = (GetAsyncKeyState(0x01) & 0x8000) != 0;
+            bool touching = false;
+
+            if (leftDown && actionController?.animator != null)
+            {
+                var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+                if (head != null)
+                {
+                    Vector3 headScreen = Camera.main.WorldToScreenPoint(head.position);
+                    float dist = Vector2.Distance(new Vector2(headScreen.x, headScreen.y),
+                        new Vector2(Input.mousePosition.x, Input.mousePosition.y));
+                    touching = dist < TouchScreenRadius;
+
+                    _touchLogFrame++;
+                    if (_touchLogFrame % 60 == 0)
+                        Debug.Log("[Touch] leftDown dist=" + dist.ToString("F0") + " touching=" + touching +
+                            " isTouching=" + _isTouching + " idle=" + actionController.getIdleStatus() +
+                            " dragging=" + _isDragging);
+                }
+            }
+
+            if (touching && !_isTouching)
+            {
+                if (actionController.getIdleStatus() && !_isDragging && (_eyeTracking == null || !_eyeTracking.expressionActive))
+                {
+                    mappingManager?.TryApplyFacial("触摸");
+                    mappingManager?.TryApplyAction("触摸");
+                    _isTouching = true;
+                }
+            }
+            else if (!touching && _isTouching)
+            {
+                actionController.RestoreFacialExpression(null);
+                Debug.Log("[Touch] RELEASE restoring animator");
+                actionController.RestoreAnimator();
+                _isTouching = false;
+            }
         }
     }
 

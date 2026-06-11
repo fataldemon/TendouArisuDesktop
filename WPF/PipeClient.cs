@@ -159,9 +159,10 @@ public class PipeClient : IDisposable
 
     public async Task SendCommand(string action, object? data = null)
     {
+        Log("SendCommand: " + action + " writer=" + (_writer != null ? "ok" : "null") + " reconnecting=" + _reconnecting);
         if (_writer == null || _reconnecting) return;
         var json = BuildCommandJson(action, data);
-        try { await _writer.WriteLineAsync(json); }
+        try { await _writer.WriteLineAsync(json); Log("SendCommand OK: " + action); }
         catch (Exception ex)
         {
             Log("SendCommand error: " + ex.Message);
