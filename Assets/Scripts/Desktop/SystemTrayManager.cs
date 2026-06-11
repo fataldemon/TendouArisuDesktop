@@ -223,6 +223,7 @@ public class SystemTrayManager : MonoBehaviour
         if (_handleHwnd != IntPtr.Zero) { DestroyWindow(_handleHwnd); _handleHwnd = IntPtr.Zero; }
         if (_hIcon != IntPtr.Zero) DestroyIcon(_hIcon);
         if (_wndProcHandle.IsAllocated) _wndProcHandle.Free();
+        try { _messageThread?.Join(1000); } catch { }
 #endif
     }
 

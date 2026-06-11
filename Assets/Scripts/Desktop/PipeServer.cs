@@ -26,6 +26,7 @@ public class PipeServer : MonoBehaviour
     private Stream? _currentStream;
     private readonly object _streamLock = new();
     private volatile bool _running;
+    private TcpListener? _listener;
     private string _logPath;
 
     private void WriteLog(string msg)
@@ -52,17 +53,17 @@ public class PipeServer : MonoBehaviour
     public void StopServer()
     {
         _running = false;
-        try { _serverThread?.Join(2000); } catch { }
+        try { _listener?.Server?.Close(); } catch { }
+        try { _serverThread?.Join(500); } catch { }
     }
 
     private void ServerLoop()
     {
         WriteLog("ServerLoop started, port=" + Port);
-        TcpListener? listener = null;
         try
         {
-            listener = new TcpListener(IPAddress.Loopback, Port);
-            listener.Start();
+            _listener = new TcpListener(IPAddress.Loopback, Port);
+        _listener.Start();
             WriteLog("TcpListener started");
         }
         catch (Exception ex)
@@ -76,7 +77,7 @@ public class PipeServer : MonoBehaviour
             try
             {
                 WriteLog("Waiting for connection...");
-                using var client = listener.AcceptTcpClient();
+                using var client = _listener.AcceptTcpClient();
                 WriteLog("Client connected");
                 using var stream = client.GetStream();
                 stream.ReadTimeout = 30000;

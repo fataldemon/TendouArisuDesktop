@@ -150,7 +150,7 @@ public class NetManager
         {
             var task = m_clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
             Debug.Log("Closing connection, current socket state: " + m_clientWebSocket.State);
-            task.Wait();
+            task.Wait(1000);
             Debug.Log("Socket state after close: " + m_clientWebSocket.State);
             Debug.Log("Connection closed.");
         }

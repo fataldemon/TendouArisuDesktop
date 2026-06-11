@@ -27,10 +27,7 @@ public partial class MainWindow : Window
         _pipe.OnConnectionChanged += c => Dispatcher.Invoke(() => UpdateConnectionStatus(c));
         _pipe.OnMessageReceived += OnMessage;
         _pipe.OnError += e => Dispatcher.Invoke(() => MessageBox.Show(e, "连接错误", MessageBoxButton.OK, MessageBoxImage.Warning));
-        Loaded += async (_, _) =>
-        {
-            _ = _pipe.StartAsync();
-        };
+        Loaded += (_, _) => _pipe.StartReconnect();
         Closing += async (_, _) =>
         {
             await _pipe.SendCommand("restore_expression");

@@ -16,6 +16,8 @@ public class PipeClient : IDisposable
     private StreamWriter? _writer;
     private CancellationTokenSource? _cts;
     private bool _disposed;
+
+    private readonly object _reconnectLock = new();
     private bool _reconnecting;
 
     public event Action<InitData>? OnInitReceived;
@@ -36,25 +38,39 @@ public class PipeClient : IDisposable
         catch { }
     }
 
-    public async Task StartAsync()
+    public void StartReconnect()
     {
-        _cts = new CancellationTokenSource();
-        while (!_cts.IsCancellationRequested && !_disposed)
+        lock (_reconnectLock)
         {
-            try
+            if (_reconnecting || _disposed) return;
+            _reconnecting = true;
+        }
+        OnConnectionChanged?.Invoke(false);
+        _ = ReconnectLoopAsync();
+    }
+
+    private async Task ReconnectLoopAsync()
+    {
+        CancelAndRenewCts();
+        try
+        {
+            while (!_cts!.IsCancellationRequested && !_disposed)
             {
-                _reconnecting = true;
-                OnConnectionChanged?.Invoke(false);
-                await TryConnectAsync(_cts.Token);
-                return;
-            }
-            catch (OperationCanceledException) { return; }
-            catch (Exception ex)
-            {
-                Log("Connect failed: " + ex.GetType().Name + " - " + ex.Message);
-                await Task.Delay(2000, _cts.Token);
+                try
+                {
+                    await TryConnectAsync(_cts.Token);
+                    lock (_reconnectLock) { _reconnecting = false; }
+                    return;
+                }
+                catch (OperationCanceledException) { lock (_reconnectLock) { _reconnecting = false; } return; }
+                catch (Exception ex)
+                {
+                    Log("Connect failed: " + ex.GetType().Name + " - " + ex.Message);
+                    try { await Task.Delay(2000, _cts.Token); } catch (OperationCanceledException) { break; }
+                }
             }
         }
+        finally { lock (_reconnectLock) { _reconnecting = false; } }
     }
 
     private async Task TryConnectAsync(CancellationToken ct)
@@ -97,11 +113,10 @@ public class PipeClient : IDisposable
         }
         catch (JsonException ex) { Log("Init parse error: " + ex.Message); }
 
-        _reconnecting = false;
         OnConnectionChanged?.Invoke(true);
         Log("Connection complete");
 
-        await ReadLoopAsync(ct);
+        _ = ReadLoopAsync(ct);
     }
 
     private async Task ReadLoopAsync(CancellationToken ct)
@@ -138,8 +153,7 @@ public class PipeClient : IDisposable
         {
             Log("ReadLoop ended");
             CleanupConnection();
-            if (!_disposed)
-                _ = StartAsync();
+            if (!_disposed) StartReconnect();
         }
     }
 
@@ -151,10 +165,8 @@ public class PipeClient : IDisposable
         catch (Exception ex)
         {
             Log("SendCommand error: " + ex.Message);
-            _reconnecting = true;
-            OnConnectionChanged?.Invoke(false);
             CleanupConnection();
-            _ = StartAsync();
+            StartReconnect();
         }
     }
 
@@ -167,6 +179,13 @@ public class PipeClient : IDisposable
         _writer = null;
         _reader = null;
         _client = null;
+    }
+
+    private void CancelAndRenewCts()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
     }
 
     private static string BuildCommandJson(string action, object? data)
