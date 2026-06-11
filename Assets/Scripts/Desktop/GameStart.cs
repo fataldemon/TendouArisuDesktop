@@ -45,6 +45,7 @@ public class GameStart : MonoBehaviour
     public ExpressionMappingManager mappingManager;
     public PipeServer pipeServer;
     public SystemTrayManager trayManager;
+    private EyeTrackingController _eyeTracking;
 
     public float dialogueInterval = 0.5f;
     private float dialogueTimer;
@@ -149,6 +150,7 @@ public class GameStart : MonoBehaviour
         withExpression = value;
         onVoice = value;
         onRestore = value;
+        if (_eyeTracking != null) _eyeTracking.expressionActive = false;
         if (actionController != null)
             actionController.RestoreAnimator();
         if (actionController != null && actionController.mappingManager != null)
@@ -275,6 +277,7 @@ public class GameStart : MonoBehaviour
 
         // Pre-scan animations so the WPF library is populated
         animLibrary?.ScanAll();
+        _eyeTracking = actionController?.GetComponent<EyeTrackingController>();
     }
 
     private void OpenSettingsPanel(int tabIndex)
@@ -496,6 +499,7 @@ public class GameStart : MonoBehaviour
                                 actionController.AnimatorControl(exprText);
                                 expressionApplied = true;
                                 withExpression = true;
+                                if (_eyeTracking != null) _eyeTracking.expressionActive = true;
                             }
                         }
                     }
@@ -560,10 +564,12 @@ public class GameStart : MonoBehaviour
             {
                 case 2:
                     withExpression = true;
+                    if (_eyeTracking != null) _eyeTracking.expressionActive = true;
                     actionController.facialController.PerformExpression("curious", null);
                     break;
                 case 3:
                     withExpression = true;
+                    if (_eyeTracking != null) _eyeTracking.expressionActive = true;
                     actionController.facialController.PerformExpression("wink", null);
                     break;
             }
@@ -615,6 +621,7 @@ public class GameStart : MonoBehaviour
         Debug.Log(text_answer);
         waitingTimer = 0f;
         withExpression = true;
+        if (_eyeTracking != null) _eyeTracking.expressionActive = true;
         actionController.SetFacialExpression(answerPure);
         actionController.AnimatorControl(answerPure);
         translator.translate(text, "jp", GenerateVoice, SetExceptionRestore);
