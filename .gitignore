@@ -12,3 +12,6 @@
 *.sln
 UpgradeLog.htm
 ignore.conf
+WPF/bin/
+WPF/obj/
+*.user
