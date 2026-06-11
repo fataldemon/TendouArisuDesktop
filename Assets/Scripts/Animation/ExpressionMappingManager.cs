@@ -23,7 +23,7 @@ public class ExpressionMappingManager : MonoBehaviour
             d.actionParam = a;
             list.Add(d);
         }
-        Add("待机", "", 0);
+        Add("待机", "plain", 0);
         Add("微笑", "", 1);  Add("认真", "serious", 24);  Add("坚定", "serious", 11);
         Add("承诺", "serious", 11);  Add("生气", "angry", 20);  Add("急切", "angry", 27);
         Add("烦恼", "panic", 1);  Add("专注", "curious", 22);  Add("诚实", "curious", 1);

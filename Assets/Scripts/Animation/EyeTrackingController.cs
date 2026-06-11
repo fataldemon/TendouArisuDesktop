@@ -78,14 +78,6 @@ public class EyeTrackingController : MonoBehaviour
     {
         if (facialController == null || actionController?.animator == null) return;
 
-        bool headIdle = actionController.animator.GetInteger("action_param") == 0
-            && actionController.animator.GetInteger("onWaiting") == 0
-            && !actionController.animator.GetBool("onAction")
-            && (animLibrary == null || !animLibrary.IsPreviewing)
-            && !expressionActive;
-
-        if (!headIdle) return;
-
         var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
         if (head == null) return;
 

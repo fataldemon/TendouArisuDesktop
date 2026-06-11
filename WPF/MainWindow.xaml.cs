@@ -371,14 +371,29 @@ public partial class MainWindow : Window
         // Facial section
         var fg = _exprEditing.FacialGroup ?? new FacialGroupEntry();
         _exprEditing.FacialGroup = fg;
-        sp.Children.Add(new TextBlock { Text = "面部表情:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, Margin = new Thickness(0, 8, 0, 4) });
+
+        var fgHeader = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 4) };
+        fgHeader.Children.Add(new TextBlock { Text = "面部表情:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        var btnFgPreview = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton") };
+        btnFgPreview.Click += (_, _) =>
+        {
+            if (!string.IsNullOrEmpty(fg.Preset))
+                _ = _pipe.SendCommand("preview_facial", new { facialX = fg.Preset, facialW = fg.Weight });
+        };
+        fgHeader.Children.Add(btnFgPreview);
+        sp.Children.Add(fgHeader);
         sp.Children.Add(BuildFacialPresetSelector(fg));
         sp.Children.Add(BuildWeightSlider(fg.Weight, w => { fg.Weight = w; }));
 
         // Action section
         var ag = _exprEditing.ActionGroup ?? new ActionGroupEntry();
         _exprEditing.ActionGroup = ag;
-        sp.Children.Add(new TextBlock { Text = "动作:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, Margin = new Thickness(0, 12, 0, 4) });
+        var agHeader = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 12, 0, 4) };
+        agHeader.Children.Add(new TextBlock { Text = "动作:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        var btnAgPreview = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton") };
+        btnAgPreview.Click += (_, _) => _ = _pipe.SendCommand("preview_action", new { name = ag.AnimationName });
+        agHeader.Children.Add(btnAgPreview);
+        sp.Children.Add(agHeader);
         var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
         var txtName = new TextBox { Width = 120, Text = ag.AnimationName };
         txtName.TextChanged += (_, _) => ag.AnimationName = txtName.Text;

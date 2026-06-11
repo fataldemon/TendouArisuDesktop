@@ -338,6 +338,8 @@ public class PipeServer : MonoBehaviour
                     break;
                 case "restore_default_mappings":
                     mappingManager?.RestoreDefaults();
+                    gameStart.RestoreCharacterPublic();
+                    mappingManager?.TryApplyFacial("待机");
                     RefreshInitData();
                     break;
                 case "update_expression_mapping":
