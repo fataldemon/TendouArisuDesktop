@@ -144,10 +144,10 @@ public partial class MainWindow : Window
         var displayList = mappings.Select(m => new
         {
             m.Emotion,
-            EmotionDisplay = m.Emotion == "待机" ? "★ 待机" : m.Emotion,
+            EmotionDisplay = (m.Emotion == "待机" || m.Emotion == "触摸" || m.Emotion == "拖拽") ? "★ " + m.Emotion : m.Emotion,
             FacialSummary = m.FacialGroup?.Preset ?? "-",
             ActionSummary = m.ActionGroup?.AnimationName ?? "-",
-            IsIdle = m.Emotion == "待机"
+            IsIdle = m.Emotion is "待机" or "触摸" or "拖拽"
         }).ToList();
         LstExprMappings.ItemsSource = displayList;
     }
@@ -328,7 +328,7 @@ public partial class MainWindow : Window
     {
         if (sender is Button btn && btn.Tag is string emotion)
         {
-            if (emotion == "待机")
+            if (emotion is "待机" or "触摸" or "拖拽")
             {
                 MessageBox.Show("待机映射不可删除", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;

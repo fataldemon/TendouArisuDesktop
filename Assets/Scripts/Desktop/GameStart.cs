@@ -90,6 +90,10 @@ public class GameStart : MonoBehaviour
     private bool skinReady;
     private bool _ctrlDown;
 
+    private bool _isTouching;
+    private bool _isDragging;
+    private const float TouchScreenRadius = 150f;
+
     private void SetupSkin()
     {
         if (skinReady) return;
@@ -273,6 +277,24 @@ public class GameStart : MonoBehaviour
         else
         {
             Debug.LogError("[GameStart] TrayManager is null - system tray will not work");
+        }
+
+        // Drag event from TransparentWindow
+        if (windowController != null)
+        {
+            windowController.OnDragStart += () =>
+            {
+                if (actionController.getIdleStatus() && !_isTouching && (_eyeTracking == null || !_eyeTracking.expressionActive))
+                {
+                    var p = mappingManager?.presetManager?.GetByName("Drag");
+                    if (p != null) actionController.animator.SetInteger("action_param", p.actionParam);
+                    _isDragging = true;
+                }
+            };
+            windowController.OnDragEnd += () =>
+            {
+                if (_isDragging) { actionController.RestoreAnimator(); _isDragging = false; }
+            };
         }
 
         // Pre-scan animations so the WPF library is populated
@@ -579,6 +601,39 @@ public class GameStart : MonoBehaviour
         else if (actionController.getIdleStatus())
         {
             waitingTimer += Time.deltaTime;
+        }
+
+        // Touch detection
+        {
+            bool leftDown = (GetAsyncKeyState(0x01) & 0x8000) != 0;
+            bool touching = false;
+
+            if (leftDown && actionController?.animator != null)
+            {
+                var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+                if (head != null)
+                {
+                    Vector3 headScreen = Camera.main.WorldToScreenPoint(head.position);
+                    float dist = Vector2.Distance(new Vector2(headScreen.x, headScreen.y),
+                        new Vector2(Input.mousePosition.x, Input.mousePosition.y));
+                    touching = dist < TouchScreenRadius;
+                }
+            }
+
+            if (touching && !_isTouching)
+            {
+                if (actionController.getIdleStatus() && !_isDragging && (_eyeTracking == null || !_eyeTracking.expressionActive))
+                {
+                    var p = mappingManager?.presetManager?.GetByName("Touch");
+                    if (p != null) actionController.animator.SetInteger("action_param", p.actionParam);
+                    _isTouching = true;
+                }
+            }
+            else if (!touching && _isTouching)
+            {
+                actionController.RestoreAnimator();
+                _isTouching = false;
+            }
         }
     }
 

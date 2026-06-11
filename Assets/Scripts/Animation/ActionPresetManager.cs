@@ -32,6 +32,7 @@ public class ActionPresetManager : MonoBehaviour
         (21, "Hurry"),           (22, "Focused"),         (23, "Afraid"),
         (24, "Speak Explain"),   (25, "Speak Excited"),   (26, "Speak Thinking"),
         (27, "Speak Chatty"),    (28, "Speak Shy"),       (29, "Apologize"),
+        (0,  "Touch"),          (0,  "Drag"),
     };
 
     private void Awake() { LoadMerged(); }
