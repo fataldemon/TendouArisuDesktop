@@ -13,7 +13,6 @@ public class EyeTrackingController : MonoBehaviour
     private float _currentY;
     private Quaternion _headDefaultRot = Quaternion.identity;
     private bool _wasInAction;
-    private float _headBlendOut = 1f;
     public bool expressionActive;
 
     void Start()
@@ -36,8 +35,7 @@ public class EyeTrackingController : MonoBehaviour
         if (actionController?.animator == null || Camera.main == null) return;
 
         bool inAction = (animLibrary != null && animLibrary.IsPreviewing)
-            || actionController.animator.GetInteger("action_param") >= 1
-            || actionController.animator.GetInteger("onWaiting") > 0
+            || actionController.animator.GetInteger("action_param") >= 3
             || actionController.animator.GetBool("onAction")
             || expressionActive;
 
@@ -80,21 +78,12 @@ public class EyeTrackingController : MonoBehaviour
     {
         if (facialController == null || actionController?.animator == null) return;
 
-        bool headIdle = actionController.animator.GetInteger("action_param") == 0
-            && actionController.animator.GetInteger("onWaiting") == 0
-            && !actionController.animator.GetBool("onAction")
-            && (animLibrary == null || !animLibrary.IsPreviewing)
-            && !expressionActive;
-
-        _headBlendOut = Mathf.Lerp(_headBlendOut, headIdle ? 1f : 0f, Time.deltaTime * 10f);
-        if (_headBlendOut < 0.01f) return;
-
         var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
         if (head == null) return;
 
         Vector3 targetRot = new Vector3(_currentY / lookStrength * headRotationAmount, -_currentX / lookStrength * headRotationAmount, 0f);
         Quaternion target = _headDefaultRot * Quaternion.Euler(targetRot);
-        head.localRotation = Quaternion.Slerp(Quaternion.identity, target, _headBlendOut);
+        head.localRotation = target;
     }
 
     private void ApplyEyeWeights(float left, float right, float up, float down)
