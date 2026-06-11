@@ -364,6 +364,8 @@ public partial class MainWindow : Window
         btnPreviewAll.Click += (_, _) =>
         {
             _ = _pipe.SendCommand("preview_expression", new { emotion = _exprEditing.Emotion });
+            if (_exprEditing.ActionGroup != null)
+                _ = _pipe.SendCommand("preview_action", new { name = _exprEditing.ActionGroup.AnimationName });
         };
         emoPanel.Children.Add(btnPreviewAll);
         sp.Children.Add(emoPanel);
