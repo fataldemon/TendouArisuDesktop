@@ -710,7 +710,8 @@ public class GameStart : MonoBehaviour
 
             float dialogRight = bubbleX + msg_max_length;
             float dialogBottom = bubbleY + msg_height;
-            Rect gripRect = new Rect(dialogRight - gripSize, dialogBottom - gripSize, gripSize, gripSize);
+            Rect gripRect = new Rect(bubbleX + msg_max_length / 2f - gripSize / 2f,
+                bubbleY + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
 
             Color prevColor = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, 0.5f);
