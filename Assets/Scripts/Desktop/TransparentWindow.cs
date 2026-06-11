@@ -92,9 +92,6 @@ public class TransparentWindow : MonoBehaviour
 
     public SystemTrayManager trayManager;
 
-    public event Action? OnDragStart;
-    public event Action? OnDragEnd;
-
     private int _realWidth, _realHeight, _realX, _realY;
     private IntPtr hwnd = IntPtr.Zero;
     private bool _transparentEnabled;
@@ -174,7 +171,6 @@ public class TransparentWindow : MonoBehaviour
         if (ctrlDown && !_ctrlWasDown)
         {
             SetTransparent(false);
-            OnDragStart?.Invoke();
         }
 
         // Ctrl+drag to move the window
@@ -188,7 +184,6 @@ public class TransparentWindow : MonoBehaviour
         if (!ctrlDown && _ctrlWasDown)
         {
             SetTransparent(true);
-            OnDragEnd?.Invoke();
         }
 
         _ctrlWasDown = ctrlDown;

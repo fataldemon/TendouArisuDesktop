@@ -24,7 +24,6 @@ public class ExpressionMappingManager : MonoBehaviour
             list.Add(d);
         }
         Add("待机", "plain", "Idle");
-        Add("触摸", "", "Touch");      Add("拖拽", "", "Drag");
         Add("微笑", "", "Speak Normal");  Add("认真", "serious", "Speak Explain");  Add("坚定", "serious", "Determine");
         Add("承诺", "serious", "Determine");  Add("生气", "angry", "Angry");  Add("急切", "angry", "Speak Chatty");
         Add("烦恼", "panic", "Speak Normal");  Add("专注", "curious", "Focused");  Add("诚实", "curious", "Speak Normal");
