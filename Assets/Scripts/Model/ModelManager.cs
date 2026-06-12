@@ -8,7 +8,8 @@ using UniVRM10;
 public class ModelManager : MonoBehaviour
 {
     public GameObject currentModel;
-    public ActionController actionController;
+    public BodyEngine bodyEngine;
+    public FacialEngine facialEngine;
     public Transform modelParent;
 
     [SerializeField] private List<string> modelHistory = new List<string>();
@@ -91,8 +92,6 @@ public class ModelManager : MonoBehaviour
 
     private void ReplaceModel(GameObject newModel)
     {
-        var oldController = actionController != null ? actionController.animator?.runtimeAnimatorController : null;
-
         if (currentModel != null)
         {
             if (currentModel == defaultModel)
@@ -103,22 +102,19 @@ public class ModelManager : MonoBehaviour
 
         currentModel = newModel;
 
-        if (actionController != null)
+        if (bodyEngine != null)
         {
             var animator = currentModel.GetComponent<Animator>();
             if (animator == null)
                 animator = currentModel.AddComponent<Animator>();
-            if (oldController != null)
-                animator.runtimeAnimatorController = oldController;
-            actionController.animator = animator;
+            bodyEngine.animator = animator;
+        }
 
-            var facial = actionController.facialController;
-            if (facial != null)
-            {
-                var renderer = currentModel.GetComponentInChildren<SkinnedMeshRenderer>();
-                if (renderer != null)
-                    facial.skinnedMeshRenderer = renderer;
-            }
+        if (facialEngine != null)
+        {
+            var renderer = currentModel.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (renderer != null)
+                facialEngine.meshRenderer = renderer;
         }
     }
 
@@ -132,16 +128,14 @@ public class ModelManager : MonoBehaviour
         defaultModel.SetActive(true);
         currentModel = defaultModel;
 
-        if (actionController != null)
+        if (bodyEngine != null)
+            bodyEngine.animator = defaultModel.GetComponent<Animator>();
+
+        if (facialEngine != null)
         {
-            actionController.animator = defaultModel.GetComponent<Animator>();
-            var facial = actionController.facialController;
-            if (facial != null)
-            {
-                var renderer = defaultModel.GetComponentInChildren<SkinnedMeshRenderer>();
-                if (renderer != null)
-                    facial.skinnedMeshRenderer = renderer;
-            }
+            var renderer = defaultModel.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (renderer != null)
+                facialEngine.meshRenderer = renderer;
         }
 
         SaveHistory();

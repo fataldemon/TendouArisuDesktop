@@ -9,6 +9,7 @@ public class BlinkController : MonoBehaviour
     public float blinkWeight = 0.0f;
     public float blinkDuration = 0.2f;
     public float blinkInterval = 3.0f;
+    [HideInInspector] public bool suppressed;
 
     private float blinkTimer = 0.0f;
 
@@ -19,6 +20,8 @@ public class BlinkController : MonoBehaviour
 
     void Update()
     {
+        if (suppressed) { blinkTimer = 0f; return; }
+
         blinkTimer += Time.deltaTime;
 
         if (blinkTimer >= blinkInterval && skinnedMeshRenderer.GetBlendShapeWeight(11) == 0 

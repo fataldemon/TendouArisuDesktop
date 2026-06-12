@@ -2,12 +2,16 @@ using UnityEngine;
 
 public class EyeTrackingController : MonoBehaviour
 {
-    public FacialController facialController;
-    public ActionController actionController;
-    public AnimationLibrary animLibrary;
+    public SkinnedMeshRenderer meshRenderer;
+    public BodyEngine bodyEngine;
 
     public float lookStrength = 120f;
     public float headRotationAmount = 10f;
+
+    public int lookLeftBlendIndex = 30;
+    public int lookRightBlendIndex = 31;
+    public int lookUpBlendIndex = 28;
+    public int lookDownBlendIndex = 29;
 
     private float _currentX;
     private float _currentY;
@@ -18,28 +22,25 @@ public class EyeTrackingController : MonoBehaviour
 
     void Start()
     {
-        if (facialController == null) facialController = GetComponent<FacialController>();
-        if (actionController == null) actionController = GetComponent<ActionController>();
         StartCoroutine(SaveDefaultRot());
     }
 
     System.Collections.IEnumerator SaveDefaultRot()
     {
         yield return null;
-        var head = actionController?.animator?.GetBoneTransform(HumanBodyBones.Head);
-        if (head != null) _headDefaultRot = head.localRotation;
+        if (bodyEngine != null && bodyEngine.animator != null)
+        {
+            var head = bodyEngine.animator.GetBoneTransform(HumanBodyBones.Head);
+            if (head != null) _headDefaultRot = head.localRotation;
+        }
     }
 
     void Update()
     {
-        if (facialController == null || facialController.skinnedMeshRenderer == null) return;
-        if (actionController?.animator == null || Camera.main == null) return;
+        if (meshRenderer == null) return;
+        if (bodyEngine == null || bodyEngine.animator == null || Camera.main == null) return;
 
-        bool inAction = (animLibrary != null && animLibrary.IsPreviewing)
-            || actionController.animator.GetInteger("action_param") >= 1
-            || actionController.animator.GetInteger("onWaiting") > 0
-            || actionController.animator.GetBool("onAction")
-            || expressionActive;
+        bool inAction = bodyEngine.IsPreviewing || bodyEngine.IsAnyNonIdlePlaying() || expressionActive;
 
         if (inAction)
         {
@@ -51,7 +52,7 @@ public class EyeTrackingController : MonoBehaviour
         {
             if (_wasInAction) { _currentX = 0f; _currentY = 0f; _wasInAction = false; }
 
-            var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+            var head = bodyEngine.animator.GetBoneTransform(HumanBodyBones.Head);
             if (head == null) return;
 
             Vector3 headScreen = Camera.main.WorldToScreenPoint(head.position);
@@ -78,18 +79,14 @@ public class EyeTrackingController : MonoBehaviour
 
     void LateUpdate()
     {
-        if (facialController == null || actionController?.animator == null) return;
+        if (meshRenderer == null || bodyEngine == null || bodyEngine.animator == null) return;
 
-        bool headIdle = actionController.animator.GetInteger("action_param") == 0
-            && actionController.animator.GetInteger("onWaiting") == 0
-            && !actionController.animator.GetBool("onAction")
-            && (animLibrary == null || !animLibrary.IsPreviewing)
-            && !expressionActive;
+        bool headIdle = !bodyEngine.IsAnyNonIdlePlaying() && !bodyEngine.IsPreviewing && !expressionActive;
 
         _headBlendOut = Mathf.Lerp(_headBlendOut, headIdle ? 1f : 0f, Time.deltaTime * 10f);
         if (_headBlendOut < 0.01f) return;
 
-        var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+        var head = bodyEngine.animator.GetBoneTransform(HumanBodyBones.Head);
         if (head == null) return;
 
         Vector3 targetRot = new Vector3(_currentY / lookStrength * headRotationAmount, -_currentX / lookStrength * headRotationAmount, 0f);
@@ -100,11 +97,10 @@ public class EyeTrackingController : MonoBehaviour
 
     private void ApplyEyeWeights(float left, float right, float up, float down)
     {
-        var smr = facialController.skinnedMeshRenderer;
-        if (smr == null) return;
-        smr.SetBlendShapeWeight(facialController.lookLeftBlendIndex, left);
-        smr.SetBlendShapeWeight(facialController.lookRightBlendIndex, right);
-        smr.SetBlendShapeWeight(facialController.lookUpBlendIndex, up);
-        smr.SetBlendShapeWeight(facialController.lookDownBlendIndex, down);
+        if (meshRenderer == null) return;
+        meshRenderer.SetBlendShapeWeight(lookLeftBlendIndex, left);
+        meshRenderer.SetBlendShapeWeight(lookRightBlendIndex, right);
+        meshRenderer.SetBlendShapeWeight(lookUpBlendIndex, up);
+        meshRenderer.SetBlendShapeWeight(lookDownBlendIndex, down);
     }
 }

@@ -18,13 +18,6 @@ public class GameStart : MonoBehaviour
     private string streamBuffer = "";
 
     [SerializeField] private string websocket_url;
-    [SerializeField] private bool withExpression;
-    [SerializeField] private bool onRestore;
-    [SerializeField] public float facialRestoreTime = 3f;
-    [SerializeField] private float facialRestoreTimer;
-    private bool exceptionRestore;
-    private bool expressionApplied;
-
     [SerializeField] private bool onVoice;
     [SerializeField] private AudioSource m_AudioSource;
     [SerializeField] public int msg_position_x = 300;
@@ -36,20 +29,19 @@ public class GameStart : MonoBehaviour
 
     public Configuration config;
     public TransparentWindow windowController;
-    public ActionController actionController;
+    public EmotionPlayer emotionPlayer;
+    public PreviewController previewController;
     public LLMFormatter llmFormatter;
     public TTS TTS_module;
     public BaiduTranslator translator;
     public ModelManager modelManager;
     public AnimationLibrary animLibrary;
-    public ExpressionMappingManager mappingManager;
     public PipeServer pipeServer;
     public SystemTrayManager trayManager;
-    private EyeTrackingController _eyeTracking;
 
     public float dialogueInterval = 0.5f;
     private float dialogueTimer;
-    private float messageTimer;
+    private bool expressionApplied;
 
     public Transform targetTransform;
 
@@ -126,60 +118,37 @@ public class GameStart : MonoBehaviour
         return tex;
     }
 
-    private void SetExceptionRestore(bool value)
+    public void SetExceptionRestorePublic(bool value)
     {
         Debug.Log("捕捉到错误信息。");
-        exceptionRestore = value;
-        if (actionController != null)
-            actionController.RestoreAnimator();
-    }
-
-    public void SetExceptionRestorePublic(bool value) { SetExceptionRestore(value); }
-
-    private void ApplyIdleState(bool animated = true)
-    {
-        if (actionController == null) return;
-        RestoreCamera();
-        actionController.RestoreAnimator();
-        if (animated)
-            actionController.RestoreFacialExpression(SetRestoreEndToken);
-        else
+        if (value && emotionPlayer != null)
         {
-            actionController.facialController.ResetBlendShapesInstant();
-            actionController.mappingManager?.TryApplyFacial("待机");
+            emotionPlayer.NotifyTTSError();
         }
     }
 
-    private void SetRestoreEndToken(bool value)
+    public void ZoomToHeadPublic()
     {
-        withExpression = value;
-        onVoice = value;
-        onRestore = value;
-        if (_eyeTracking != null) _eyeTracking.expressionActive = false;
-        if (actionController != null)
-            actionController.RestoreAnimator();
-        if (actionController != null && actionController.mappingManager != null)
-            StartCoroutine(DelayedIdleApply(0.35f));
+        ZoomToHead();
     }
 
-    private IEnumerator DelayedExpressionActive()
+    public void RestoreCharacterPublic()
     {
-        yield return null;
-        if (_eyeTracking != null) _eyeTracking.expressionActive = true;
+        RestoreCamera();
+        if (emotionPlayer != null)
+            emotionPlayer.ForceIdle();
     }
 
-    private IEnumerator DelayedIdleApply(float delay)
+    public void PlayVoicePublic(AudioClip _clip, string _response)
     {
-        yield return new WaitForSeconds(delay);
-        if (actionController != null && actionController.mappingManager != null)
-            actionController.mappingManager.TryApplyFacial("待机");
+        PlayVoice(_clip, _response);
     }
 
     private void ZoomToHead()
     {
         if (isCameraZoomed) return;
-        if (actionController?.animator == null) return;
-        var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+        if (emotionPlayer == null || emotionPlayer.bodyEngine == null || emotionPlayer.bodyEngine.animator == null) return;
+        var head = emotionPlayer.bodyEngine.animator.GetBoneTransform(HumanBodyBones.Head);
         if (head == null) return;
         if (cameraZoomRoutine != null) StopCoroutine(cameraZoomRoutine);
         cameraZoomRoutine = StartCoroutine(ZoomCoroutine(head));
@@ -205,10 +174,10 @@ public class GameStart : MonoBehaviour
     {
         if (!isCameraZoomed) return;
         if (cameraZoomRoutine != null) StopCoroutine(cameraZoomRoutine);
-        cameraZoomRoutine = StartCoroutine(RestoreCoroutine());
+        cameraZoomRoutine = StartCoroutine(RestoreCameraCoroutine());
     }
 
-    private IEnumerator RestoreCoroutine()
+    private IEnumerator RestoreCameraCoroutine()
     {
         Vector3 from = Camera.main.transform.position;
         float elapsed = 0f;
@@ -221,6 +190,11 @@ public class GameStart : MonoBehaviour
         Camera.main.transform.position = savedCameraPos;
         Camera.main.transform.rotation = savedCameraRot;
         isCameraZoomed = false;
+    }
+
+    private Animator GetAnimator()
+    {
+        return emotionPlayer != null && emotionPlayer.bodyEngine != null ? emotionPlayer.bodyEngine.animator : null;
     }
 
     void Start()
@@ -240,7 +214,6 @@ public class GameStart : MonoBehaviour
             if (settings.fontSize > 0)
                 fontSize = settings.fontSize;
             config.ApplyFrom(settings);
-            // Restore camera
             if (settings.camZ != 0f || settings.camX != 0f || settings.camY != 0f)
             {
                 Camera.main.transform.position = new Vector3(settings.camX, settings.camY, settings.camZ);
@@ -253,21 +226,13 @@ public class GameStart : MonoBehaviour
         TTS_module = config.getTTS(ttsMode);
         screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
         NetManager.M_Instance.Connect(websocket_url);
-        actionController.animator.SetInteger("action_param", 2);
-        withExpression = true;
 
-        // Start pipe server for WPF settings communication
         if (pipeServer != null)
         {
             pipeServer.StartServer();
             Debug.Log("[GameStart] PipeServer started");
         }
-        else
-        {
-            Debug.LogError("[GameStart] PipeServer is null - WPF settings will not work");
-        }
 
-        // Setup system tray
         if (trayManager != null)
         {
             trayManager.OnOpenPanel += OpenSettingsPanel;
@@ -279,42 +244,35 @@ public class GameStart : MonoBehaviour
 #endif
                 Application.Quit();
             };
-            Debug.Log("[GameStart] TrayManager events subscribed");
-        }
-        else
-        {
-            Debug.LogError("[GameStart] TrayManager is null - system tray will not work");
         }
 
         if (windowController != null)
         {
             windowController.OnDragStart += () =>
             {
-                if (actionController.getIdleStatus() && !_isTouching && (_eyeTracking == null || !_eyeTracking.expressionActive))
+                if (!emotionPlayer.IsPlaying && !_isTouching)
                 {
-                    withExpression = true;
-                    if (_eyeTracking != null) _eyeTracking.expressionActive = true;
-                    mappingManager?.TryApplyFacial("拖拽");
-                    mappingManager?.TryApplyAction("拖拽");
+                    emotionPlayer.PlayEmotion("拖拽");
                     _isDragging = true;
                 }
             };
             windowController.OnDragEnd += () =>
             {
-                if (_isDragging) { actionController.RestoreAnimator(); _isDragging = false; }
+                if (_isDragging)
+                {
+                    emotionPlayer.RestoreToIdle();
+                    _isDragging = false;
+                }
             };
         }
 
-        // Pre-scan animations so the WPF library is populated
         animLibrary?.ScanAll();
-        _eyeTracking = actionController?.GetComponent<EyeTrackingController>();
     }
 
     private void OpenSettingsPanel(int tabIndex)
     {
 #if !UNITY_EDITOR
         string exePath = System.IO.Path.Combine(Application.streamingAssetsPath, "AliceBotSettings.exe");
-        Debug.Log("[GameStart] Looking for settings exe: " + exePath + "  exists=" + System.IO.File.Exists(exePath));
         if (System.IO.File.Exists(exePath))
         {
             try
@@ -326,8 +284,6 @@ public class GameStart : MonoBehaviour
                     UseShellExecute = true
                 };
                 System.Diagnostics.Process.Start(psi);
-                Debug.Log("[GameStart] Settings exe launched, tab=" + tabIndex);
-                // Give WPF time to start and connect
                 if (pipeServer != null)
                     StartCoroutine(DelayedRefreshPipe(1.5f));
             }
@@ -335,10 +291,6 @@ public class GameStart : MonoBehaviour
             {
                 Debug.LogError("Failed to launch settings: " + e.Message);
             }
-        }
-        else
-        {
-            Debug.LogWarning("[GameStart] Settings EXE not found at: " + exePath);
         }
 #else
         Debug.Log("[GameStart] Open settings panel (editor), tab: " + tabIndex);
@@ -351,10 +303,10 @@ public class GameStart : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         if (pipeServer != null)
+        {
             pipeServer.RefreshInitData();
-        // Send status update
-        if (pipeServer != null)
             pipeServer.SendStatus(NetManager.M_Instance.GetNetStatus());
+        }
     }
 
     private bool _windowVisible = true;
@@ -398,23 +350,6 @@ public class GameStart : MonoBehaviour
         }
     }
 
-    public void ZoomToHeadPublic()
-    {
-        ZoomToHead();
-    }
-
-    public void RestoreCharacterPublic()
-    {
-        RestoreCamera();
-        actionController?.RestoreAnimator();
-        actionController?.facialController?.ResetBlendShapesInstant();
-    }
-
-    public void PlayVoicePublic(AudioClip _clip, string _response)
-    {
-        PlayVoice(_clip, _response);
-    }
-
     void Update()
     {
         bool ctrlDown = (GetAsyncKeyState(0x11) & 0x8000) != 0;
@@ -424,10 +359,11 @@ public class GameStart : MonoBehaviour
             float scroll = Input.GetAxis("Mouse ScrollWheel");
             if (Mathf.Abs(scroll) > 0.01f)
             {
+                var anim = GetAnimator();
                 Vector3 headPos = Camera.main.transform.position + Camera.main.transform.forward;
-                if (actionController?.animator != null)
+                if (anim != null)
                 {
-                    var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+                    var head = anim.GetBoneTransform(HumanBodyBones.Head);
                     if (head != null) headPos = head.position;
                 }
                 Vector3 dir = (headPos - Camera.main.transform.position).normalized;
@@ -441,10 +377,11 @@ public class GameStart : MonoBehaviour
             {
                 float mx = Input.GetAxis("Mouse X");
                 float my = Input.GetAxis("Mouse Y");
+                var anim = GetAnimator();
                 Vector3 orbitCenter = targetTransform != null ? targetTransform.position : Camera.main.transform.position + Camera.main.transform.forward * 1f;
-                if (actionController?.animator != null)
+                if (anim != null)
                 {
-                    var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+                    var head = anim.GetBoneTransform(HumanBodyBones.Head);
                     if (head != null) orbitCenter = head.position;
                 }
                 Camera.main.transform.RotateAround(orbitCenter, Vector3.up, mx * 3f);
@@ -462,40 +399,15 @@ public class GameStart : MonoBehaviour
                 int num = (int)Math.Round((float)msg_max_length * Time.deltaTime / dialogueInterval);
                 msg_length_receive += num;
             }
-            if (actionController.getWaitingStatus())
-            {
-                onDialogue = false;
-                dialogueTimer = 0f;
-                msg_length_receive = 0;
-            }
         }
 
-        if (withExpression)
+        if (onVoice && !m_AudioSource.isPlaying)
         {
-            facialRestoreTimer += Time.deltaTime;
-            if (actionController.getIdleStatus() && !onRestore)
-            {
-                onRestore = true;
-                actionController.RestoreFacialExpression(SetRestoreEndToken);
-                facialRestoreTimer = 0f;
-            }
-            else if (facialRestoreTimer > facialRestoreTime)
-            {
-                if (((!m_AudioSource.isPlaying && onVoice) || exceptionRestore) && !onRestore)
-                {
-                    onRestore = true;
-                    actionController.RestoreAnimator();
-                    actionController.RestoreFacialExpression(SetRestoreEndToken);
-                    facialRestoreTimer = 0f;
-                    exceptionRestore = false;
-                }
-            }
-            else
-            {
-                waitingTimer = 0f;
-            }
+            onVoice = false;
+            emotionPlayer.NotifyTTSEnd();
         }
-        else if (NetManager.M_Instance.response_queue.Count > 0 && !m_AudioSource.isPlaying && !onVoice && actionController.getIdleStatus())
+
+        if (!emotionPlayer.IsPlaying && NetManager.M_Instance.response_queue.Count > 0 && !m_AudioSource.isPlaying && !onVoice)
         {
             reply = NetManager.M_Instance.response_queue.Dequeue();
 
@@ -525,11 +437,10 @@ public class GameStart : MonoBehaviour
                             if (tagEnd >= 0)
                             {
                                 string exprText = streamBuffer.Substring(tagStart, tagEnd + 2 - tagStart);
-                                actionController.SetFacialExpression(exprText);
-                                actionController.AnimatorControl(exprText);
+                                string emotion = EmotionParser.Extract(exprText);
+                                if (!string.IsNullOrEmpty(emotion))
+                                    emotionPlayer.PlayEmotion(emotion);
                                 expressionApplied = true;
-                                withExpression = true;
-                                if (_eyeTracking != null) _eyeTracking.expressionActive = true;
                             }
                         }
                     }
@@ -586,28 +497,22 @@ public class GameStart : MonoBehaviour
                 }
             }
         }
-        else if (waitingTimer > waitingInterval && !isCameraZoomed)
+        else if (!emotionPlayer.IsPlaying && waitingTimer > waitingInterval && !isCameraZoomed)
         {
             int num3 = rand.Next(1, 4);
             switch (num3)
             {
                 case 2:
-                    actionController.animator.SetInteger("onWaiting", num3);
-                    withExpression = true;
-                    StartCoroutine(DelayedExpressionActive());
-                    actionController.facialController.PerformExpression("curious", null);
+                    emotionPlayer.PlayEmotion("好奇");
                     break;
                 case 3:
-                    actionController.animator.SetInteger("onWaiting", num3);
-                    withExpression = true;
-                    StartCoroutine(DelayedExpressionActive());
-                    actionController.facialController.PerformExpression("wink", null);
+                    emotionPlayer.PlayEmotion("眨眼");
                     break;
             }
             waitingTimer = 0f;
             waitingInterval = rand.Next(30, 50);
         }
-        else if (actionController.getIdleStatus())
+        else if (!emotionPlayer.IsPlaying)
         {
             waitingTimer += Time.deltaTime;
         }
@@ -616,40 +521,31 @@ public class GameStart : MonoBehaviour
         {
             bool leftDown = (GetAsyncKeyState(0x01) & 0x8000) != 0;
             bool touching = false;
+            var anim = GetAnimator();
 
-            if (leftDown && actionController?.animator != null)
+            if (leftDown && anim != null)
             {
-                var head = actionController.animator.GetBoneTransform(HumanBodyBones.Head);
+                var head = anim.GetBoneTransform(HumanBodyBones.Head);
                 if (head != null)
                 {
                     Vector3 headScreen = Camera.main.WorldToScreenPoint(head.position);
                     float dist = Vector2.Distance(new Vector2(headScreen.x, headScreen.y),
                         new Vector2(Input.mousePosition.x, Input.mousePosition.y));
                     touching = dist < TouchScreenRadius;
-
-                    _touchLogFrame++;
-                    if (_touchLogFrame % 60 == 0)
-                        Debug.Log("[Touch] leftDown dist=" + dist.ToString("F0") + " touching=" + touching +
-                            " isTouching=" + _isTouching + " idle=" + actionController.getIdleStatus() +
-                            " dragging=" + _isDragging);
                 }
             }
 
             if (touching && !_isTouching)
             {
-                if (actionController.getIdleStatus() && !_isDragging && (_eyeTracking == null || !_eyeTracking.expressionActive))
+                if (!emotionPlayer.IsPlaying && !_isDragging)
                 {
-                    withExpression = true;
-                    if (_eyeTracking != null) _eyeTracking.expressionActive = true;
-                    mappingManager?.TryApplyFacial("触摸");
-                    mappingManager?.TryApplyAction("触摸");
+                    emotionPlayer.PlayEmotion("触摸");
                     _isTouching = true;
                 }
             }
             else if (!touching && _isTouching)
             {
-                Debug.Log("[Touch] RELEASE restoring animator");
-                actionController.RestoreAnimator();
+                emotionPlayer.RestoreToIdle();
                 _isTouching = false;
             }
         }
@@ -664,7 +560,7 @@ public class GameStart : MonoBehaviour
 
         onDialogue = true;
         finish_reason = _finish_reason;
-        Debug.Log("想法：；回答：" + _answer + "；终止原因：" + finish_reason);
+        Debug.Log("回答：" + _answer + "；终止原因：" + finish_reason);
 
         string answerPure = _answer;
         if (_answer != null && _answer.Contains("</think>"))
@@ -685,19 +581,20 @@ public class GameStart : MonoBehaviour
             };
             llmFormatter.SaveResponse(toSave);
         }
-        string text = LLMFormatter.RemoveAction(LLMFormatter.RemoveEmotion(answerPure));
+
+        string text = EmotionParser.RemoveActionTag(EmotionParser.RemoveEmotionTag(answerPure));
         text_answer = "爱丽丝：" + text;
         if (string.IsNullOrEmpty(text))
-        {
             text_answer += "唔...";
-        }
+
         Debug.Log(text_answer);
         waitingTimer = 0f;
-        withExpression = true;
-        if (_eyeTracking != null) _eyeTracking.expressionActive = true;
-        actionController.SetFacialExpression(answerPure);
-        actionController.AnimatorControl(answerPure);
-        translator.translate(text, "jp", GenerateVoice, SetExceptionRestore);
+
+        string emotion = EmotionParser.Extract(answerPure);
+        if (!string.IsNullOrEmpty(emotion))
+            emotionPlayer.PlayEmotion(emotion);
+
+        translator.translate(text, "jp", GenerateVoice, SetExceptionRestorePublic);
         llmFormatter.pending = false;
     }
 
@@ -712,7 +609,6 @@ public class GameStart : MonoBehaviour
         GUI.skin.textArea.active.background = null;
         GUI.skin.textArea.padding = new RectOffset(8, 8, 6, 6);
 
-        // Pre-calc bubble position for grip (based on static size)
         float gripBubbleX = 0f, gripBubbleY = 0f;
         if (targetTransform != null)
         {
@@ -720,7 +616,6 @@ public class GameStart : MonoBehaviour
             gripBubbleY = Mathf.Clamp(Screen.height - msg_height - 160f + guiOffset.y, 0f, Screen.height - msg_height);
         }
 
-        // Ctrl grip event handling FIRST (before dialogue renders)
         if (_ctrlDown && targetTransform != null)
         {
             float gripSize = 24f;
@@ -755,7 +650,6 @@ public class GameStart : MonoBehaviour
                 fontSize = Mathf.Clamp(fontSize + (int)(scroll * 4f), 10, 60);
         }
 
-        // Dialogue bubble rendering
         if (targetTransform != null && onDialogue)
         {
             TextAreaStyle = new GUIStyle(GUI.skin.textArea);
@@ -814,7 +708,6 @@ public class GameStart : MonoBehaviour
             }
         }
 
-        // Grip visual rendered ON TOP of dialogue
         if (_ctrlDown && targetTransform != null)
         {
             float gripSize = 24f;
@@ -880,12 +773,13 @@ public class GameStart : MonoBehaviour
         if (TTS_module != null)
         {
             Debug.Log("发送语音合成请求......");
-            TTS_module.Speak(_text, PlayVoice, SetExceptionRestore);
+            emotionPlayer.NotifyTTSStart();
+            TTS_module.Speak(_text, PlayVoice, SetExceptionRestorePublic);
         }
         else
         {
             Debug.Log("未配置语音模块");
-            SetExceptionRestore(value: true);
+            emotionPlayer.NotifyTTSError();
         }
     }
 

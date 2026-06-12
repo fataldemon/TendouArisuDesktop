@@ -17,9 +17,9 @@ public class PipeServer : MonoBehaviour
     public BaiduTranslator translator;
     public ModelManager modelManager;
     public AnimationLibrary animLibrary;
-    public ExpressionMappingManager mappingManager;
-    public ActionController actionController;
-    public ActionPresetManager presetManager;
+    public EmotionPlayer emotionPlayer;
+    public PreviewController previewController;
+    public ActionSystemDatabase database;
 
     private const int Port = 19876;
     private Thread? _serverThread;
@@ -27,12 +27,16 @@ public class PipeServer : MonoBehaviour
     private readonly object _streamLock = new();
     private volatile bool _running;
     private TcpListener? _listener;
-    private string _logPath;
+    private string _logPath = "";
+
+    private void Awake()
+    {
+        _logPath = Path.Combine(Application.persistentDataPath, "pipe_debug.log");
+    }
 
     private void WriteLog(string msg)
     {
-        if (_logPath == null)
-            _logPath = Path.Combine(Application.persistentDataPath, "pipe_debug.log");
+        if (string.IsNullOrEmpty(_logPath)) return;
         try
         {
             File.AppendAllText(_logPath,
@@ -63,7 +67,7 @@ public class PipeServer : MonoBehaviour
         try
         {
             _listener = new TcpListener(IPAddress.Loopback, Port);
-        _listener.Start();
+            _listener.Start();
             WriteLog("TcpListener started");
         }
         catch (Exception ex)
@@ -224,13 +228,24 @@ public class PipeServer : MonoBehaviour
     private void AppendExpressionMappings(StringBuilder sb)
     {
         sb.Append('[');
-        if (mappingManager != null)
+        if (database != null && database.emotionMappings != null)
         {
-            var mappings = mappingManager.GetAll();
+            var mappings = database.emotionMappings.mappings;
             for (int i = 0; i < mappings.Count; i++)
             {
                 if (i > 0) sb.Append(',');
-                sb.Append(JsonUtility.ToJson(mappings[i]));
+                var m = mappings[i];
+                var group = database.GetActionGroup(m.actionGroupName);
+                sb.Append("{\"emotion\":\"").Append(EscapeJson(m.emotion)).Append('"');
+                if (group != null)
+                {
+                    sb.Append(",\"facialGroup\":{\"preset\":\"").Append(EscapeJson(group.facialPreset ?? ""));
+                    sb.Append("\",\"weight\":").Append(group.facialWeight.ToString("F2")).Append('}');
+                    string actionName = group.groupName;
+                    sb.Append(",\"actionGroup\":{\"animationName\":\"").Append(EscapeJson(actionName));
+                    sb.Append("\",\"bodyPart\":\"fullBody\",\"weight\":1}");
+                }
+                sb.Append('}');
             }
         }
         sb.Append(']');
@@ -239,13 +254,16 @@ public class PipeServer : MonoBehaviour
     private void AppendActionPresets(StringBuilder sb)
     {
         sb.Append('[');
-        if (presetManager != null)
+        if (database != null)
         {
-            var all = presetManager.GetAll();
-            for (int i = 0; i < all.Count; i++)
+            var groups = database.actionGroups;
+            for (int i = 0; i < groups.Count; i++)
             {
                 if (i > 0) sb.Append(',');
-                sb.Append(JsonUtility.ToJson(all[i]));
+                var g = groups[i];
+                sb.Append("{\"name\":\"").Append(EscapeJson(g.groupName));
+                sb.Append("\",\"actionParam\":").Append(i + 1);
+                sb.Append(",\"isDefault\":true}");
             }
         }
         sb.Append(']');
@@ -322,51 +340,46 @@ public class PipeServer : MonoBehaviour
 #endif
                     break;
                 case "preview_animation":
-                    if (!string.IsNullOrEmpty(cmd.name))
+                    if (!string.IsNullOrEmpty(cmd.name) && previewController != null)
                     {
-                        WriteLog("Preview: looking for '" + cmd.name + "' refs=" + (animLibrary?.clipReferences?.Length ?? -1));
-                        animLibrary?.StopPreview();
-                        var clip = animLibrary?.registry.Find(r => r.name == cmd.name);
-                        WriteLog("Preview: clip found=" + (clip != null) + " actionParam=" + (clip?.actionParam ?? -1));
-                        if (clip != null) { animLibrary?.Preview(clip); WriteLog("Preview: called"); }
-                        else WriteLog("Preview: clip not found in registry");
+                        var clip = FindClipByName(cmd.name);
+                        if (clip != null)
+                            previewController.PreviewBody(clip);
                     }
                     break;
                 case "stop_preview":
-                    animLibrary?.StopPreview();
-                    break;
-                case "preview_expression":
-                    if (actionController?.facialController != null && !string.IsNullOrEmpty(cmd.emotion))
-                    {
-                        actionController.facialController.ResetBlendShapesInstant();
-                        mappingManager?.TryApplyFacial(cmd.emotion);
-                    }
+                    previewController?.ExitPreview();
                     break;
                 case "preview_facial":
-                    if (actionController?.facialController != null && !string.IsNullOrEmpty(cmd.facialX))
+                    if (!string.IsNullOrEmpty(cmd.facialX) && previewController != null)
                     {
                         if (!cmd.noZoom) gameStart.ZoomToHeadPublic();
-                        actionController.facialController.ResetBlendShapesInstant();
-                        actionController.facialController.PreviewBlendShape(cmd.facialX, cmd.facialW > 0 ? cmd.facialW : 1f);
+                        previewController.PreviewFacial(cmd.facialX, cmd.facialW > 0 ? cmd.facialW : 1f);
+                    }
+                    break;
+                case "preview_expression":
+                    if (!string.IsNullOrEmpty(cmd.emotion) && previewController != null)
+                    {
+                        var group = database?.ResolveEmotion(cmd.emotion);
+                        if (group != null && !string.IsNullOrEmpty(group.facialPreset))
+                            previewController.PreviewFacial(group.facialPreset, group.facialWeight);
+                    }
+                    break;
+                case "preview_action":
+                    if (!string.IsNullOrEmpty(cmd.name) && previewController != null)
+                    {
+                        var clip = FindClipByName(cmd.name);
+                        if (clip != null)
+                            previewController.PreviewBody(clip);
                     }
                     break;
                 case "reset_blendshapes":
-                    actionController?.facialController?.ResetBlendShapesInstant();
-                    actionController?.RestoreAnimator();
+                    previewController?.ExitPreview();
+                    emotionPlayer?.ForceIdle();
                     break;
                 case "restore_expression":
-                    gameStart.RestoreCharacterPublic();
-                    mappingManager?.TryApplyFacial("待机");
-                    break;
-                case "preview_action":
-                    if (!string.IsNullOrEmpty(cmd.name))
-                    {
-                        var p = presetManager?.GetByName(cmd.name);
-                        if (p != null)
-                            actionController.animator.SetInteger("action_param", p.actionParam);
-                        else if (int.TryParse(cmd.name, out int ap2))
-                            actionController.animator.SetInteger("action_param", ap2);
-                    }
+                    previewController?.ExitPreview();
+                    emotionPlayer?.ForceIdle();
                     break;
                 case "test_tts":
                     if (!string.IsNullOrEmpty(cmd.text))
@@ -378,13 +391,10 @@ public class PipeServer : MonoBehaviour
                     }
                     break;
                 case "set_root_motion":
-                    if (animLibrary != null)
-                        animLibrary.allowRootMotion = cmd.enable;
                     break;
                 case "restore_default_mappings":
-                    mappingManager?.RestoreDefaults();
-                    gameStart.RestoreCharacterPublic();
-                    mappingManager?.TryApplyFacial("待机");
+                    previewController?.ExitPreview();
+                    emotionPlayer?.ForceIdle();
                     RefreshInitData();
                     break;
                 case "update_expression_mapping":
@@ -392,23 +402,20 @@ public class PipeServer : MonoBehaviour
                     RefreshInitData();
                     break;
                 case "delete_expression_mapping":
-                    if (!string.IsNullOrEmpty(cmd.emotion))
-                        mappingManager?.RemoveMapping(cmd.emotion);
+                    if (!string.IsNullOrEmpty(cmd.emotion) && database?.emotionMappings != null)
+                    {
+                        database.emotionMappings.Remove(cmd.emotion);
+                        SaveMappings();
+                    }
                     RefreshInitData();
                     break;
                 case "restore_default_presets":
-                    presetManager?.RestoreDefaults();
                     RefreshInitData();
                     break;
                 case "save_action_preset":
-                    WriteLog("Cmd save_action_preset: name=" + cmd.name + " ap=" + cmd.actionParam);
-                    if (!string.IsNullOrEmpty(cmd.name) && cmd.actionParam >= 0)
-                        presetManager?.AddOrUpdate(cmd.name, cmd.actionParam);
                     RefreshInitData();
                     break;
                 case "delete_action_preset":
-                    if (!string.IsNullOrEmpty(cmd.name))
-                        presetManager?.Remove(cmd.name);
                     RefreshInitData();
                     break;
                 case "clear_history":
@@ -422,6 +429,14 @@ public class PipeServer : MonoBehaviour
         {
             WriteLog("ProcessMessage error: " + ex.Message);
         }
+    }
+
+    private AnimationClip? FindClipByName(string name)
+    {
+        if (animLibrary == null || animLibrary.clipReferences == null) return null;
+        foreach (var c in animLibrary.clipReferences)
+            if (c != null && c.name == name) return c;
+        return null;
     }
 
     private void ApplyConfig(PipeCommand cmd)
@@ -465,12 +480,16 @@ public class PipeServer : MonoBehaviour
 
     private void UpdateExpressionMapping(PipeCommand cmd)
     {
-        if (mappingManager == null || string.IsNullOrEmpty(cmd.emotion)) return;
-        var fg = new FacialGroup { preset = cmd.facialX, weight = cmd.facialW > 0 ? cmd.facialW : 1f };
-        var ag = new ActionGroup { animationName = cmd.actionX, bodyPart = cmd.actionP ?? "fullBody", weight = cmd.actionY > 0 ? cmd.actionY : 1f };
-        if (string.IsNullOrEmpty(fg.preset)) fg = null;
-        if (string.IsNullOrEmpty(ag.animationName)) ag = null;
-        mappingManager.AddOrUpdate(cmd.emotion, fg, ag);
+        if (database == null || database.emotionMappings == null || string.IsNullOrEmpty(cmd.emotion)) return;
+        string groupName = cmd.actionX ?? cmd.emotion;
+        database.emotionMappings.Set(cmd.emotion, groupName);
+        SaveMappings();
+    }
+
+    private void SaveMappings()
+    {
+        if (database?.emotionMappings != null)
+            ActionSystemJsonIO.SaveEmotionMappings(database.emotionMappings.mappings);
     }
 
     void OnDestroy() { StopServer(); }

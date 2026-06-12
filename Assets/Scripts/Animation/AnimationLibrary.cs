@@ -10,7 +10,7 @@ public class AnimationLibrary : MonoBehaviour
 {
     public List<AnimationClipData> registry = new List<AnimationClipData>();
     public AnimationClip[] clipReferences = System.Array.Empty<AnimationClip>();
-    public ActionController actionController;
+    public BodyEngine bodyEngine;
     public bool allowRootMotion;
 
     private AnimationClip previewClip;
@@ -37,8 +37,6 @@ public class AnimationLibrary : MonoBehaviour
             root.localRotation = rootLocalRot;
         }
         animator.enabled = true;
-        animator.SetInteger("action_param", 0);
-        animator.SetInteger("onWaiting", 0);
     }
 
     private void Awake()
@@ -136,8 +134,8 @@ public class AnimationLibrary : MonoBehaviour
 #endif
         if (clip == null) { Debug.Log("[Preview] clip not found in references: " + data.name + " refs=" + clipReferences.Length); return; }
 
-        if (actionController != null)
-            animator = actionController.animator;
+        if (bodyEngine != null)
+            animator = bodyEngine.animator;
         if (animator == null) return;
 
         if (previewRoutine != null)
