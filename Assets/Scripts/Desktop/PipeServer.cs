@@ -418,6 +418,7 @@ public class PipeServer : MonoBehaviour
                     break;
                 case "stop_preview":
                     previewController?.ExitPreview();
+                    gameStart.RestoreCharacterPublic();
                     break;
                 case "preview_facial":
                     if (!string.IsNullOrEmpty(cmd.facialX) && previewController != null)
@@ -444,11 +445,11 @@ public class PipeServer : MonoBehaviour
                     break;
                 case "reset_blendshapes":
                     previewController?.ExitPreview();
-                    emotionPlayer?.ForceIdle();
+                    gameStart.RestoreCharacterPublic();
                     break;
                 case "restore_expression":
                     previewController?.ExitPreview();
-                    emotionPlayer?.ForceIdle();
+                    gameStart.RestoreCharacterPublic();
                     break;
                 case "test_tts":
                     if (!string.IsNullOrEmpty(cmd.text))
@@ -463,7 +464,7 @@ public class PipeServer : MonoBehaviour
                     break;
                 case "restore_default_mappings":
                     previewController?.ExitPreview();
-                    emotionPlayer?.ForceIdle();
+                    gameStart.RestoreCharacterPublic();
                     RefreshInitData();
                     break;
                 case "update_expression_mapping":
