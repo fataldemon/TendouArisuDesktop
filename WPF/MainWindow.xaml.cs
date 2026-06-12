@@ -402,16 +402,29 @@ public partial class MainWindow : Window
 
         sp.Children.Add(new TextBlock { Text = g.GroupName, FontSize = 16, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 8) });
 
-        // Facial preset
-        var facialRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
-        facialRow.Children.Add(new TextBlock { Text = "默认表情:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-        facialRow.Children.Add(new TextBlock { Text = g.FacialPreset ?? "-", VerticalAlignment = VerticalAlignment.Center });
-        sp.Children.Add(facialRow);
+        // Facial preset (editable)
+        sp.Children.Add(new TextBlock { Text = "默认表情:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 0, 0, 4) });
+        var facialPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
+        var btnNone = new Button { Content = "(无)", Width = 50, Style = (Style)FindResource("SmallButton"), FontSize = 10, Margin = new Thickness(0, 0, 2, 2) };
+        btnNone.IsEnabled = !string.IsNullOrEmpty(g.FacialPreset);
+        btnNone.Click += (_, _) => { g.FacialPreset = ""; BuildActionGroupEditPanel(); };
+        facialPanel.Children.Add(btnNone);
+        foreach (var preset in FacialPresetNames.All)
+        {
+            var btn = new Button { Content = preset, Width = 72, Style = (Style)FindResource("SmallButton"), FontSize = 10, Margin = new Thickness(0, 0, 2, 2) };
+            btn.IsEnabled = preset != g.FacialPreset;
+            btn.Click += (_, _) => { g.FacialPreset = preset; BuildActionGroupEditPanel(); };
+            facialPanel.Children.Add(btn);
+        }
+        sp.Children.Add(facialPanel);
 
         // Loop
         var loopRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
         loopRow.Children.Add(new TextBlock { Text = "循环:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-        loopRow.Children.Add(new TextBlock { Text = g.Loop ? "是" : "否", VerticalAlignment = VerticalAlignment.Center });
+        var chkLoop = new CheckBox { IsChecked = g.Loop, VerticalAlignment = VerticalAlignment.Center };
+        chkLoop.Checked += (_, _) => g.Loop = true;
+        chkLoop.Unchecked += (_, _) => g.Loop = false;
+        loopRow.Children.Add(chkLoop);
         sp.Children.Add(loopRow);
 
         // Body clips per part
@@ -477,6 +490,23 @@ public partial class MainWindow : Window
             Foreground = Res("TextSecondary"), FontSize = 11, Margin = new Thickness(0, 12, 0, 0) });
         sp.Children.Add(new TextBlock { Text = $"HoldAfterTTS: {g.HoldAfterTTS:F1}s | HoldNoTTS: {g.HoldNoTTS:F1}s",
             Foreground = Res("TextSecondary"), FontSize = 11 });
+
+        // Save button
+        var saveRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
+        var btnSave = new Button { Content = "保存", Width = 70, Style = (Style)FindResource("PrimaryButton") };
+        btnSave.Click += (_, _) =>
+        {
+            _ = _pipe.SendCommand("update_action_group", new
+            {
+                name = g.GroupName,
+                facialX = g.FacialPreset ?? "",
+                facialW = g.FacialWeight
+            });
+            PanelPresetEdit.Children.Clear();
+            PanelPresetEdit.Children.Add(new TextBlock { Text = "已保存", Foreground = Res("Accent"), FontSize = 13 });
+        };
+        saveRow.Children.Add(btnSave);
+        sp.Children.Add(saveRow);
     }
 
     #endregion

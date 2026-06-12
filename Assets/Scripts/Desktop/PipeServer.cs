@@ -493,6 +493,10 @@ public class PipeServer : MonoBehaviour
                 case "delete_action_preset":
                     RefreshInitData();
                     break;
+                case "update_action_group":
+                    UpdateActionGroup(cmd);
+                    RefreshInitData();
+                    break;
                 case "clear_history":
                     llmFormatter.history.Clear();
                     llmFormatter.formatted_history = "";
@@ -556,9 +560,30 @@ public class PipeServer : MonoBehaviour
     private void UpdateExpressionMapping(PipeCommand cmd)
     {
         if (database == null || database.emotionMappings == null || string.IsNullOrEmpty(cmd.emotion)) return;
-        string groupName = cmd.actionX ?? cmd.emotion;
+        string groupName = !string.IsNullOrEmpty(cmd.actionX) ? cmd.actionX : cmd.emotion;
         database.emotionMappings.Set(cmd.emotion, groupName);
+
+        var entry = database.emotionMappings.GetEntry(cmd.emotion);
+        if (entry != null)
+        {
+            entry.facialOverride = cmd.facialX ?? "";
+            entry.facialWeightOverride = cmd.facialW > 0 ? cmd.facialW : -1f;
+        }
         SaveMappings();
+    }
+
+    private void UpdateActionGroup(PipeCommand cmd)
+    {
+        if (database == null || string.IsNullOrEmpty(cmd.name)) return;
+        var group = database.GetActionGroup(cmd.name);
+        if (group == null) return;
+
+        if (!string.IsNullOrEmpty(cmd.facialX))
+            group.facialPreset = cmd.facialX;
+        if (cmd.facialW > 0)
+            group.facialWeight = cmd.facialW;
+
+        ActionSystemJsonIO.SaveActionGroups(database.actionGroups);
     }
 
     private void SaveMappings()
