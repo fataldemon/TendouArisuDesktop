@@ -128,12 +128,16 @@ public static class ActionSystemRuntime
         ActionSystemJsonIO.SaveEmotionMappings(_emotionMappings);
     }
 
-    public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight)
+    public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight, string clipName = null)
     {
         var group = GetActionGroup(groupName);
         if (group == null) return;
-        group.facialPreset = facialPreset;
-        group.facialWeight = facialWeight;
+        if (!string.IsNullOrEmpty(facialPreset))
+            group.facialPreset = facialPreset;
+        if (facialWeight > 0f)
+            group.facialWeight = facialWeight;
+        if (clipName != null && group.bodyClips.Count > 0)
+            group.bodyClips[0].clipName = clipName;
         ActionSystemJsonIO.SaveActionGroups(_actionGroups);
     }
 

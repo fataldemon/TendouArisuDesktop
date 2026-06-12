@@ -461,6 +461,8 @@ public class PipeServer : MonoBehaviour
                     }
                     break;
                 case "set_root_motion":
+                    if (emotionPlayer != null && emotionPlayer.bodyEngine != null)
+                        emotionPlayer.bodyEngine.allowRootMotion = cmd.enable;
                     break;
                 case "restore_default_mappings":
                     previewController?.ExitPreview();
@@ -560,7 +562,10 @@ public class PipeServer : MonoBehaviour
     private void UpdateActionGroup(PipeCommand cmd)
     {
         if (string.IsNullOrEmpty(cmd.name)) return;
-        ActionSystemRuntime.UpdateActionGroup(cmd.name, cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f);
+        string clip = !string.IsNullOrEmpty(cmd.actionX) ? cmd.actionX : null;
+        ActionSystemRuntime.UpdateActionGroup(cmd.name, cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, clip);
+        if (emotionPlayer != null)
+            emotionPlayer.RefreshCurrentGroup(cmd.name);
     }
 
     void OnDestroy() { StopServer(); }

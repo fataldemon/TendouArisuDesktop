@@ -336,11 +336,21 @@ public partial class MainWindow : Window
         }
         sp.Children.Add(facialPanel);
 
+        var weightRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 4) };
+        weightRow.Children.Add(new TextBlock { Text = "权重:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
+        float initWeight = entry.FacialWeightOverride > 0 ? entry.FacialWeightOverride : 1f;
+        var sliderW = new Slider { Width = 140, Minimum = 0, Maximum = 1, Value = initWeight, SmallChange = 0.05, TickFrequency = 0.1 };
+        var lblW = new TextBlock { Text = initWeight.ToString("F1"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
+        sliderW.ValueChanged += (_, ev) => { entry.FacialWeightOverride = (float)ev.NewValue; lblW.Text = ev.NewValue.ToString("F1"); };
+        weightRow.Children.Add(sliderW);
+        weightRow.Children.Add(lblW);
+        sp.Children.Add(weightRow);
+
         var btnPreviewFacial = new Button { Content = "预览表情", Width = 80, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 4, 0, 0) };
         btnPreviewFacial.Click += (_, _) =>
         {
             if (!string.IsNullOrEmpty(entry.FacialOverride))
-                _ = _pipe.SendCommand("preview_facial", new { facialX = entry.FacialOverride, facialW = 1f });
+                _ = _pipe.SendCommand("preview_facial", new { facialX = entry.FacialOverride, facialW = entry.FacialWeightOverride > 0 ? entry.FacialWeightOverride : 1f });
         };
         sp.Children.Add(btnPreviewFacial);
 
@@ -355,7 +365,7 @@ public partial class MainWindow : Window
                 emotion = entry.Emotion,
                 actionX = entry.ActionGroupName,
                 facialX = entry.FacialOverride ?? "",
-                facialW = 1f
+                facialW = entry.FacialWeightOverride > 0 ? entry.FacialWeightOverride : 1f
             });
             _ = _pipe.SendCommand("restore_expression");
             _exprEditing = null;
@@ -496,14 +506,16 @@ public partial class MainWindow : Window
         var btnSave = new Button { Content = "保存", Width = 70, Style = (Style)FindResource("PrimaryButton") };
         btnSave.Click += (_, _) =>
         {
+            var fullBodyClip = g.BodyClips.FirstOrDefault(c => c.BodyPart == "fullBody");
             _ = _pipe.SendCommand("update_action_group", new
             {
                 name = g.GroupName,
                 facialX = g.FacialPreset ?? "",
-                facialW = g.FacialWeight
+                facialW = g.FacialWeight,
+                actionX = fullBodyClip?.ClipName ?? ""
             });
             PanelPresetEdit.Children.Clear();
-            PanelPresetEdit.Children.Add(new TextBlock { Text = "已保存", Foreground = Res("Accent"), FontSize = 13 });
+            PanelPresetEdit.Children.Add(new TextBlock { Text = "已保存并生效", Foreground = Res("Accent"), FontSize = 13 });
         };
         saveRow.Children.Add(btnSave);
         sp.Children.Add(saveRow);

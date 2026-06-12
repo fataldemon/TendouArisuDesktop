@@ -258,6 +258,7 @@ public class EmotionPlayer : MonoBehaviour
         var idle = ActionSystemRuntime.IdleGroup;
         if (idle == null) return;
         var clip = ResolveBodyClip(idle);
+        if (clip != null) bodyEngine.idleClip = clip;
         _current = new ActionGroupInstance(idle, clip);
         _current.state = ActionGroupState.Active;
 
@@ -269,5 +270,34 @@ public class EmotionPlayer : MonoBehaviour
             bodyEngine.Play(clip, "fullBody", 0.1f, true);
 
         UpdateAuxiliary(idle);
+    }
+
+    public void RefreshCurrentGroup(string groupName)
+    {
+        var group = ActionSystemRuntime.GetActionGroup(groupName);
+        if (group == null) return;
+
+        if (group.isIdle)
+        {
+            var clip = ResolveBodyClip(group);
+            if (clip != null) bodyEngine.idleClip = clip;
+            if (_current == null || _current.config.isIdle)
+                ForceIdle();
+        }
+        else if (_current != null && _current.config.groupName == groupName)
+        {
+            var clip = ResolveBodyClip(group);
+            _current = new ActionGroupInstance(group, clip);
+            _current.state = ActionGroupState.Active;
+
+            facialEngine.ResetInstant();
+            string facial = _facialOverride ?? group.facialPreset;
+            float weight = _facialWeightOverride >= 0f ? _facialWeightOverride : group.facialWeight;
+            if (!string.IsNullOrEmpty(facial))
+                facialEngine.PlayExpression(facial, weight, group.blendInFacial);
+
+            if (clip != null)
+                bodyEngine.Play(clip, "fullBody", group.blendInBody, group.loop);
+        }
     }
 }

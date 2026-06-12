@@ -9,6 +9,7 @@ public class BodyEngine : MonoBehaviour
 {
     public Animator animator;
     public AnimationClip idleClip;
+    public bool allowRootMotion;
     public AvatarMask upperBodyMask;
     public AvatarMask headMask;
     public AvatarMask leftArmMask;
@@ -337,13 +338,16 @@ public class BodyEngine : MonoBehaviour
             float sampleTime = loop ? (elapsed % clip.length) : Mathf.Min(elapsed, clip.length);
             clip.SampleAnimation(animator.gameObject, sampleTime);
 
-            animator.transform.position = _savedPos;
-            animator.transform.rotation = _savedRot;
-            var root = animator.transform.Find("root");
-            if (root != null)
+            if (!allowRootMotion)
             {
-                root.localPosition = _savedRootLocalPos;
-                root.localRotation = _savedRootLocalRot;
+                animator.transform.position = _savedPos;
+                animator.transform.rotation = _savedRot;
+                var root = animator.transform.Find("root");
+                if (root != null)
+                {
+                    root.localPosition = _savedRootLocalPos;
+                    root.localRotation = _savedRootLocalRot;
+                }
             }
 
             elapsed += Time.deltaTime;
