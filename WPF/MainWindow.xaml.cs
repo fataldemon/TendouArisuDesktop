@@ -3,16 +3,28 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using Microsoft.Win32;
 
 namespace AliceBotSettings;
 
+[StructLayout(LayoutKind.Sequential)]
+internal struct COPYDATASTRUCT
+{
+    public IntPtr dwData;
+    public int cbData;
+    public IntPtr lpData;
+}
+
 public partial class MainWindow : Window
 {
+    private const int WM_COPYDATA = 0x004A;
     private readonly PipeClient _pipe = new();
     private InitData? _initData;
     private int _ttsMode;
@@ -23,6 +35,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Loaded += (_, _) =>
+        {
+            var helper = new WindowInteropHelper(this);
+            HwndSource.FromHwnd(helper.Handle)?.AddHook(WndProc);
+        };
         _pipe.OnInitReceived += OnInit;
         _pipe.OnConnectionChanged += c => Dispatcher.Invoke(() => UpdateConnectionStatus(c));
         _pipe.OnMessageReceived += OnMessage;
@@ -86,8 +103,8 @@ public partial class MainWindow : Window
         TxtTranslationAppId.Text = d.TranslationAppId;
         TxtTranslationKey.Password = d.TranslationKey;
         TxtTranslationSalt.Text = d.TranslationSalt;
-        TxtIdentity.Text = d.Identity;
-        TxtPreset.Text = d.Preset;
+        TxtMsgWidth.Text = d.MsgMaxWidth.ToString();
+        TxtMsgHeight.Text = d.MsgHeight.ToString();
         UpdateConnectionStatus(d.Connected);
         PopulateModelHistory(d.ModelHistory);
         PopulateAnimationList(d.AnimationList);
@@ -214,20 +231,8 @@ public partial class MainWindow : Window
 
     private void OnDialogSettingsSave(object sender, RoutedEventArgs e)
     {
-        _ = _pipe.SendCommand("update_dialog", new
-        {
-            identity = TxtIdentity.Text,
-            preset = TxtPreset.Text
-        });
-    }
-
-    private void OnDialogSettingsCancel(object sender, RoutedEventArgs e)
-    {
-        if (_initData != null)
-        {
-            TxtIdentity.Text = _initData.Identity;
-            TxtPreset.Text = _initData.Preset;
-        }
+        if (int.TryParse(TxtMsgWidth.Text, out int w) && int.TryParse(TxtMsgHeight.Text, out int h))
+            _ = _pipe.SendCommand("update_dialog", new { msgWidth = w, msgHeight = h });
     }
 
     #endregion
@@ -361,7 +366,7 @@ public partial class MainWindow : Window
         var btnPreviewAll = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(8, 0, 0, 0) };
         btnPreviewAll.Click += (_, _) =>
         {
-            _ = _pipe.SendCommand("restore_expression");
+            _ = _pipe.SendCommand("reset_blendshapes");
             if (_exprEditing.FacialGroup != null && !string.IsNullOrEmpty(_exprEditing.FacialGroup.Preset))
                 _ = _pipe.SendCommand("preview_facial", new { facialX = _exprEditing.FacialGroup.Preset, facialW = _exprEditing.FacialGroup.Weight, noZoom = true });
             if (_exprEditing.ActionGroup != null)
@@ -620,7 +625,6 @@ public partial class MainWindow : Window
 
     private void OnTabChanged(object sender, SelectionChangedEventArgs e)
     {
-        // Restore state when leaving tabs
         if (e.RemovedItems.Count > 0 && e.RemovedItems[0] is TabItem removed)
         {
             var header = removed.Header as string;
@@ -629,5 +633,24 @@ public partial class MainWindow : Window
             else if (header == "表情映射")
                 _ = _pipe.SendCommand("restore_expression");
         }
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_COPYDATA)
+        {
+            var data = Marshal.PtrToStructure<COPYDATASTRUCT>(lParam);
+            if (data.dwData == (IntPtr)1)
+            {
+                var tabStr = Marshal.PtrToStringUni(data.lpData, data.cbData / 2);
+                if (int.TryParse(tabStr, out int ti) && ti >= 0 && ti < MainTabs.Items.Count)
+                {
+                    MainTabs.SelectedIndex = ti;
+                    Activate();
+                }
+            }
+            handled = true;
+        }
+        return IntPtr.Zero;
     }
 }

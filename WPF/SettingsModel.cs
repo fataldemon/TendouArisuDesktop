@@ -43,6 +43,8 @@ public class InitData
     public List<ExpressionMappingEntry> ExpressionMappings { get; set; } = new();
     public List<ActionPresetEntry> ActionPresets { get; set; } = new();
     public string DialogueHistory { get; set; } = "";
+    public int MsgMaxWidth { get; set; }
+    public int MsgHeight { get; set; }
 }
 
 public class AnimationEntry

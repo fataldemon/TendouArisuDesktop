@@ -495,10 +495,9 @@ public class ActionController : MonoBehaviour
 		}
 	}
 
-	public void RestoreAnimator()
-	{
-		animator.SetInteger("action_param", 0);
-		animator.SetInteger("onWaiting", 0);
-		animator.SetBool("onAction", false);
-	}
+    public void RestoreAnimator()
+    {
+        animator.SetInteger("action_param", 0);
+        animator.SetInteger("onWaiting", 0);
+    }
 }

@@ -29,8 +29,8 @@ public class GameStart : MonoBehaviour
     [SerializeField] private AudioSource m_AudioSource;
     [SerializeField] public int msg_position_x = 300;
     [SerializeField] public int msg_position_y = 150;
-    [SerializeField] private int msg_max_length = 580;
-    private int msg_length_receive;
+    [SerializeField] public int msg_max_length = 580;
+    public int msg_length_receive;
     private int msg_length_send;
     [SerializeField] public int msg_height = 1600;
 
@@ -160,6 +160,12 @@ public class GameStart : MonoBehaviour
             actionController.RestoreAnimator();
         if (actionController != null && actionController.mappingManager != null)
             StartCoroutine(DelayedIdleApply(0.35f));
+    }
+
+    private IEnumerator DelayedExpressionActive()
+    {
+        yield return null;
+        if (_eyeTracking != null) _eyeTracking.expressionActive = true;
     }
 
     private IEnumerator DelayedIdleApply(float delay)
@@ -583,17 +589,18 @@ public class GameStart : MonoBehaviour
         else if (waitingTimer > waitingInterval && !isCameraZoomed)
         {
             int num3 = rand.Next(1, 4);
-            actionController.animator.SetInteger("onWaiting", num3);
             switch (num3)
             {
                 case 2:
+                    actionController.animator.SetInteger("onWaiting", num3);
                     withExpression = true;
-                    if (_eyeTracking != null) _eyeTracking.expressionActive = true;
+                    StartCoroutine(DelayedExpressionActive());
                     actionController.facialController.PerformExpression("curious", null);
                     break;
                 case 3:
+                    actionController.animator.SetInteger("onWaiting", num3);
                     withExpression = true;
-                    if (_eyeTracking != null) _eyeTracking.expressionActive = true;
+                    StartCoroutine(DelayedExpressionActive());
                     actionController.facialController.PerformExpression("wink", null);
                     break;
             }
@@ -710,7 +717,7 @@ public class GameStart : MonoBehaviour
         if (targetTransform != null)
         {
             gripBubbleX = Mathf.Clamp(screenPos.x + guiOffset.x, -msg_max_length + 80f, Screen.width - 80f);
-            gripBubbleY = Mathf.Clamp(Screen.height - msg_height - 160f, 0f, Screen.height - msg_height);
+            gripBubbleY = Mathf.Clamp(Screen.height - msg_height - 160f + guiOffset.y, 0f, Screen.height - msg_height);
         }
 
         // Ctrl grip event handling FIRST (before dialogue renders)
@@ -725,15 +732,15 @@ public class GameStart : MonoBehaviour
             {
                 isResizingDialog = true;
                 resizeStartMouse = e.mousePosition;
-                resizeStartWidth = msg_max_length;
-                resizeStartHeight = msg_height;
+                resizeStartWidth = (int)guiOffset.x;
+                resizeStartHeight = (int)guiOffset.y;
                 e.Use();
             }
             if (e.type == EventType.MouseDrag && isResizingDialog)
             {
                 Vector2 delta = e.mousePosition - resizeStartMouse;
-                msg_max_length = Mathf.Clamp(resizeStartWidth + (int)delta.x, 200, 1400);
-                msg_height = Mathf.Clamp(resizeStartHeight + (int)delta.y, 60, 2000);
+                guiOffset.x = resizeStartWidth + (int)delta.x;
+                guiOffset.y = resizeStartHeight + (int)delta.y;
                 e.Use();
             }
             if (e.type == EventType.MouseUp && isResizingDialog)
@@ -765,7 +772,7 @@ public class GameStart : MonoBehaviour
 
             float bubbleX = Mathf.Clamp(screenPos.x + guiOffset.x - (float)(msg_length_receive / 2) + (float)(msg_max_length / 2),
                 -msg_length_receive + 80f, Screen.width - 80f);
-            float bubbleY = Mathf.Clamp(Screen.height - msg_height - 160f,
+            float bubbleY = Mathf.Clamp(Screen.height - msg_height - 160f + guiOffset.y,
                 0f, Screen.height - msg_height);
 
             Rect position = new Rect(bubbleX, bubbleY, msg_length_receive, msg_height);

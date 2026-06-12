@@ -88,6 +88,7 @@ public class ExpressionMappingManager : MonoBehaviour
         var map = mappings.FirstOrDefault(m => m.emotion == emotion);
         if (map == null || map.facialGroup == null || string.IsNullOrEmpty(map.facialGroup.preset)) return false;
         if (actionController.facialController == null) return true;
+        actionController.facialController.ResetBlendShapesInstant();
         actionController.facialController.PerformExpression(map.facialGroup.preset, null, map.facialGroup.weight);
         return true;
     }

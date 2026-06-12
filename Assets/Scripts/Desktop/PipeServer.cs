@@ -153,6 +153,9 @@ public class PipeServer : MonoBehaviour
         AppendActionPresets(sb);
         sb.Append(',');
         AppendJsonProperty(sb, "dialogueHistory", llmFormatter.formatted_history);
+        sb.Append(',');
+        sb.Append("\"msgMaxWidth\":").Append(gameStart.msg_max_length).Append(',');
+        sb.Append("\"msgHeight\":").Append(gameStart.msg_height);
         sb.Append("}}");
         return sb.ToString();
     }
@@ -347,6 +350,10 @@ public class PipeServer : MonoBehaviour
                         actionController.facialController.PreviewBlendShape(cmd.facialX, cmd.facialW > 0 ? cmd.facialW : 1f);
                     }
                     break;
+                case "reset_blendshapes":
+                    actionController?.facialController?.ResetBlendShapesInstant();
+                    actionController?.RestoreAnimator();
+                    break;
                 case "restore_expression":
                     gameStart.RestoreCharacterPublic();
                     mappingManager?.TryApplyFacial("待机");
@@ -446,12 +453,13 @@ public class PipeServer : MonoBehaviour
 
     private void ApplyDialogSettings(PipeCommand cmd)
     {
-        if (!string.IsNullOrEmpty(cmd.identity))
-            llmFormatter.identity = cmd.identity;
-        if (!string.IsNullOrEmpty(cmd.preset))
-            llmFormatter.preset_information = cmd.preset;
-        config.identity = llmFormatter.identity;
-        config.preset = llmFormatter.preset_information;
+        if (cmd.msgWidth > 0)
+        {
+            gameStart.msg_max_length = cmd.msgWidth;
+            gameStart.msg_length_receive = cmd.msgWidth;
+        }
+        if (cmd.msgHeight > 0)
+            gameStart.msg_height = cmd.msgHeight;
         gameStart.SaveSettings();
     }
 
@@ -498,4 +506,6 @@ public class PipeCommand
     public string actionGroupsJson = "";
     public int actionParam = -1;
     public bool noZoom;
+    public int msgWidth;
+    public int msgHeight;
 }
