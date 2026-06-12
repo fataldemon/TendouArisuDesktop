@@ -148,8 +148,8 @@
             </Grid>
         </TabItem>
 
-        <!-- ===== 情绪映射 ===== -->
-        <TabItem Header="情绪映射">
+        <!-- ===== 动作系统 ===== -->
+        <TabItem Header="动作系统">
             <TabControl x:Name="SubTabs" Margin="-2,-5,-2,0">
                 <!-- 子TAB 1: 情绪映射 -->
                 <TabItem Header="情绪映射">
@@ -174,12 +174,12 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="80"/>
                                                 <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="50"/>
+                                                <ColumnDefinition Width="80"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{Binding EmotionDisplay}" VerticalAlignment="Center" FontWeight="Bold"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding FacialSummary}" VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="2" Text="{Binding ActionSummary}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding FacialSummary}" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding ActionSummary}" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}"/>
                                             <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
                                                 <Button Content="编辑" Width="48" Style="{StaticResource SmallButton}" Tag="{Binding Emotion}" Click="OnExprEditClick"/>
                                                 <Button Content="删" Width="40" Tag="{Binding Emotion}" Click="OnExprDeleteClick" Margin="4,0,0,0">
@@ -215,8 +215,8 @@
                         </Border>
                     </Grid>
                 </TabItem>
-                <!-- 子TAB 2: 动作预设 -->
-                <TabItem Header="动作预设">
+                <!-- 子TAB 2: 动作组 -->
+                <TabItem Header="动作组">
                     <Grid Margin="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" MinWidth="220"/>
@@ -229,7 +229,6 @@
                             </Grid.RowDefinitions>
                             <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,6">
                                 <Button Content="恢复默认" Width="80" Click="OnPresetRestoreDefaults"/>
-                                <Button Content="新建" Width="60" Click="OnPresetAdd" Margin="8,0,0,0"/>
                             </StackPanel>
                             <ListBox x:Name="LstPresets" Grid.Row="1" SelectionChanged="OnPresetSelect">
                                 <ListBox.ItemTemplate>
@@ -244,19 +243,7 @@
                                                 <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextSecondary}" FontSize="11"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                <Button Content="编辑" Width="48" Style="{StaticResource SmallButton}" Tag="{Binding Name}" Click="OnPresetEditClick"/>
-                                                <Button Content="删" Width="40" Tag="{Binding Name}" Click="OnPresetDeleteClick" Margin="4,0,0,0">
-                                                    <Button.Style>
-                                                        <Style TargetType="Button" BasedOn="{StaticResource SmallButton}">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsDefault}" Value="True">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Button.Style>
-                                                </Button>
+                                                <Button Content="编辑" Width="48" Style="{StaticResource SmallButton}" Tag="{Binding GroupName}" Click="OnPresetEditClick"/>
                                             </StackPanel>
                                         </Grid>
                                     </DataTemplate>
@@ -266,7 +253,44 @@
                         <Border Grid.Column="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Padding="12" CornerRadius="4">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel x:Name="PanelPresetEdit">
-                                    <TextBlock Text="选择一个预设进行编辑" Foreground="{StaticResource TextSecondary}" FontSize="13"/>
+                                    <TextBlock Text="选择一个动作组进行编辑" Foreground="{StaticResource TextSecondary}" FontSize="13"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </TabItem>
+                <!-- 子TAB 3: 表情预设 -->
+                <TabItem Header="表情预设">
+                    <Grid Margin="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="180"/>
+                            <ColumnDefinition Width="2*" MinWidth="360"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0" Margin="0,0,8,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Label Content="表情预设列表" Grid.Row="0" Margin="0,0,0,4"/>
+                            <ListBox x:Name="LstFacialPresets" Grid.Row="1" SelectionChanged="OnFacialPresetSelect">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding PresetName}" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            <Button Grid.Column="1" Content="编辑" Width="48" Style="{StaticResource SmallButton}" Tag="{Binding PresetName}" Click="OnFacialPresetEditClick"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                        <Border Grid.Column="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Padding="12" CornerRadius="4">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="PanelFacialEdit">
+                                    <TextBlock Text="选择一个表情预设进行编辑" Foreground="{StaticResource TextSecondary}" FontSize="13"/>
                                 </StackPanel>
                             </ScrollViewer>
                         </Border>

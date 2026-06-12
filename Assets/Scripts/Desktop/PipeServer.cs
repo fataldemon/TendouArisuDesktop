@@ -156,6 +156,12 @@ public class PipeServer : MonoBehaviour
         sb.Append("\"actionPresets\":");
         AppendActionPresets(sb);
         sb.Append(',');
+        sb.Append("\"actionGroups\":");
+        AppendActionGroups(sb);
+        sb.Append(',');
+        sb.Append("\"facialPresets\":");
+        AppendFacialPresets(sb);
+        sb.Append(',');
         AppendJsonProperty(sb, "dialogueHistory", llmFormatter.formatted_history);
         sb.Append(',');
         sb.Append("\"msgMaxWidth\":").Append(gameStart.msg_max_length).Append(',');
@@ -236,16 +242,85 @@ public class PipeServer : MonoBehaviour
                 if (i > 0) sb.Append(',');
                 var m = mappings[i];
                 var group = database.GetActionGroup(m.actionGroupName);
+                string facial = !string.IsNullOrEmpty(m.facialOverride) ? m.facialOverride : (group != null ? group.facialPreset : "");
+                float facialW = m.facialWeightOverride >= 0f ? m.facialWeightOverride : (group != null ? group.facialWeight : 1f);
+
                 sb.Append("{\"emotion\":\"").Append(EscapeJson(m.emotion)).Append('"');
+                sb.Append(",\"actionGroupName\":\"").Append(EscapeJson(m.actionGroupName)).Append('"');
+                sb.Append(",\"facialOverride\":\"").Append(EscapeJson(m.facialOverride ?? "")).Append('"');
+                sb.Append(",\"facialWeightOverride\":").Append(m.facialWeightOverride.ToString("F2"));
+                sb.Append(",\"facialGroup\":{\"preset\":\"").Append(EscapeJson(facial ?? ""));
+                sb.Append("\",\"weight\":").Append(facialW.ToString("F2")).Append('}');
                 if (group != null)
                 {
-                    sb.Append(",\"facialGroup\":{\"preset\":\"").Append(EscapeJson(group.facialPreset ?? ""));
-                    sb.Append("\",\"weight\":").Append(group.facialWeight.ToString("F2")).Append('}');
-                    string actionName = group.groupName;
-                    sb.Append(",\"actionGroup\":{\"animationName\":\"").Append(EscapeJson(actionName));
+                    sb.Append(",\"actionGroup\":{\"animationName\":\"").Append(EscapeJson(group.groupName));
                     sb.Append("\",\"bodyPart\":\"fullBody\",\"weight\":1}");
                 }
                 sb.Append('}');
+            }
+        }
+        sb.Append(']');
+    }
+
+    private void AppendActionGroups(StringBuilder sb)
+    {
+        sb.Append('[');
+        if (database != null)
+        {
+            var groups = database.actionGroups;
+            for (int i = 0; i < groups.Count; i++)
+            {
+                if (i > 0) sb.Append(',');
+                var g = groups[i];
+                sb.Append("{\"groupName\":\"").Append(EscapeJson(g.groupName)).Append('"');
+                sb.Append(",\"facialPreset\":\"").Append(EscapeJson(g.facialPreset ?? "")).Append('"');
+                sb.Append(",\"facialWeight\":").Append(g.facialWeight.ToString("F2"));
+                sb.Append(",\"loop\":").Append(g.loop ? "true" : "false");
+                sb.Append(",\"blendInBody\":").Append(g.blendInBody.ToString("F2"));
+                sb.Append(",\"blendInFacial\":").Append(g.blendInFacial.ToString("F2"));
+                sb.Append(",\"blendOutBody\":").Append(g.blendOutBody.ToString("F2"));
+                sb.Append(",\"blendOutFacial\":").Append(g.blendOutFacial.ToString("F2"));
+                sb.Append(",\"holdAfterTTS\":").Append(g.holdAfterTTS.ToString("F1"));
+                sb.Append(",\"holdNoTTS\":").Append(g.holdNoTTS.ToString("F1"));
+                sb.Append(",\"isIdle\":").Append(g.isIdle ? "true" : "false");
+                sb.Append(",\"bodyClips\":[");
+                for (int j = 0; j < g.bodyClips.Count; j++)
+                {
+                    if (j > 0) sb.Append(',');
+                    sb.Append("{\"bodyPart\":\"").Append(EscapeJson(g.bodyClips[j].bodyPart));
+                    sb.Append("\",\"clipName\":\"").Append(EscapeJson(g.bodyClips[j].clipName ?? "")).Append("\"}");
+                }
+                sb.Append("]}");
+            }
+        }
+        sb.Append(']');
+    }
+
+    private void AppendFacialPresets(StringBuilder sb)
+    {
+        sb.Append('[');
+        if (emotionPlayer != null && emotionPlayer.facialEngine != null && emotionPlayer.facialEngine.presetDatabase != null)
+        {
+            var presets = emotionPlayer.facialEngine.presetDatabase.presets;
+            for (int i = 0; i < presets.Count; i++)
+            {
+                if (i > 0) sb.Append(',');
+                var p = presets[i];
+                sb.Append("{\"presetName\":\"").Append(EscapeJson(p.presetName)).Append('"');
+                sb.Append(",\"targets\":[");
+                for (int j = 0; j < p.targets.Count; j++)
+                {
+                    if (j > 0) sb.Append(',');
+                    sb.Append("{\"index\":").Append(p.targets[j].index);
+                    sb.Append(",\"weight\":").Append(p.targets[j].weight.ToString("F1")).Append('}');
+                }
+                sb.Append("],\"activateObjects\":[");
+                for (int j = 0; j < p.activateObjects.Count; j++)
+                {
+                    if (j > 0) sb.Append(',');
+                    sb.Append('"').Append(EscapeJson(p.activateObjects[j])).Append('"');
+                }
+                sb.Append("],\"blushMode\":\"").Append(EscapeJson(p.blushMode ?? "")).Append("\"}");
             }
         }
         sb.Append(']');

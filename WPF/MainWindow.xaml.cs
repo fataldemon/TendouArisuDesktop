@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Interop;
 using Microsoft.Win32;
 
@@ -30,7 +26,8 @@ public partial class MainWindow : Window
     private int _ttsMode;
     private string _animCatFilter = "All";
     private ExpressionMappingEntry? _exprEditing;
-    private ActionPresetEntry? _presetEditing;
+    private ActionGroupFullEntry? _groupEditing;
+    private FacialPresetEntry? _facialEditing;
 
     public MainWindow()
     {
@@ -109,7 +106,8 @@ public partial class MainWindow : Window
         PopulateModelHistory(d.ModelHistory);
         PopulateAnimationList(d.AnimationList);
         PopulateExpressionList(d.ExpressionMappings);
-        PopulatePresetList(d.ActionPresets);
+        PopulateActionGroupList(d.ActionGroups);
+        PopulateFacialPresetList(d.FacialPresets);
         TxtHistory.Text = d.DialogueHistory;
     }
 
@@ -132,18 +130,13 @@ public partial class MainWindow : Window
         {
             var btn = new Button
             {
-                Content = cat,
-                Width = 70,
+                Content = cat, Width = 70,
                 Style = (Style)FindResource("SmallButton"),
                 Margin = new Thickness(0, 0, 4, 0)
             };
             btn.Tag = cat;
             if (cat == _animCatFilter) btn.IsEnabled = false;
-            btn.Click += (_, _) =>
-            {
-                _animCatFilter = cat;
-                PopulateAnimationList(list);
-            };
+            btn.Click += (_, _) => { _animCatFilter = cat; PopulateAnimationList(list); };
             IcAnimCategories.Items.Add(btn);
         }
 
@@ -161,25 +154,38 @@ public partial class MainWindow : Window
         var displayList = mappings.Select(m => new
         {
             m.Emotion,
-            EmotionDisplay = (m.Emotion == "待机" || m.Emotion == "触摸" || m.Emotion == "拖拽") ? "★ " + m.Emotion : m.Emotion,
-            FacialSummary = m.FacialGroup?.Preset ?? "-",
-            ActionSummary = m.ActionGroup?.AnimationName ?? "-",
-            IsIdle = m.Emotion == "待机"
+            EmotionDisplay = (m.Emotion is "待机" or "触摸" or "拖拽") ? "★ " + m.Emotion : m.Emotion,
+            FacialSummary = !string.IsNullOrEmpty(m.FacialOverride) ? m.FacialOverride : (m.FacialGroup?.Preset ?? "-"),
+            ActionSummary = !string.IsNullOrEmpty(m.ActionGroupName) ? m.ActionGroupName : (m.ActionGroup?.AnimationName ?? "-"),
         }).ToList();
         LstExprMappings.ItemsSource = displayList;
     }
 
+    private void PopulateActionGroupList(List<ActionGroupFullEntry> groups)
+    {
+        var displayList = groups.Where(g => !g.IsIdle).Select(g => new
+        {
+            g.GroupName,
+            DisplayName = g.GroupName,
+            Summary = (g.Loop ? "循环" : "单播") + " | " + g.FacialPreset + " | " +
+                      string.Join("+", g.BodyClips.Select(c => c.BodyPart + ":" + (string.IsNullOrEmpty(c.ClipName) ? "-" : c.ClipName.Length > 15 ? c.ClipName[..15] + ".." : c.ClipName)))
+        }).ToList();
+        LstPresets.ItemsSource = displayList;
+    }
+
+    private void PopulateFacialPresetList(List<FacialPresetEntry> presets)
+    {
+        LstFacialPresets.ItemsSource = presets.Select(p => new
+        {
+            p.PresetName,
+            Summary = string.Join(", ", p.Targets.Select(t => $"[{t.Index}]={t.Weight:F0}"))
+        }).ToList();
+    }
+
     #region Connection Tab Events
 
-    private void OnConnectClick(object sender, RoutedEventArgs e)
-    {
-        _ = _pipe.SendCommand("connect");
-    }
-
-    private void OnDisconnectClick(object sender, RoutedEventArgs e)
-    {
-        _ = _pipe.SendCommand("disconnect");
-    }
+    private void OnConnectClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("connect");
+    private void OnDisconnectClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("disconnect");
 
     private void OnTtsModeClick(object sender, RoutedEventArgs e)
     {
@@ -187,17 +193,7 @@ public partial class MainWindow : Window
         {
             _ttsMode = mode;
             SetTtsModeButtons(mode);
-            LblTtsUrl.Content = mode switch
-            {
-                0 => "Gradio API 地址",
-                1 => "Simple-Vits API 地址",
-                _ => "API 地址"
-            };
-            _ = _pipe.SendCommand("update_config", new
-            {
-                ttsMode = mode,
-                ttsUrl = TxtTtsUrl.Text
-            });
+            _ = _pipe.SendCommand("update_config", new { ttsMode = mode, ttsUrl = TxtTtsUrl.Text });
         }
     }
 
@@ -207,115 +203,68 @@ public partial class MainWindow : Window
         BtnTtsGradio.IsEnabled = mode != 0;
         BtnTtsSimpleVits.IsEnabled = mode != 1;
         BtnTtsNone.IsEnabled = mode != 2;
-        LblTtsUrl.Content = mode switch
-        {
-            0 => "Gradio API 地址",
-            1 => "Simple-Vits API 地址",
-            _ => "API 地址"
-        };
+        LblTtsUrl.Content = mode switch { 0 => "Gradio API 地址", 1 => "Simple-Vits API 地址", _ => "API 地址" };
     }
 
-    private void OnTtsTestClick(object sender, RoutedEventArgs e)
-    {
-        _ = _pipe.SendCommand("test_tts", new { text = TxtTtsTestLine.Text });
-    }
-
-    private void OnTtsSendClick(object sender, RoutedEventArgs e)
-    {
-        _ = _pipe.SendCommand("test_tts", new { text = TxtTtsTestLine.Text });
-    }
+    private void OnTtsTestClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("test_tts", new { text = TxtTtsTestLine.Text });
+    private void OnTtsSendClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("test_tts", new { text = TxtTtsTestLine.Text });
 
     #endregion
 
     #region Dialog Settings Tab Events
-
     private void OnDialogSettingsSave(object sender, RoutedEventArgs e)
     {
         if (int.TryParse(TxtMsgWidth.Text, out int w) && int.TryParse(TxtMsgHeight.Text, out int h))
             _ = _pipe.SendCommand("update_dialog", new { msgWidth = w, msgHeight = h });
     }
-
     #endregion
 
     #region Model Tab Events
-
     private void OnModelBrowseClick(object sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFileDialog
-        {
-            Filter = "VRM Files|*.vrm",
-            Title = "选择 VRM 模型文件"
-        };
-        if (dlg.ShowDialog() == true)
-        {
-            TxtVrmPath.Text = dlg.FileName;
-        }
+        var dlg = new OpenFileDialog { Filter = "VRM Files|*.vrm", Title = "选择 VRM 模型文件" };
+        if (dlg.ShowDialog() == true) TxtVrmPath.Text = dlg.FileName;
     }
-
     private void OnModelLoadClick(object sender, RoutedEventArgs e)
     {
         if (!string.IsNullOrEmpty(TxtVrmPath.Text))
             _ = _pipe.SendCommand("load_model", new { path = TxtVrmPath.Text });
     }
-
-    private void OnModelRestoreClick(object sender, RoutedEventArgs e)
-    {
-        _ = _pipe.SendCommand("restore_default_model");
-    }
-
+    private void OnModelRestoreClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("restore_default_model");
     private void OnModelHistorySelect(object sender, SelectionChangedEventArgs e)
     {
         if (LstModelHistory.SelectedIndex >= 0)
             _ = _pipe.SendCommand("load_model_from_history", new { index = LstModelHistory.SelectedIndex });
     }
-
     #endregion
 
     #region Animation Tab Events
-
-    private void OnAnimRefreshClick(object sender, RoutedEventArgs e)
-    {
-        _ = _pipe.SendCommand("scan_animations");
-    }
-
+    private void OnAnimRefreshClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("scan_animations");
     private void OnAnimImportClick(object sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFileDialog
-        {
-            Filter = "FBX Files|*.fbx",
-            Title = "导入动画"
-        };
+        var dlg = new OpenFileDialog { Filter = "FBX Files|*.fbx", Title = "导入动画" };
         if (dlg.ShowDialog() == true)
             _ = _pipe.SendCommand("import_animation", new { path = dlg.FileName });
     }
-
-    private void OnRootMotionChanged(object sender, RoutedEventArgs e)
-    {
-        _ = _pipe.SendCommand("set_root_motion", new { enable = ChkRootMotion.IsChecked == true });
-    }
-
+    private void OnRootMotionChanged(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("set_root_motion", new { enable = ChkRootMotion.IsChecked == true });
     private void OnAnimPreviewClick(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string name)
             _ = _pipe.SendCommand("preview_animation", new { name });
     }
-
     #endregion
 
-    #region Expression Tab Events
+    #region Expression Mapping Tab Events
 
-    private void OnExprRestoreDefaults(object sender, RoutedEventArgs e)
-    {
-        _ = _pipe.SendCommand("restore_default_mappings");
-    }
+    private void OnExprRestoreDefaults(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("restore_default_mappings");
 
     private void OnExprAdd(object sender, RoutedEventArgs e)
     {
         _exprEditing = new ExpressionMappingEntry
         {
             Emotion = "",
-            FacialGroup = new FacialGroupEntry { Preset = "happy", Weight = 1f },
-            ActionGroup = new ActionGroupEntry { AnimationName = "0", BodyPart = "fullBody", Weight = 1f }
+            ActionGroupName = "Speak Normal",
+            FacialOverride = "fun"
         };
         BuildExprEditPanel();
     }
@@ -333,123 +282,85 @@ public partial class MainWindow : Window
     {
         if (sender is Button btn && btn.Tag is string emotion)
         {
-            if (emotion is "待机" or "触摸" or "拖拽")
-            {
-                MessageBox.Show("待机映射不可删除", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
+            if (emotion is "待机" or "触摸" or "拖拽") return;
             _ = _pipe.SendCommand("delete_expression_mapping", new { emotion });
         }
     }
 
-    private void OnExprMappingSelect(object sender, SelectionChangedEventArgs e)
-    {
-        // Allow re-selection for edit
-    }
-
-    private static readonly string[] FacialPresets = { "angry", "serious", "happy", "fun", "panic", "curious", "thinking", "disappointed", "sweating", "confident", "cry", "plain", "shy", "touching", "wink" };
-    private static readonly string[] BodyParts = { "fullBody", "upperBody", "lowerBody", "head", "leftArm", "rightArm", "leftLeg", "rightLeg", "hands" };
+    private void OnExprMappingSelect(object sender, SelectionChangedEventArgs e) { }
 
     private void BuildExprEditPanel()
     {
         PanelExprEdit.Children.Clear();
         if (_exprEditing == null) return;
-
         var sp = PanelExprEdit;
+        var entry = _exprEditing;
 
         // Emotion name
         var emoPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
-        emoPanel.Children.Add(new TextBlock { Text = "情绪:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-        var txtEmotion = new TextBox { Width = 120, Text = _exprEditing.Emotion };
-        txtEmotion.TextChanged += (_, _) => _exprEditing.Emotion = txtEmotion.Text;
+        emoPanel.Children.Add(new TextBlock { Text = "情绪:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        var txtEmotion = new TextBox { Width = 120, Text = entry.Emotion };
+        txtEmotion.TextChanged += (_, _) => entry.Emotion = txtEmotion.Text;
         emoPanel.Children.Add(txtEmotion);
         var btnPreviewAll = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(8, 0, 0, 0) };
         btnPreviewAll.Click += (_, _) =>
         {
             _ = _pipe.SendCommand("reset_blendshapes");
-            if (_exprEditing.FacialGroup != null && !string.IsNullOrEmpty(_exprEditing.FacialGroup.Preset))
-                _ = _pipe.SendCommand("preview_facial", new { facialX = _exprEditing.FacialGroup.Preset, facialW = _exprEditing.FacialGroup.Weight, noZoom = true });
-            if (_exprEditing.ActionGroup != null)
-                _ = _pipe.SendCommand("preview_action", new { name = _exprEditing.ActionGroup.AnimationName });
+            if (!string.IsNullOrEmpty(entry.FacialOverride))
+                _ = _pipe.SendCommand("preview_facial", new { facialX = entry.FacialOverride, facialW = 1f, noZoom = true });
+            if (!string.IsNullOrEmpty(entry.ActionGroupName))
+                _ = _pipe.SendCommand("preview_action", new { name = entry.ActionGroupName });
         };
         emoPanel.Children.Add(btnPreviewAll);
         sp.Children.Add(emoPanel);
 
-        // Facial section
-        var fg = _exprEditing.FacialGroup;
-        if (fg == null || string.IsNullOrEmpty(fg.Preset))
-        {
-            var btnAddFg = new Button { Content = "+ 添加面部", Width = 100, Style = (Style)FindResource("SmallButton") };
-            btnAddFg.Click += (_, _) => { _exprEditing.FacialGroup = new FacialGroupEntry { Preset = "happy", Weight = 1f }; BuildExprEditPanel(); };
-            sp.Children.Add(btnAddFg);
-        }
-        else
-        {
-            var fgHeader = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 4) };
-            fgHeader.Children.Add(new TextBlock { Text = "面部表情:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-            var btnFgPreview = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton") };
-            btnFgPreview.Click += (_, _) =>
-            {
-                if (!string.IsNullOrEmpty(fg.Preset))
-                    _ = _pipe.SendCommand("preview_facial", new { facialX = fg.Preset, facialW = fg.Weight });
-            };
-            fgHeader.Children.Add(btnFgPreview);
-            sp.Children.Add(fgHeader);
-            sp.Children.Add(BuildFacialPresetSelector(fg));
-            sp.Children.Add(BuildWeightSlider(fg.Weight, w => { fg.Weight = w; }));
-        }
+        // Action Group selector
+        sp.Children.Add(new TextBlock { Text = "动作组:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 8, 0, 4) });
+        var cboGroup = new ComboBox { Width = 180 };
+        if (_initData?.ActionGroups != null)
+            foreach (var g in _initData.ActionGroups.OrderBy(g => g.GroupName))
+                cboGroup.Items.Add(g.GroupName);
+        cboGroup.SelectedItem = entry.ActionGroupName;
+        cboGroup.SelectionChanged += (_, _) => { if (cboGroup.SelectedItem != null) entry.ActionGroupName = cboGroup.SelectedItem.ToString()!; };
+        sp.Children.Add(cboGroup);
 
-        // Action section
-        var ag = _exprEditing.ActionGroup;
-        if (ag == null || string.IsNullOrEmpty(ag.AnimationName))
+        // Facial Override selector
+        sp.Children.Add(new TextBlock { Text = "表情覆盖:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 12, 0, 4) });
+        var facialPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
+        foreach (var preset in FacialPresetNames.All)
         {
-            var btnAddAg = new Button { Content = "+ 添加动作", Width = 100, Style = (Style)FindResource("SmallButton") };
-            btnAddAg.Click += (_, _) => { _exprEditing.ActionGroup = new ActionGroupEntry { AnimationName = "Speak Normal", BodyPart = "fullBody", Weight = 1f }; BuildExprEditPanel(); };
-            sp.Children.Add(btnAddAg);
+            var btn = new Button { Content = preset, Width = 72, Style = (Style)FindResource("SmallButton"), FontSize = 10, Margin = new Thickness(0, 0, 2, 2) };
+            btn.IsEnabled = preset != entry.FacialOverride;
+            btn.Click += (_, _) => { entry.FacialOverride = preset; BuildExprEditPanel(); };
+            facialPanel.Children.Add(btn);
         }
-        else
+        sp.Children.Add(facialPanel);
+
+        var btnPreviewFacial = new Button { Content = "预览表情", Width = 80, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 4, 0, 0) };
+        btnPreviewFacial.Click += (_, _) =>
         {
-            var agHeader = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 12, 0, 4) };
-            agHeader.Children.Add(new TextBlock { Text = "动作:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-            var btnAgPreview = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton") };
-            btnAgPreview.Click += (_, _) => _ = _pipe.SendCommand("preview_action", new { name = ag.AnimationName });
-            agHeader.Children.Add(btnAgPreview);
-            sp.Children.Add(agHeader);
-            var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-            var cboAction = new ComboBox { Width = 140 };
-            if (_initData?.ActionPresets != null)
-                foreach (var p in _initData.ActionPresets.OrderBy(p => p.Name)) cboAction.Items.Add(p.Name);
-            foreach (var item in cboAction.Items) { if (item.ToString() == ag.AnimationName) cboAction.SelectedItem = item; }
-            cboAction.SelectionChanged += (_, _) => { if (cboAction.SelectedItem != null) ag.AnimationName = cboAction.SelectedItem.ToString()!; };
-            nameRow.Children.Add(cboAction);
-            sp.Children.Add(nameRow);
-            sp.Children.Add(BuildBodyPartSelector(ag));
-            sp.Children.Add(BuildWeightSlider(ag.Weight, w => { ag.Weight = w; }));
-        }
+            if (!string.IsNullOrEmpty(entry.FacialOverride))
+                _ = _pipe.SendCommand("preview_facial", new { facialX = entry.FacialOverride, facialW = 1f });
+        };
+        sp.Children.Add(btnPreviewFacial);
 
         // Save / Cancel
         var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
         var btnSave = new Button { Content = "保存", Width = 70, Style = (Style)FindResource("PrimaryButton") };
         btnSave.Click += (_, _) =>
         {
-            if (string.IsNullOrEmpty(_exprEditing.Emotion))
-            {
-                MessageBox.Show("请输入情绪名称", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
+            if (string.IsNullOrEmpty(entry.Emotion)) { MessageBox.Show("请输入情绪名称"); return; }
             _ = _pipe.SendCommand("update_expression_mapping", new
             {
-                emotion = _exprEditing.Emotion,
-                facialX = fg?.Preset ?? "",
-                facialW = fg?.Weight ?? 1f,
-                actionX = ag?.AnimationName ?? "",
-                actionP = ag?.BodyPart ?? "fullBody",
-                actionY = ag?.Weight ?? 1f
+                emotion = entry.Emotion,
+                actionX = entry.ActionGroupName,
+                facialX = entry.FacialOverride ?? "",
+                facialW = 1f
             });
             _ = _pipe.SendCommand("restore_expression");
             _exprEditing = null;
             PanelExprEdit.Children.Clear();
-            PanelExprEdit.Children.Add(new TextBlock { Text = "已保存", Foreground = (System.Windows.Media.Brush)FindResource("Accent"), FontSize = 13 });
+            PanelExprEdit.Children.Add(new TextBlock { Text = "已保存", Foreground = Res("Accent"), FontSize = 13 });
         };
         actionRow.Children.Add(btnSave);
         var btnCancel = new Button { Content = "取消", Width = 70, Margin = new Thickness(8, 0, 0, 0) };
@@ -458,169 +369,182 @@ public partial class MainWindow : Window
             _ = _pipe.SendCommand("restore_expression");
             _exprEditing = null;
             PanelExprEdit.Children.Clear();
-            PanelExprEdit.Children.Add(new TextBlock { Text = "选择或添加一个映射进行编辑", Foreground = (System.Windows.Media.Brush)FindResource("TextSecondary"), FontSize = 13 });
         };
         actionRow.Children.Add(btnCancel);
         sp.Children.Add(actionRow);
-    }
-
-    private FrameworkElement BuildFacialPresetSelector(FacialGroupEntry fg)
-    {
-        var sp = new WrapPanel { Margin = new Thickness(0, 2, 0, 4) };
-        sp.Children.Add(new TextBlock { Text = "预设:", Foreground = (System.Windows.Media.Brush)FindResource("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
-        int sel = Math.Max(0, Array.IndexOf(FacialPresets, fg.Preset));
-        for (int k = 0; k < FacialPresets.Length; k++)
-        {
-            var btn = new Button { Content = FacialPresets[k], Width = 70, Style = (Style)FindResource("SmallButton"), FontSize = 10, Tag = k, Margin = new Thickness(0, 0, 2, 2) };
-            btn.IsEnabled = k != sel;
-            int captured = k;
-            btn.Click += (_, _) => { fg.Preset = FacialPresets[captured]; BuildExprEditPanel(); };
-            sp.Children.Add(btn);
-        }
-        return sp;
-    }
-
-    private FrameworkElement BuildBodyPartSelector(ActionGroupEntry ag)
-    {
-        var sp = new WrapPanel { Margin = new Thickness(0, 2, 0, 4) };
-        sp.Children.Add(new TextBlock { Text = "部位:", Foreground = (System.Windows.Media.Brush)FindResource("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
-        int sel = Math.Max(0, Array.IndexOf(BodyParts, ag.BodyPart));
-        for (int k = 0; k < BodyParts.Length; k++)
-        {
-            var label = BodyParts[k].Length > 9 ? BodyParts[k][..9] : BodyParts[k];
-            var btn = new Button { Content = label, Width = 62, Style = (Style)FindResource("SmallButton"), FontSize = 10, Tag = k, Margin = new Thickness(0, 0, 2, 2) };
-            btn.IsEnabled = k != sel;
-            int captured = k;
-            btn.Click += (_, _) => { ag.BodyPart = BodyParts[captured]; BuildExprEditPanel(); };
-            sp.Children.Add(btn);
-        }
-        return sp;
-    }
-
-    private FrameworkElement BuildWeightSlider(float initial, Action<float> onChange)
-    {
-        var sp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-        var txt = new TextBlock { Text = "权重:", Foreground = (System.Windows.Media.Brush)FindResource("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) };
-        var slider = new Slider { Width = 140, Minimum = 0, Maximum = 1, Value = initial, SmallChange = 0.05, TickFrequency = 0.1 };
-        var lbl = new TextBlock { Text = initial.ToString("F1"), Foreground = (System.Windows.Media.Brush)FindResource("TextPrimary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
-        slider.ValueChanged += (_, e) => { lbl.Text = e.NewValue.ToString("F1"); onChange((float)e.NewValue); };
-        sp.Children.Add(txt);
-        sp.Children.Add(slider);
-        sp.Children.Add(lbl);
-        return sp;
     }
 
     #endregion
 
-    #region Action Preset Tab Events
+    #region Action Group Tab Events
 
-    private void PopulatePresetList(List<ActionPresetEntry> presets)
-    {
-        var displayList = presets.OrderBy(p => p.ActionParam).Select(p => new
-        {
-            p.Name, p.ActionParam, p.IsDefault,
-            DisplayName = p.Name,
-            Summary = "param=" + p.ActionParam
-        }).ToList();
-        LstPresets.ItemsSource = displayList;
-    }
-
-    private void OnPresetRestoreDefaults(object sender, RoutedEventArgs e)
-    {
-        _ = _pipe.SendCommand("restore_default_presets");
-    }
-
-    private void OnPresetAdd(object sender, RoutedEventArgs e)
-    {
-        _presetEditing = new ActionPresetEntry { Name = "", ActionParam = 0 };
-        BuildPresetEditPanel();
-    }
-
+    private void OnPresetRestoreDefaults(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("restore_default_presets");
+    private void OnPresetAdd(object sender, RoutedEventArgs e) { }
     private void OnPresetSelect(object sender, SelectionChangedEventArgs e) { }
 
     private void OnPresetEditClick(object sender, RoutedEventArgs e)
     {
-        if (sender is Button btn && btn.Tag is string name && _initData != null)
+        if (sender is Button btn && btn.Tag is string groupName && _initData != null)
         {
-            _presetEditing = _initData.ActionPresets.FirstOrDefault(p => p.Name == name);
-            if (_presetEditing != null) BuildPresetEditPanel();
+            _groupEditing = _initData.ActionGroups.FirstOrDefault(g => g.GroupName == groupName);
+            if (_groupEditing != null) BuildActionGroupEditPanel();
         }
     }
 
-    private void OnPresetDeleteClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is string name)
-            _ = _pipe.SendCommand("delete_action_preset", new { name });
-    }
+    private void OnPresetDeleteClick(object sender, RoutedEventArgs e) { }
 
-    private void OnPresetPreviewClick(object sender, RoutedEventArgs e)
-    {
-        if (_presetEditing != null)
-            _ = _pipe.SendCommand("preview_action", new { name = _presetEditing.Name });
-    }
-
-    private void BuildPresetEditPanel()
+    private void BuildActionGroupEditPanel()
     {
         PanelPresetEdit.Children.Clear();
-        if (_presetEditing == null) return;
-        var p = _presetEditing;
+        if (_groupEditing == null) return;
         var sp = PanelPresetEdit;
+        var g = _groupEditing;
 
-        // Name
-        var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
-        nameRow.Children.Add(new TextBlock { Text = "名称:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-        var txtName = new TextBox { Width = 160, Text = p.Name, IsReadOnly = p.IsDefault };
-        txtName.TextChanged += (_, _) => p.Name = txtName.Text;
-        nameRow.Children.Add(txtName);
-        var btnPreview = new Button { Content = "预览", Width = 50, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(8, 0, 0, 0) };
-        btnPreview.Click += OnPresetPreviewClick;
-        nameRow.Children.Add(btnPreview);
-        sp.Children.Add(nameRow);
+        sp.Children.Add(new TextBlock { Text = g.GroupName, FontSize = 16, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 8) });
 
-        // ActionParam
-        var apRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 12) };
-        apRow.Children.Add(new TextBlock { Text = "ActionParam:", Foreground = FindResource("TextSecondary") as System.Windows.Media.Brush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-        var txtAp = new TextBox { Width = 60, Text = p.ActionParam.ToString(), IsReadOnly = p.IsDefault };
-        txtAp.TextChanged += (_, _) => { if (int.TryParse(txtAp.Text, out int v)) p.ActionParam = v; };
-        apRow.Children.Add(txtAp);
-        sp.Children.Add(apRow);
+        // Facial preset
+        var facialRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+        facialRow.Children.Add(new TextBlock { Text = "默认表情:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        facialRow.Children.Add(new TextBlock { Text = g.FacialPreset ?? "-", VerticalAlignment = VerticalAlignment.Center });
+        sp.Children.Add(facialRow);
 
-        // Save / Cancel
-        var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
-        var btnSave = new Button { Content = "保存", Width = 70, Style = (Style)FindResource("PrimaryButton") };
-        btnSave.Click += (_, _) =>
+        // Loop
+        var loopRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+        loopRow.Children.Add(new TextBlock { Text = "循环:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        loopRow.Children.Add(new TextBlock { Text = g.Loop ? "是" : "否", VerticalAlignment = VerticalAlignment.Center });
+        sp.Children.Add(loopRow);
+
+        // Body clips per part
+        sp.Children.Add(new TextBlock { Text = "身体动画 (按部位):", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 8, 0, 4) });
+
+        foreach (var part in BodyPartNames.All)
         {
-            if (string.IsNullOrEmpty(p.Name))
+            var existing = g.BodyClips.FirstOrDefault(c => c.BodyPart == part);
+            string clipName = existing?.ClipName ?? "";
+
+            var partRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
+            partRow.Children.Add(new TextBlock { Text = part + ":", Width = 80, Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center });
+
+            var cbo = new ComboBox { Width = 200 };
+            cbo.Items.Add("(无)");
+            if (_initData?.AnimationList != null)
+                foreach (var a in _initData.AnimationList.OrderBy(a => a.Name))
+                    cbo.Items.Add(a.Name);
+            cbo.SelectedItem = string.IsNullOrEmpty(clipName) ? "(无)" : clipName;
+            string capturedPart = part;
+            cbo.SelectionChanged += (_, _) =>
             {
-                MessageBox.Show("请输入预设名称", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            _ = _pipe.SendCommand("save_action_preset", new { name = p.Name, actionParam = p.ActionParam });
-            _presetEditing = null;
-            PanelPresetEdit.Children.Clear();
-            PanelPresetEdit.Children.Add(new TextBlock { Text = "已保存", Foreground = (System.Windows.Media.Brush)FindResource("Accent"), FontSize = 13 });
-        };
-        actionRow.Children.Add(btnSave);
-        var btnCancel = new Button { Content = "取消", Width = 70, Margin = new Thickness(8, 0, 0, 0) };
-        btnCancel.Click += (_, _) =>
+                string sel = cbo.SelectedItem?.ToString() ?? "";
+                if (sel == "(无)") sel = "";
+                var entry = g.BodyClips.FirstOrDefault(c => c.BodyPart == capturedPart);
+                if (entry != null) entry.ClipName = sel;
+                else g.BodyClips.Add(new PartClipEntryDto { BodyPart = capturedPart, ClipName = sel });
+            };
+            partRow.Children.Add(cbo);
+
+            var btnPrev = new Button { Content = "▶", Width = 32, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(4, 0, 0, 0) };
+            string capturedClip = clipName;
+            btnPrev.Click += (_, _) =>
+            {
+                if (!string.IsNullOrEmpty(capturedClip))
+                    _ = _pipe.SendCommand("preview_animation", new { name = capturedClip });
+            };
+            partRow.Children.Add(btnPrev);
+
+            sp.Children.Add(partRow);
+        }
+
+        // Global preview
+        var previewRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 12, 0, 0) };
+        var btnGlobalPreview = new Button { Content = "全局预览", Width = 80, Style = (Style)FindResource("SmallButton") };
+        btnGlobalPreview.Click += (_, _) =>
         {
-            _presetEditing = null;
-            PanelPresetEdit.Children.Clear();
-            PanelPresetEdit.Children.Add(new TextBlock { Text = "选择一个预设进行编辑", Foreground = (System.Windows.Media.Brush)FindResource("TextSecondary"), FontSize = 13 });
+            _ = _pipe.SendCommand("reset_blendshapes");
+            if (!string.IsNullOrEmpty(g.FacialPreset))
+                _ = _pipe.SendCommand("preview_facial", new { facialX = g.FacialPreset, facialW = g.FacialWeight, noZoom = true });
+            var fullClip = g.BodyClips.FirstOrDefault(c => c.BodyPart == "fullBody");
+            if (fullClip != null && !string.IsNullOrEmpty(fullClip.ClipName))
+                _ = _pipe.SendCommand("preview_animation", new { name = fullClip.ClipName });
         };
-        actionRow.Children.Add(btnCancel);
-        sp.Children.Add(actionRow);
+        previewRow.Children.Add(btnGlobalPreview);
+        var btnStop = new Button { Content = "停止", Width = 60, Margin = new Thickness(8, 0, 0, 0) };
+        btnStop.Click += (_, _) => _ = _pipe.SendCommand("stop_preview");
+        previewRow.Children.Add(btnStop);
+        sp.Children.Add(previewRow);
+
+        // Timing info
+        sp.Children.Add(new TextBlock { Text = $"BlendIn: body={g.BlendInBody:F2}s facial={g.BlendInFacial:F2}s | BlendOut: body={g.BlendOutBody:F2}s facial={g.BlendOutFacial:F2}s",
+            Foreground = Res("TextSecondary"), FontSize = 11, Margin = new Thickness(0, 12, 0, 0) });
+        sp.Children.Add(new TextBlock { Text = $"HoldAfterTTS: {g.HoldAfterTTS:F1}s | HoldNoTTS: {g.HoldNoTTS:F1}s",
+            Foreground = Res("TextSecondary"), FontSize = 11 });
+    }
+
+    #endregion
+
+    #region Facial Preset Tab Events
+
+    private void OnFacialPresetSelect(object sender, SelectionChangedEventArgs e) { }
+
+    private void OnFacialPresetEditClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string name && _initData != null)
+        {
+            _facialEditing = _initData.FacialPresets.FirstOrDefault(p => p.PresetName == name);
+            if (_facialEditing != null) BuildFacialEditPanel();
+        }
+    }
+
+    private void BuildFacialEditPanel()
+    {
+        PanelFacialEdit.Children.Clear();
+        if (_facialEditing == null) return;
+        var sp = PanelFacialEdit;
+        var p = _facialEditing;
+
+        sp.Children.Add(new TextBlock { Text = p.PresetName, FontSize = 16, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 8) });
+
+        // Preview button
+        var btnPreview = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 0, 8) };
+        btnPreview.Click += (_, _) => _ = _pipe.SendCommand("preview_facial", new { facialX = p.PresetName, facialW = 1f });
+        sp.Children.Add(btnPreview);
+
+        // Blend shape targets
+        sp.Children.Add(new TextBlock { Text = "BlendShape 目标:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 4, 0, 4) });
+
+        for (int i = 0; i < p.Targets.Count; i++)
+        {
+            var t = p.Targets[i];
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
+            row.Children.Add(new TextBlock { Text = $"Index [{t.Index}]:", Width = 80, VerticalAlignment = VerticalAlignment.Center });
+            var slider = new Slider { Width = 150, Minimum = 0, Maximum = 100, Value = t.Weight };
+            var lbl = new TextBlock { Text = t.Weight.ToString("F0"), Width = 40, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
+            int idx = i;
+            slider.ValueChanged += (_, ev) => { p.Targets[idx].Weight = (float)ev.NewValue; lbl.Text = ev.NewValue.ToString("F0"); };
+            row.Children.Add(slider);
+            row.Children.Add(lbl);
+            sp.Children.Add(row);
+        }
+
+        // Effect objects
+        if (p.ActivateObjects.Count > 0)
+        {
+            sp.Children.Add(new TextBlock { Text = "特效: " + string.Join(", ", p.ActivateObjects), Foreground = Res("TextSecondary"), Margin = new Thickness(0, 8, 0, 0), FontSize = 11 });
+        }
+        if (!string.IsNullOrEmpty(p.BlushMode))
+        {
+            sp.Children.Add(new TextBlock { Text = "腮红: " + p.BlushMode, Foreground = Res("TextSecondary"), FontSize = 11 });
+        }
+
+        // Stop preview
+        var btnStop = new Button { Content = "停止预览", Width = 80, Margin = new Thickness(0, 12, 0, 0) };
+        btnStop.Click += (_, _) => _ = _pipe.SendCommand("stop_preview");
+        sp.Children.Add(btnStop);
     }
 
     #endregion
 
     #region History Tab Events
-
-    private void OnHistoryClearClick(object sender, RoutedEventArgs e)
-    {
-        _ = _pipe.SendCommand("clear_history");
-    }
-
+    private void OnHistoryClearClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("clear_history");
     #endregion
 
     private void OnTabChanged(object sender, SelectionChangedEventArgs e)
@@ -630,10 +554,12 @@ public partial class MainWindow : Window
             var header = removed.Header as string;
             if (header == "动画库")
                 _ = _pipe.SendCommand("stop_preview");
-            else if (header == "表情映射")
+            else if (header == "动作系统")
                 _ = _pipe.SendCommand("restore_expression");
         }
     }
+
+    private System.Windows.Media.Brush Res(string name) => (System.Windows.Media.Brush)FindResource(name);
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
