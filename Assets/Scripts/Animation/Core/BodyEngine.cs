@@ -26,6 +26,7 @@ public class BodyEngine : MonoBehaviour
     private Quaternion _savedRot;
     private Vector3 _savedRootLocalPos;
     private Quaternion _savedRootLocalRot;
+    private Quaternion _savedHipsLocalRot;
 
     private static readonly string[] BodyPartNames = { "fullBody", "upperBody", "head", "leftArm", "rightArm", "lowerBody" };
 
@@ -301,9 +302,11 @@ public class BodyEngine : MonoBehaviour
         {
             _savedPos = animator.transform.position;
             _savedRot = animator.transform.rotation;
-            var root = animator.transform.Find("root");
-            _savedRootLocalPos = root != null ? root.localPosition : Vector3.zero;
-            _savedRootLocalRot = root != null ? root.localRotation : Quaternion.identity;
+            var rootB = animator.transform.Find("root");
+            _savedRootLocalPos = rootB != null ? rootB.localPosition : Vector3.zero;
+            _savedRootLocalRot = rootB != null ? rootB.localRotation : Quaternion.identity;
+            var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+            _savedHipsLocalRot = hips != null ? hips.localRotation : Quaternion.identity;
             Pause();
             _isPreviewing = true;
         }
@@ -329,6 +332,9 @@ public class BodyEngine : MonoBehaviour
             root.localPosition = _savedRootLocalPos;
             root.localRotation = _savedRootLocalRot;
         }
+        var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+        if (hips != null)
+            hips.localRotation = _savedHipsLocalRot;
 
         _isPreviewing = false;
         Resume();
@@ -352,6 +358,9 @@ public class BodyEngine : MonoBehaviour
                     root.localPosition = _savedRootLocalPos;
                     root.localRotation = _savedRootLocalRot;
                 }
+                var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+                if (hips != null)
+                    hips.localRotation = _savedHipsLocalRot;
             }
 
             elapsed += Time.deltaTime;

@@ -28,7 +28,6 @@ public partial class MainWindow : Window
     private ExpressionMappingEntry? _exprEditing;
     private ActionGroupFullEntry? _groupEditing;
     private FacialPresetEntry? _facialEditing;
-    private bool _filtering;
 
     public MainWindow()
     {
@@ -470,17 +469,16 @@ public partial class MainWindow : Window
             cbo.SelectedItem = string.IsNullOrEmpty(clipName) ? "(无)" : clipName;
             cbo.KeyUp += (_, _) =>
             {
-                if (_filtering) return;
-                _filtering = true;
                 string txt = cbo.Text ?? "";
                 var filtered = new List<string> { "(无)" };
                 if (_initData?.AnimationList != null)
                     foreach (var a in _initData.AnimationList)
                         if (string.IsNullOrEmpty(txt) || a.Name.Contains(txt, StringComparison.OrdinalIgnoreCase))
                             filtered.Add(a.Name);
-                cbo.ItemsSource = filtered;
-                cbo.IsDropDownOpen = true;
-                _filtering = false;
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    cbo.ItemsSource = filtered;
+                }), System.Windows.Threading.DispatcherPriority.Background);
             };
             string capturedPart = part;
             cbo.SelectionChanged += (_, _) =>
