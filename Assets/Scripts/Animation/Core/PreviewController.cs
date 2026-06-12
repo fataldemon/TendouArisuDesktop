@@ -47,8 +47,7 @@ public class PreviewController : MonoBehaviour
     public void PreviewFacial(string presetName, float weight = 1f)
     {
         EnterPreview();
-        if (_facialPreviewing)
-            facialEngine.ResetInstant();
+        facialEngine.ResetInstant();
         facialEngine.PreviewInstant(presetName, weight);
         _facialPreviewing = true;
     }

@@ -327,6 +327,10 @@ public partial class MainWindow : Window
         // Facial Override selector
         sp.Children.Add(new TextBlock { Text = "表情覆盖:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 12, 0, 4) });
         var facialPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
+        var btnNoneF = new Button { Content = "(无)", Width = 50, Style = (Style)FindResource("SmallButton"), FontSize = 10, Margin = new Thickness(0, 0, 2, 2) };
+        btnNoneF.IsEnabled = !string.IsNullOrEmpty(entry.FacialOverride);
+        btnNoneF.Click += (_, _) => { entry.FacialOverride = ""; BuildExprEditPanel(); };
+        facialPanel.Children.Add(btnNoneF);
         foreach (var preset in FacialPresetNames.All)
         {
             var btn = new Button { Content = preset, Width = 72, Style = (Style)FindResource("SmallButton"), FontSize = 10, Margin = new Thickness(0, 0, 2, 2) };
@@ -412,6 +416,14 @@ public partial class MainWindow : Window
 
         sp.Children.Add(new TextBlock { Text = g.GroupName, FontSize = 16, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 8) });
 
+        // Root Motion checkbox
+        var rmRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+        var chkRM = new CheckBox { Content = "Allow Root Motion", VerticalAlignment = VerticalAlignment.Center };
+        chkRM.Checked += (_, _) => _ = _pipe.SendCommand("set_root_motion", new { enable = true });
+        chkRM.Unchecked += (_, _) => _ = _pipe.SendCommand("set_root_motion", new { enable = false });
+        rmRow.Children.Add(chkRM);
+        sp.Children.Add(rmRow);
+
         // Facial preset (editable)
         sp.Children.Add(new TextBlock { Text = "默认表情:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 0, 0, 4) });
         var facialPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
@@ -448,12 +460,23 @@ public partial class MainWindow : Window
             var partRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
             partRow.Children.Add(new TextBlock { Text = part + ":", Width = 80, Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center });
 
-            var cbo = new ComboBox { Width = 200, IsEditable = true, IsTextSearchEnabled = true, MaxDropDownHeight = 300 };
+            var cbo = new ComboBox { Width = 200, IsEditable = true, IsTextSearchEnabled = true, MaxDropDownHeight = 300, StaysOpenOnEdit = true };
             cbo.Items.Add("(无)");
             if (_initData?.AnimationList != null)
                 foreach (var a in _initData.AnimationList.OrderBy(a => a.Name))
                     cbo.Items.Add(a.Name);
             cbo.SelectedItem = string.IsNullOrEmpty(clipName) ? "(无)" : clipName;
+            cbo.KeyUp += (_, _) =>
+            {
+                string txt = cbo.Text ?? "";
+                var filtered = new List<string> { "(无)" };
+                if (_initData?.AnimationList != null)
+                    foreach (var a in _initData.AnimationList)
+                        if (string.IsNullOrEmpty(txt) || a.Name.Contains(txt, StringComparison.OrdinalIgnoreCase))
+                            filtered.Add(a.Name);
+                cbo.ItemsSource = filtered;
+                cbo.IsDropDownOpen = true;
+            };
             string capturedPart = part;
             cbo.SelectionChanged += (_, _) =>
             {

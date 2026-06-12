@@ -74,13 +74,7 @@ public class EmotionPlayer : MonoBehaviour
 
     public void RestoreToIdle()
     {
-        _facialOverride = null;
-        _facialWeightOverride = -1f;
-        var config = ActionSystemRuntime.ResolveEmotion("待机");
-        if (config == null) config = ActionSystemRuntime.IdleGroup;
-        if (config == null) { Debug.LogWarning("[EmotionPlayer] RestoreToIdle: no idle config!"); return; }
-        Debug.Log("[EmotionPlayer] RestoreToIdle → " + config.groupName);
-        TransitionTo(config, false);
+        PlayEmotion("待机");
     }
 
     public void NotifyTTSStart()
@@ -145,6 +139,8 @@ public class EmotionPlayer : MonoBehaviour
 
         string facialPreset = _facialOverride ?? instance.config.facialPreset;
         float facialWeight = _facialWeightOverride >= 0f ? _facialWeightOverride : instance.config.facialWeight;
+        Debug.Log("[EmotionPlayer] ApplyImmediate: override='" + _facialOverride + "' default='" + instance.config.facialPreset + "' → use='" + facialPreset + "' w=" + facialWeight);
+
         if (!string.IsNullOrEmpty(facialPreset))
             facialEngine.PlayExpression(facialPreset, facialWeight, instance.config.blendInFacial);
         else
@@ -166,6 +162,8 @@ public class EmotionPlayer : MonoBehaviour
 
         string facialPreset = _facialOverride ?? newInstance.config.facialPreset;
         float facialWeight = _facialWeightOverride >= 0f ? _facialWeightOverride : newInstance.config.facialWeight;
+        Debug.Log("[EmotionPlayer] StartCrossfade: override='" + _facialOverride + "' default='" + newInstance.config.facialPreset + "' → use='" + facialPreset + "' w=" + facialWeight);
+
         if (!string.IsNullOrEmpty(facialPreset))
             facialEngine.CrossfadeTo(facialPreset, facialWeight, blendOutFacial, blendInFacial);
         else
