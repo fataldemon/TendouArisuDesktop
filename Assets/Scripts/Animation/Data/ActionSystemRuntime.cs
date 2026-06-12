@@ -138,17 +138,40 @@ public static class ActionSystemRuntime
         ActionSystemJsonIO.SaveEmotionMappings(_emotionMappings);
     }
 
-    public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight, string clipName = null)
+    public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight, string clipsJson)
     {
         var group = GetActionGroup(groupName);
         if (group == null) { Debug.LogWarning("[Runtime] UpdateActionGroup: group '" + groupName + "' not found!"); return; }
-        Debug.Log("[Runtime] UpdateActionGroup: " + groupName + " facial=" + facialPreset + " w=" + facialWeight + " clip=" + (clipName ?? "(unchanged)"));
+        Debug.Log("[Runtime] UpdateActionGroup: " + groupName + " facial=" + facialPreset + " w=" + facialWeight + " clips=" + clipsJson);
         if (!string.IsNullOrEmpty(facialPreset))
             group.facialPreset = facialPreset;
         if (facialWeight > 0f)
             group.facialWeight = facialWeight;
-        if (clipName != null && group.bodyClips.Count > 0)
-            group.bodyClips[0].clipName = clipName;
+        if (!string.IsNullOrEmpty(clipsJson))
+        {
+            var parts = clipsJson.Split('|');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                var kv = parts[i].Split('=');
+                if (kv.Length == 2)
+                {
+                    string bodyPart = kv[0];
+                    string clipName = kv[1];
+                    bool found = false;
+                    for (int j = 0; j < group.bodyClips.Count; j++)
+                    {
+                        if (group.bodyClips[j].bodyPart == bodyPart)
+                        {
+                            group.bodyClips[j].clipName = clipName;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                        group.bodyClips.Add(new PartClipEntry { bodyPart = bodyPart, clipName = clipName });
+                }
+            }
+        }
         ActionSystemJsonIO.SaveActionGroups(_actionGroups);
     }
 

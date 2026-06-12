@@ -506,13 +506,18 @@ public partial class MainWindow : Window
         var btnSave = new Button { Content = "保存", Width = 70, Style = (Style)FindResource("PrimaryButton") };
         btnSave.Click += (_, _) =>
         {
-            var fullBodyClip = g.BodyClips.FirstOrDefault(c => c.BodyPart == "fullBody");
+            var clipParts = new List<string>();
+            foreach (var c in g.BodyClips)
+            {
+                if (!string.IsNullOrEmpty(c.ClipName))
+                    clipParts.Add(c.BodyPart + "=" + c.ClipName);
+            }
             _ = _pipe.SendCommand("update_action_group", new
             {
                 name = g.GroupName,
                 facialX = g.FacialPreset ?? "",
                 facialW = g.FacialWeight,
-                actionX = fullBodyClip?.ClipName ?? ""
+                actionX = string.Join("|", clipParts)
             });
             PanelPresetEdit.Children.Clear();
             PanelPresetEdit.Children.Add(new TextBlock { Text = "已保存并生效", Foreground = Res("Accent"), FontSize = 13 });

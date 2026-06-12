@@ -48,6 +48,11 @@ public class BodyEngine : MonoBehaviour
 
     private void Awake()
     {
+        if (animator != null)
+        {
+            animator.runtimeAnimatorController = null;
+            animator.applyRootMotion = allowRootMotion;
+        }
         BuildGraph();
     }
 
@@ -203,22 +208,19 @@ public class BodyEngine : MonoBehaviour
         if (layer > 0)
             _layerMixer.SetInputWeight(layer, 1f);
 
-        var inactiveSlot = data.activeSlotIsA ? data.clipB : data.clipA;
         int inactiveIndex = data.activeSlotIsA ? 1 : 0;
+        int activeIndex = data.activeSlotIsA ? 0 : 1;
 
-        inactiveSlot.GetGraph().Disconnect(data.mixer, inactiveIndex);
+        data.mixer.DisconnectInput(inactiveIndex);
+
         var newClip = AnimationClipPlayable.Create(_graph, clip);
         newClip.SetDuration(clip.length);
-        if (loop)
-            newClip.GetAnimationClip(); // Playable respects clip's WrapMode
         data.mixer.ConnectInput(inactiveIndex, newClip, 0);
 
         if (data.activeSlotIsA)
             data.clipB = newClip;
         else
             data.clipA = newClip;
-
-        inactiveSlot.Destroy();
 
         data.crossfadeElapsed = 0f;
         data.crossfadeDuration = blendDuration;

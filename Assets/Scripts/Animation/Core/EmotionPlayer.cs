@@ -76,9 +76,11 @@ public class EmotionPlayer : MonoBehaviour
     {
         _facialOverride = null;
         _facialWeightOverride = -1f;
-        if (ActionSystemRuntime.IdleGroup == null) { Debug.LogWarning("[EmotionPlayer] RestoreToIdle: IdleGroup is null!"); return; }
-        Debug.Log("[EmotionPlayer] RestoreToIdle");
-        TransitionTo(ActionSystemRuntime.IdleGroup, false);
+        var config = ActionSystemRuntime.ResolveEmotion("待机");
+        if (config == null) config = ActionSystemRuntime.IdleGroup;
+        if (config == null) { Debug.LogWarning("[EmotionPlayer] RestoreToIdle: no idle config!"); return; }
+        Debug.Log("[EmotionPlayer] RestoreToIdle → " + config.groupName);
+        TransitionTo(config, false);
     }
 
     public void NotifyTTSStart()
@@ -277,7 +279,7 @@ public class EmotionPlayer : MonoBehaviour
 
     public void ForceIdle()
     {
-        var idle = ActionSystemRuntime.IdleGroup;
+        var idle = ActionSystemRuntime.ResolveEmotion("待机") ?? ActionSystemRuntime.IdleGroup;
         if (idle == null) return;
         var clip = ResolveBodyClip(idle);
         if (clip != null) bodyEngine.idleClip = clip;
@@ -285,8 +287,9 @@ public class EmotionPlayer : MonoBehaviour
         _current.state = ActionGroupState.Active;
 
         facialEngine.ResetInstant();
-        if (!string.IsNullOrEmpty(idle.facialPreset))
-            facialEngine.PreviewInstant(idle.facialPreset, idle.facialWeight);
+        string facial = idle.facialPreset;
+        if (!string.IsNullOrEmpty(facial))
+            facialEngine.PreviewInstant(facial, idle.facialWeight);
 
         if (clip != null)
             bodyEngine.Play(clip, "fullBody", 0.1f, true);
