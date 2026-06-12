@@ -41,6 +41,7 @@ public class GameStart : MonoBehaviour
 
     public float dialogueInterval = 0.5f;
     private float dialogueTimer;
+    private float dialogueClearTimer;
     private bool expressionApplied;
 
     public Transform targetTransform;
@@ -219,6 +220,8 @@ public class GameStart : MonoBehaviour
                 Camera.main.transform.position = new Vector3(settings.camX, settings.camY, settings.camZ);
                 Camera.main.transform.rotation = new Quaternion(settings.camRotX, settings.camRotY, settings.camRotZ, settings.camRotW);
             }
+            if (settings.guiOffsetX != 0f || settings.guiOffsetY != 0f)
+                guiOffset = new Vector2(settings.guiOffsetX, settings.guiOffsetY);
         }
 
         int ttsMode = config.tts;
@@ -398,6 +401,21 @@ public class GameStart : MonoBehaviour
             {
                 int num = (int)Math.Round((float)msg_max_length * Time.deltaTime / dialogueInterval);
                 msg_length_receive += num;
+            }
+            if (!emotionPlayer.IsPlaying && !m_AudioSource.isPlaying)
+            {
+                dialogueClearTimer += Time.deltaTime;
+                if (dialogueClearTimer > 5f)
+                {
+                    onDialogue = false;
+                    dialogueTimer = 0f;
+                    msg_length_receive = 0;
+                    dialogueClearTimer = 0f;
+                }
+            }
+            else
+            {
+                dialogueClearTimer = 0f;
             }
         }
 
@@ -763,6 +781,8 @@ public class GameStart : MonoBehaviour
         settings.camRotY = cam.rotation.y;
         settings.camRotZ = cam.rotation.z;
         settings.camRotW = cam.rotation.w;
+        settings.guiOffsetX = guiOffset.x;
+        settings.guiOffsetY = guiOffset.y;
         config.PopulateTo(settings);
         settings.Save();
     }

@@ -39,6 +39,9 @@ public class SettingsData
     public float camRotZ;
     public float camRotW;
 
+    public float guiOffsetX;
+    public float guiOffsetY;
+
     public static string GetFilePath()
     {
         return System.IO.Path.Combine(Application.persistentDataPath, "settings.json");

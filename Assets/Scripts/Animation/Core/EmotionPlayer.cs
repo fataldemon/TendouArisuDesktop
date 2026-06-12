@@ -29,6 +29,8 @@ public class EmotionPlayer : MonoBehaviour
 
     private void Start()
     {
+        if (database == null)
+            database = Resources.Load<ActionSystemDatabase>("ActionSystemDatabase");
         if (database != null && database.idleGroup != null)
             TransitionTo(database.idleGroup, true);
     }

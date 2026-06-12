@@ -32,6 +32,8 @@ public class PipeServer : MonoBehaviour
     private void Awake()
     {
         _logPath = Path.Combine(Application.persistentDataPath, "pipe_debug.log");
+        if (database == null)
+            database = Resources.Load<ActionSystemDatabase>("ActionSystemDatabase");
     }
 
     private void WriteLog(string msg)
@@ -121,6 +123,13 @@ public class PipeServer : MonoBehaviour
 
     private string BuildInitJson()
     {
+        Debug.Log("[PipeServer] BuildInitJson: database=" + (database != null) +
+            " emotionMappings=" + (database?.emotionMappings != null) +
+            " mappingCount=" + (database?.emotionMappings?.mappings?.Count ?? -1) +
+            " facialPresets=" + (database?.facialPresets != null) +
+            " facialCount=" + (database?.facialPresets?.presets?.Count ?? -1) +
+            " groups=" + (database?.actionGroups?.Count ?? -1));
+
         var sb = new StringBuilder();
         sb.Append("{\"type\":\"init\",\"data\":{");
 
