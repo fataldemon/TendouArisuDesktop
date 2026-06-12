@@ -448,7 +448,7 @@ public partial class MainWindow : Window
             var partRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
             partRow.Children.Add(new TextBlock { Text = part + ":", Width = 80, Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center });
 
-            var cbo = new ComboBox { Width = 200 };
+            var cbo = new ComboBox { Width = 200, IsEditable = true, IsTextSearchEnabled = true, MaxDropDownHeight = 300 };
             cbo.Items.Add("(无)");
             if (_initData?.AnimationList != null)
                 foreach (var a in _initData.AnimationList.OrderBy(a => a.Name))
@@ -519,6 +519,7 @@ public partial class MainWindow : Window
                 facialW = g.FacialWeight,
                 actionX = string.Join("|", clipParts)
             });
+            _ = _pipe.SendCommand("stop_preview");
             PanelPresetEdit.Children.Clear();
             PanelPresetEdit.Children.Add(new TextBlock { Text = "已保存并生效", Foreground = Res("Accent"), FontSize = 13 });
         };

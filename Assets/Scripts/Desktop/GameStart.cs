@@ -87,6 +87,7 @@ public class GameStart : MonoBehaviour
     private bool _isDragging;
     private const float TouchScreenRadius = 150f;
     private int _touchLogFrame;
+    private ActionGroupConfig _touchConfig;
 
     private void SetupSkin()
     {
@@ -557,14 +558,19 @@ public class GameStart : MonoBehaviour
             {
                 if (!emotionPlayer.IsPlaying && !_isDragging)
                 {
+                    if (_touchConfig != null && !_touchConfig.loop)
+                        emotionPlayer.RestoreToIdle();
                     emotionPlayer.PlayEmotion("触摸");
+                    _touchConfig = emotionPlayer.CurrentConfig;
                     _isTouching = true;
                 }
             }
             else if (!touching && _isTouching)
             {
-                emotionPlayer.RestoreToIdle();
+                if (_touchConfig == null || _touchConfig.loop)
+                    emotionPlayer.RestoreToIdle();
                 _isTouching = false;
+                _touchConfig = null;
             }
         }
     }

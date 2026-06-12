@@ -438,7 +438,9 @@ public class PipeServer : MonoBehaviour
                 case "preview_action":
                     if (!string.IsNullOrEmpty(cmd.name) && previewController != null)
                     {
-                        var clip = FindClipByName(cmd.name);
+                        var actionGroup = ActionSystemRuntime.GetActionGroup(cmd.name);
+                        string clipName = (actionGroup != null && actionGroup.bodyClips.Count > 0) ? actionGroup.bodyClips[0].clipName : cmd.name;
+                        var clip = FindClipByName(clipName);
                         if (clip != null)
                             previewController.PreviewBody(clip);
                     }
