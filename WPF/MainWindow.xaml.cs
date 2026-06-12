@@ -163,10 +163,10 @@ public partial class MainWindow : Window
 
     private void PopulateActionGroupList(List<ActionGroupFullEntry> groups)
     {
-        var displayList = groups.Where(g => !g.IsIdle).Select(g => new
+        var displayList = groups.Select(g => new
         {
             g.GroupName,
-            DisplayName = g.GroupName,
+            DisplayName = g.IsIdle ? "★ " + g.GroupName : g.GroupName,
             Summary = (g.Loop ? "循环" : "单播") + " | " + g.FacialPreset + " | " +
                       string.Join("+", g.BodyClips.Select(c => c.BodyPart + ":" + (string.IsNullOrEmpty(c.ClipName) ? "-" : c.ClipName.Length > 15 ? c.ClipName[..15] + ".." : c.ClipName)))
         }).ToList();
@@ -579,14 +579,8 @@ public partial class MainWindow : Window
 
     private void OnTabChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (e.RemovedItems.Count > 0 && e.RemovedItems[0] is TabItem removed)
-        {
-            var header = removed.Header as string;
-            if (header == "动画库")
-                _ = _pipe.SendCommand("stop_preview");
-            else if (header == "动作系统")
-                _ = _pipe.SendCommand("restore_expression");
-        }
+        if (e.RemovedItems.Count > 0 && e.RemovedItems[0] is TabItem)
+            _ = _pipe.SendCommand("stop_preview");
     }
 
     private System.Windows.Media.Brush Res(string name) => (System.Windows.Media.Brush)FindResource(name);

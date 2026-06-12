@@ -155,8 +155,8 @@
                 <TabItem Header="情绪映射">
                     <Grid Margin="12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" MinWidth="240"/>
-                            <ColumnDefinition Width="2*" MinWidth="360"/>
+                            <ColumnDefinition Width="1.2*" MinWidth="380"/>
+                            <ColumnDefinition Width="*" MinWidth="320"/>
                         </Grid.ColumnDefinitions>
                         <Grid Grid.Column="0" Margin="0,0,8,0">
                             <Grid.RowDefinitions>
@@ -172,10 +172,10 @@
                                     <DataTemplate>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="90"/>
+                                                <ColumnDefinition Width="90"/>
+                                                <ColumnDefinition Width="110"/>
+                                                <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{Binding EmotionDisplay}" VerticalAlignment="Center" FontWeight="Bold"/>
                                             <TextBlock Grid.Column="1" Text="{Binding FacialSummary}" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}"/>
