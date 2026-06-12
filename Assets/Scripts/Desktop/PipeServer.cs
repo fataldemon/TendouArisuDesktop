@@ -34,6 +34,15 @@ public class PipeServer : MonoBehaviour
         _logPath = Path.Combine(Application.persistentDataPath, "pipe_debug.log");
         if (database == null)
             database = Resources.Load<ActionSystemDatabase>("ActionSystemDatabase");
+        if (database != null)
+        {
+            if (database.emotionMappings == null)
+                database.emotionMappings = Resources.Load<EmotionMappingDatabase>("EmotionMappings");
+            if (database.facialPresets == null)
+                database.facialPresets = Resources.Load<FacialPresetDatabase>("FacialPresets");
+            if (database.actionPresets == null)
+                database.actionPresets = Resources.Load<ActionPresetDatabase>("ActionPresets");
+        }
     }
 
     private void WriteLog(string msg)
