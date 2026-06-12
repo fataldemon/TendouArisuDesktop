@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     private ExpressionMappingEntry? _exprEditing;
     private ActionGroupFullEntry? _groupEditing;
     private FacialPresetEntry? _facialEditing;
+    private bool _filtering;
 
     public MainWindow()
     {
@@ -418,7 +419,8 @@ public partial class MainWindow : Window
 
         // Root Motion checkbox
         var rmRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
-        var chkRM = new CheckBox { Content = "Allow Root Motion", VerticalAlignment = VerticalAlignment.Center };
+        var chkRM = new CheckBox { Content = "Allow Root Motion", VerticalAlignment = VerticalAlignment.Center, 
+            IsChecked = _initData?.AllowRootMotion ?? false };
         chkRM.Checked += (_, _) => _ = _pipe.SendCommand("set_root_motion", new { enable = true });
         chkRM.Unchecked += (_, _) => _ = _pipe.SendCommand("set_root_motion", new { enable = false });
         rmRow.Children.Add(chkRM);
@@ -468,6 +470,8 @@ public partial class MainWindow : Window
             cbo.SelectedItem = string.IsNullOrEmpty(clipName) ? "(无)" : clipName;
             cbo.KeyUp += (_, _) =>
             {
+                if (_filtering) return;
+                _filtering = true;
                 string txt = cbo.Text ?? "";
                 var filtered = new List<string> { "(无)" };
                 if (_initData?.AnimationList != null)
@@ -476,6 +480,7 @@ public partial class MainWindow : Window
                             filtered.Add(a.Name);
                 cbo.ItemsSource = filtered;
                 cbo.IsDropDownOpen = true;
+                _filtering = false;
             };
             string capturedPart = part;
             cbo.SelectionChanged += (_, _) =>

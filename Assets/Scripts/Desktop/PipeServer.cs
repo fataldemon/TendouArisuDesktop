@@ -169,7 +169,9 @@ public class PipeServer : MonoBehaviour
         AppendJsonProperty(sb, "dialogueHistory", llmFormatter.formatted_history);
         sb.Append(',');
         sb.Append("\"msgMaxWidth\":").Append(gameStart.msg_max_length).Append(',');
-        sb.Append("\"msgHeight\":").Append(gameStart.msg_height);
+        sb.Append("\"msgHeight\":").Append(gameStart.msg_height).Append(',');
+        sb.Append("\"allowRootMotion\":").Append(
+            (emotionPlayer != null && emotionPlayer.bodyEngine != null && emotionPlayer.bodyEngine.allowRootMotion) ? "true" : "false");
         sb.Append("}}");
         return sb.ToString();
     }

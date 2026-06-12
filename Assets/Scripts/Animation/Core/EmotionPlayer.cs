@@ -285,9 +285,11 @@ public class EmotionPlayer : MonoBehaviour
         _current.state = ActionGroupState.Active;
 
         facialEngine.ResetInstant();
-        string facial = idle.facialPreset;
+        var entry = ActionSystemRuntime.GetMappingEntry("待机");
+        string facial = (entry != null && !string.IsNullOrEmpty(entry.facialOverride)) ? entry.facialOverride : idle.facialPreset;
+        float w = (entry != null && entry.facialWeightOverride >= 0f) ? entry.facialWeightOverride : idle.facialWeight;
         if (!string.IsNullOrEmpty(facial))
-            facialEngine.PreviewInstant(facial, idle.facialWeight);
+            facialEngine.PreviewInstant(facial, w);
 
         if (clip != null)
             bodyEngine.Play(clip, "fullBody", 0.1f, true);

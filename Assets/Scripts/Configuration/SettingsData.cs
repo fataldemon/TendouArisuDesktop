@@ -42,6 +42,8 @@ public class SettingsData
     public float guiOffsetX;
     public float guiOffsetY;
 
+    public bool allowRootMotion;
+
     public static string GetFilePath()
     {
         return System.IO.Path.Combine(Application.persistentDataPath, "settings.json");
