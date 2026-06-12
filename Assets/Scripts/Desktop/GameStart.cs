@@ -286,6 +286,8 @@ public class GameStart : MonoBehaviour
             {
                 if (actionController.getIdleStatus() && !_isTouching && (_eyeTracking == null || !_eyeTracking.expressionActive))
                 {
+                    withExpression = true;
+                    if (_eyeTracking != null) _eyeTracking.expressionActive = true;
                     mappingManager?.TryApplyFacial("拖拽");
                     mappingManager?.TryApplyAction("拖拽");
                     _isDragging = true;
@@ -293,7 +295,7 @@ public class GameStart : MonoBehaviour
             };
             windowController.OnDragEnd += () =>
             {
-                if (_isDragging) { actionController.RestoreFacialExpression(null); actionController.RestoreAnimator(); _isDragging = false; }
+                if (_isDragging) { actionController.RestoreAnimator(); _isDragging = false; }
             };
         }
 
@@ -630,6 +632,8 @@ public class GameStart : MonoBehaviour
             {
                 if (actionController.getIdleStatus() && !_isDragging && (_eyeTracking == null || !_eyeTracking.expressionActive))
                 {
+                    withExpression = true;
+                    if (_eyeTracking != null) _eyeTracking.expressionActive = true;
                     mappingManager?.TryApplyFacial("触摸");
                     mappingManager?.TryApplyAction("触摸");
                     _isTouching = true;
@@ -637,7 +641,6 @@ public class GameStart : MonoBehaviour
             }
             else if (!touching && _isTouching)
             {
-                actionController.RestoreFacialExpression(null);
                 Debug.Log("[Touch] RELEASE restoring animator");
                 actionController.RestoreAnimator();
                 _isTouching = false;

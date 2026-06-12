@@ -183,7 +183,24 @@
                                             <TextBlock Grid.Column="2" Text="{Binding ActionSummary}" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
                                                 <Button Content="编辑" Width="48" Style="{StaticResource SmallButton}" Tag="{Binding Emotion}" Click="OnExprEditClick"/>
-                                                <Button Content="删" Width="40" Style="{StaticResource SmallButton}" Tag="{Binding Emotion}" Click="OnExprDeleteClick" Margin="4,0,0,0"/>
+                                                <Button Content="删" Width="40" Tag="{Binding Emotion}" Click="OnExprDeleteClick" Margin="4,0,0,0">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource SmallButton}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Emotion}" Value="待机">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Emotion}" Value="触摸">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Emotion}" Value="拖拽">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
                                             </StackPanel>
                                         </Grid>
                                     </DataTemplate>
@@ -229,7 +246,18 @@
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                                 <Button Content="编辑" Width="48" Style="{StaticResource SmallButton}" Tag="{Binding Name}" Click="OnPresetEditClick"/>
-                                                <Button Content="删" Width="40" Style="{StaticResource SmallButton}" Tag="{Binding Name}" Click="OnPresetDeleteClick" Margin="4,0,0,0"/>
+                                                <Button Content="删" Width="40" Tag="{Binding Name}" Click="OnPresetDeleteClick" Margin="4,0,0,0">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource SmallButton}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsDefault}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
                                             </StackPanel>
                                         </Grid>
                                     </DataTemplate>
