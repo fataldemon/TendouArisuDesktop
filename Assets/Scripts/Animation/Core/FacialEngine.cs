@@ -5,14 +5,12 @@ using UnityEngine;
 public class FacialEngine : MonoBehaviour
 {
     public SkinnedMeshRenderer meshRenderer;
-    public FacialPresetDatabase presetDatabase;
 
     public GameObject[] effectObjects;
     public Material normalBlushMaterial;
     public Material shyBlushMaterial;
     public MeshRenderer[] blushRenderers;
 
-    private List<FacialPresetConfig> _runtimePresets;
     private Dictionary<int, BlendState> _activeBlends = new Dictionary<int, BlendState>();
     private HashSet<string> _activeEffects = new HashSet<string>();
     private string _currentBlushMode;
@@ -29,22 +27,9 @@ public class FacialEngine : MonoBehaviour
         public float duration;
     }
 
-    private void Awake()
-    {
-        var jsonPresets = ActionSystemJsonIO.LoadFacialPresets();
-        if (jsonPresets != null && jsonPresets.Count > 0)
-            _runtimePresets = jsonPresets;
-    }
-
     public FacialPresetConfig GetPreset(string presetName)
     {
-        if (string.IsNullOrEmpty(presetName)) return null;
-        if (_runtimePresets != null)
-        {
-            for (int i = 0; i < _runtimePresets.Count; i++)
-                if (_runtimePresets[i].presetName == presetName) return _runtimePresets[i];
-        }
-        return presetDatabase != null ? presetDatabase.Get(presetName) : null;
+        return ActionSystemRuntime.GetFacialPreset(presetName);
     }
 
     public void PlayExpression(string presetName, float weight = 1f, float duration = 0.15f, Action onComplete = null)
@@ -309,13 +294,10 @@ public class FacialEngine : MonoBehaviour
 
     public List<string> GetAllPresetNames()
     {
-        if (_runtimePresets != null)
-        {
-            var names = new List<string>();
-            for (int i = 0; i < _runtimePresets.Count; i++)
-                names.Add(_runtimePresets[i].presetName);
-            return names;
-        }
-        return presetDatabase != null ? presetDatabase.GetAllNames() : new List<string>();
+        var presets = ActionSystemRuntime.FacialPresets;
+        var names = new List<string>();
+        for (int i = 0; i < presets.Count; i++)
+            names.Add(presets[i].presetName);
+        return names;
     }
 }

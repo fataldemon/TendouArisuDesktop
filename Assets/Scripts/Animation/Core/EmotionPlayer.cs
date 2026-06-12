@@ -9,7 +9,6 @@ public class EmotionPlayer : MonoBehaviour
     public PreviewController previewController;
     public BlinkController blinkController;
     public EyeTrackingController eyeTrackingController;
-    public ActionSystemDatabase database;
     public AnimationLibrary animLibrary;
 
     private ActionGroupInstance _current;
@@ -29,19 +28,9 @@ public class EmotionPlayer : MonoBehaviour
 
     private void Start()
     {
-        if (database == null)
-            database = Resources.Load<ActionSystemDatabase>("ActionSystemDatabase");
-        if (database != null)
-        {
-            if (database.emotionMappings == null)
-                database.emotionMappings = Resources.Load<EmotionMappingDatabase>("EmotionMappings");
-            if (database.facialPresets == null)
-                database.facialPresets = Resources.Load<FacialPresetDatabase>("FacialPresets");
-            if (database.actionPresets == null)
-                database.actionPresets = Resources.Load<ActionPresetDatabase>("ActionPresets");
-        }
-        if (database != null && database.idleGroup != null)
-            TransitionTo(database.idleGroup, true);
+        ActionSystemRuntime.EnsureInit();
+        if (ActionSystemRuntime.IdleGroup != null)
+            TransitionTo(ActionSystemRuntime.IdleGroup, true);
     }
 
     public void PlayEmotion(string emotion, float weight = 1f)
@@ -51,22 +40,19 @@ public class EmotionPlayer : MonoBehaviour
         _facialOverride = null;
         _facialWeightOverride = -1f;
 
-        if (database != null && database.emotionMappings != null)
+        var entry = ActionSystemRuntime.GetMappingEntry(emotion);
+        if (entry != null)
         {
-            var entry = database.emotionMappings.GetEntry(emotion);
-            if (entry != null)
-            {
-                if (!string.IsNullOrEmpty(entry.facialOverride))
-                    _facialOverride = entry.facialOverride;
-                if (entry.facialWeightOverride >= 0f)
-                    _facialWeightOverride = entry.facialWeightOverride;
-            }
+            if (!string.IsNullOrEmpty(entry.facialOverride))
+                _facialOverride = entry.facialOverride;
+            if (entry.facialWeightOverride >= 0f)
+                _facialWeightOverride = entry.facialWeightOverride;
         }
 
-        var config = ResolveEmotion(emotion);
+        var config = ActionSystemRuntime.ResolveEmotion(emotion);
         if (config == null)
         {
-            config = database != null ? database.idleGroup : null;
+            config = ActionSystemRuntime.IdleGroup;
             if (config == null) return;
         }
 
@@ -75,8 +61,8 @@ public class EmotionPlayer : MonoBehaviour
 
     public void RestoreToIdle()
     {
-        if (database == null || database.idleGroup == null) return;
-        TransitionTo(database.idleGroup, false);
+        if (ActionSystemRuntime.IdleGroup == null) return;
+        TransitionTo(ActionSystemRuntime.IdleGroup, false);
     }
 
     public void NotifyTTSStart()
@@ -108,14 +94,14 @@ public class EmotionPlayer : MonoBehaviour
 
     public ActionGroupConfig ResolveEmotion(string emotion)
     {
-        if (database == null || string.IsNullOrEmpty(emotion)) return null;
-        return database.ResolveEmotion(emotion);
+        if (string.IsNullOrEmpty(emotion)) return null;
+        return ActionSystemRuntime.ResolveEmotion(emotion);
     }
 
     public ActionGroupConfig ResolveConfig(string groupName)
     {
-        if (database == null || string.IsNullOrEmpty(groupName)) return null;
-        return database.GetActionGroup(groupName);
+        if (string.IsNullOrEmpty(groupName)) return null;
+        return ActionSystemRuntime.GetActionGroup(groupName);
     }
 
     private void TransitionTo(ActionGroupConfig config, bool instant)
@@ -260,33 +246,28 @@ public class EmotionPlayer : MonoBehaviour
             }
         }
 
-        if (database != null && database.actionPresets != null)
-        {
-            var preset = database.actionPresets.Get(clipName);
-            if (preset != null)
-            {
-                var clip = preset.GetClip("fullBody");
-                if (clip != null) return clip;
-            }
-        }
+        var group = ActionSystemRuntime.GetActionGroup(clipName);
+        if (group != null && group.bodyClips.Count > 0 && group.bodyClips[0].clip != null)
+            return group.bodyClips[0].clip;
 
         return null;
     }
 
     public void ForceIdle()
     {
-        if (database == null || database.idleGroup == null) return;
-        var clip = ResolveBodyClip(database.idleGroup);
-        _current = new ActionGroupInstance(database.idleGroup, clip);
+        var idle = ActionSystemRuntime.IdleGroup;
+        if (idle == null) return;
+        var clip = ResolveBodyClip(idle);
+        _current = new ActionGroupInstance(idle, clip);
         _current.state = ActionGroupState.Active;
 
         facialEngine.ResetInstant();
-        if (!string.IsNullOrEmpty(database.idleGroup.facialPreset))
-            facialEngine.PreviewInstant(database.idleGroup.facialPreset, database.idleGroup.facialWeight);
+        if (!string.IsNullOrEmpty(idle.facialPreset))
+            facialEngine.PreviewInstant(idle.facialPreset, idle.facialWeight);
 
         if (clip != null)
             bodyEngine.Play(clip, "fullBody", 0.1f, true);
 
-        UpdateAuxiliary(database.idleGroup);
+        UpdateAuxiliary(idle);
     }
 }

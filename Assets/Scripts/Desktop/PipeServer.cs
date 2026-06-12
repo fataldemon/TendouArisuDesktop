@@ -19,7 +19,6 @@ public class PipeServer : MonoBehaviour
     public AnimationLibrary animLibrary;
     public EmotionPlayer emotionPlayer;
     public PreviewController previewController;
-    public ActionSystemDatabase database;
 
     private const int Port = 19876;
     private Thread? _serverThread;
@@ -32,17 +31,7 @@ public class PipeServer : MonoBehaviour
     private void Awake()
     {
         _logPath = Path.Combine(Application.persistentDataPath, "pipe_debug.log");
-        if (database == null)
-            database = Resources.Load<ActionSystemDatabase>("ActionSystemDatabase");
-        if (database != null)
-        {
-            if (database.emotionMappings == null)
-                database.emotionMappings = Resources.Load<EmotionMappingDatabase>("EmotionMappings");
-            if (database.facialPresets == null)
-                database.facialPresets = Resources.Load<FacialPresetDatabase>("FacialPresets");
-            if (database.actionPresets == null)
-                database.actionPresets = Resources.Load<ActionPresetDatabase>("ActionPresets");
-        }
+        ActionSystemRuntime.EnsureInit();
     }
 
     private void WriteLog(string msg)
@@ -132,12 +121,9 @@ public class PipeServer : MonoBehaviour
 
     private string BuildInitJson()
     {
-        Debug.Log("[PipeServer] BuildInitJson: database=" + (database != null) +
-            " emotionMappings=" + (database?.emotionMappings != null) +
-            " mappingCount=" + (database?.emotionMappings?.mappings?.Count ?? -1) +
-            " facialPresets=" + (database?.facialPresets != null) +
-            " facialCount=" + (database?.facialPresets?.presets?.Count ?? -1) +
-            " groups=" + (database?.actionGroups?.Count ?? -1));
+        Debug.Log("[PipeServer] BuildInitJson: mappings=" + ActionSystemRuntime.EmotionMappings.Count +
+            " facials=" + ActionSystemRuntime.FacialPresets.Count +
+            " groups=" + ActionSystemRuntime.ActionGroups.Count);
 
         var sb = new StringBuilder();
         sb.Append("{\"type\":\"init\",\"data\":{");
@@ -252,30 +238,27 @@ public class PipeServer : MonoBehaviour
     private void AppendExpressionMappings(StringBuilder sb)
     {
         sb.Append('[');
-        if (database != null && database.emotionMappings != null)
+        var mappings = ActionSystemRuntime.EmotionMappings;
+        for (int i = 0; i < mappings.Count; i++)
         {
-            var mappings = database.emotionMappings.mappings;
-            for (int i = 0; i < mappings.Count; i++)
-            {
-                if (i > 0) sb.Append(',');
-                var m = mappings[i];
-                var group = database.GetActionGroup(m.actionGroupName);
-                string facial = !string.IsNullOrEmpty(m.facialOverride) ? m.facialOverride : (group != null ? group.facialPreset : "");
-                float facialW = m.facialWeightOverride >= 0f ? m.facialWeightOverride : (group != null ? group.facialWeight : 1f);
+            if (i > 0) sb.Append(',');
+            var m = mappings[i];
+            var group = ActionSystemRuntime.GetActionGroup(m.actionGroupName);
+            string facial = !string.IsNullOrEmpty(m.facialOverride) ? m.facialOverride : (group != null ? group.facialPreset : "");
+            float facialW = m.facialWeightOverride >= 0f ? m.facialWeightOverride : (group != null ? group.facialWeight : 1f);
 
-                sb.Append("{\"emotion\":\"").Append(EscapeJson(m.emotion)).Append('"');
-                sb.Append(",\"actionGroupName\":\"").Append(EscapeJson(m.actionGroupName)).Append('"');
-                sb.Append(",\"facialOverride\":\"").Append(EscapeJson(m.facialOverride ?? "")).Append('"');
-                sb.Append(",\"facialWeightOverride\":").Append(m.facialWeightOverride.ToString("F2"));
-                sb.Append(",\"facialGroup\":{\"preset\":\"").Append(EscapeJson(facial ?? ""));
-                sb.Append("\",\"weight\":").Append(facialW.ToString("F2")).Append('}');
-                if (group != null)
-                {
-                    sb.Append(",\"actionGroup\":{\"animationName\":\"").Append(EscapeJson(group.groupName));
-                    sb.Append("\",\"bodyPart\":\"fullBody\",\"weight\":1}");
-                }
-                sb.Append('}');
+            sb.Append("{\"emotion\":\"").Append(EscapeJson(m.emotion)).Append('"');
+            sb.Append(",\"actionGroupName\":\"").Append(EscapeJson(m.actionGroupName)).Append('"');
+            sb.Append(",\"facialOverride\":\"").Append(EscapeJson(m.facialOverride ?? "")).Append('"');
+            sb.Append(",\"facialWeightOverride\":").Append(m.facialWeightOverride.ToString("F2"));
+            sb.Append(",\"facialGroup\":{\"preset\":\"").Append(EscapeJson(facial ?? ""));
+            sb.Append("\",\"weight\":").Append(facialW.ToString("F2")).Append('}');
+            if (group != null)
+            {
+                sb.Append(",\"actionGroup\":{\"animationName\":\"").Append(EscapeJson(group.groupName));
+                sb.Append("\",\"bodyPart\":\"fullBody\",\"weight\":1}");
             }
+            sb.Append('}');
         }
         sb.Append(']');
     }
@@ -283,9 +266,8 @@ public class PipeServer : MonoBehaviour
     private void AppendActionGroups(StringBuilder sb)
     {
         sb.Append('[');
-        if (database != null)
         {
-            var groups = database.actionGroups;
+            var groups = ActionSystemRuntime.ActionGroups;
             for (int i = 0; i < groups.Count; i++)
             {
                 if (i > 0) sb.Append(',');
@@ -317,29 +299,26 @@ public class PipeServer : MonoBehaviour
     private void AppendFacialPresets(StringBuilder sb)
     {
         sb.Append('[');
-        if (emotionPlayer != null && emotionPlayer.facialEngine != null && emotionPlayer.facialEngine.presetDatabase != null)
+        var presets = ActionSystemRuntime.FacialPresets;
+        for (int i = 0; i < presets.Count; i++)
         {
-            var presets = emotionPlayer.facialEngine.presetDatabase.presets;
-            for (int i = 0; i < presets.Count; i++)
+            if (i > 0) sb.Append(',');
+            var p = presets[i];
+            sb.Append("{\"presetName\":\"").Append(EscapeJson(p.presetName)).Append('"');
+            sb.Append(",\"targets\":[");
+            for (int j = 0; j < p.targets.Count; j++)
             {
-                if (i > 0) sb.Append(',');
-                var p = presets[i];
-                sb.Append("{\"presetName\":\"").Append(EscapeJson(p.presetName)).Append('"');
-                sb.Append(",\"targets\":[");
-                for (int j = 0; j < p.targets.Count; j++)
-                {
-                    if (j > 0) sb.Append(',');
-                    sb.Append("{\"index\":").Append(p.targets[j].index);
-                    sb.Append(",\"weight\":").Append(p.targets[j].weight.ToString("F1")).Append('}');
-                }
-                sb.Append("],\"activateObjects\":[");
-                for (int j = 0; j < p.activateObjects.Count; j++)
-                {
-                    if (j > 0) sb.Append(',');
-                    sb.Append('"').Append(EscapeJson(p.activateObjects[j])).Append('"');
-                }
-                sb.Append("],\"blushMode\":\"").Append(EscapeJson(p.blushMode ?? "")).Append("\"}");
+                if (j > 0) sb.Append(',');
+                sb.Append("{\"index\":").Append(p.targets[j].index);
+                sb.Append(",\"weight\":").Append(p.targets[j].weight.ToString("F1")).Append('}');
             }
+            sb.Append("],\"activateObjects\":[");
+            for (int j = 0; j < p.activateObjects.Count; j++)
+            {
+                if (j > 0) sb.Append(',');
+                sb.Append('"').Append(EscapeJson(p.activateObjects[j])).Append('"');
+            }
+            sb.Append("],\"blushMode\":\"").Append(EscapeJson(p.blushMode ?? "")).Append("\"}");
         }
         sb.Append(']');
     }
@@ -347,17 +326,14 @@ public class PipeServer : MonoBehaviour
     private void AppendActionPresets(StringBuilder sb)
     {
         sb.Append('[');
-        if (database != null)
+        var groups = ActionSystemRuntime.ActionGroups;
+        for (int i = 0; i < groups.Count; i++)
         {
-            var groups = database.actionGroups;
-            for (int i = 0; i < groups.Count; i++)
-            {
-                if (i > 0) sb.Append(',');
-                var g = groups[i];
-                sb.Append("{\"name\":\"").Append(EscapeJson(g.groupName));
-                sb.Append("\",\"actionParam\":").Append(i + 1);
-                sb.Append(",\"isDefault\":true}");
-            }
+            if (i > 0) sb.Append(',');
+            var g = groups[i];
+            sb.Append("{\"name\":\"").Append(EscapeJson(g.groupName));
+            sb.Append("\",\"actionParam\":").Append(i + 1);
+            sb.Append(",\"isDefault\":true}");
         }
         sb.Append(']');
     }
@@ -453,7 +429,7 @@ public class PipeServer : MonoBehaviour
                 case "preview_expression":
                     if (!string.IsNullOrEmpty(cmd.emotion) && previewController != null)
                     {
-                        var group = database?.ResolveEmotion(cmd.emotion);
+                        var group = ActionSystemRuntime.ResolveEmotion(cmd.emotion);
                         if (group != null && !string.IsNullOrEmpty(group.facialPreset))
                             previewController.PreviewFacial(group.facialPreset, group.facialWeight);
                     }
@@ -495,11 +471,8 @@ public class PipeServer : MonoBehaviour
                     RefreshInitData();
                     break;
                 case "delete_expression_mapping":
-                    if (!string.IsNullOrEmpty(cmd.emotion) && database?.emotionMappings != null)
-                    {
-                        database.emotionMappings.Remove(cmd.emotion);
-                        SaveMappings();
-                    }
+                    if (!string.IsNullOrEmpty(cmd.emotion))
+                        ActionSystemRuntime.RemoveMapping(cmd.emotion);
                     RefreshInitData();
                     break;
                 case "restore_default_presets":
@@ -577,37 +550,16 @@ public class PipeServer : MonoBehaviour
 
     private void UpdateExpressionMapping(PipeCommand cmd)
     {
-        if (database == null || database.emotionMappings == null || string.IsNullOrEmpty(cmd.emotion)) return;
+        if (string.IsNullOrEmpty(cmd.emotion)) return;
         string groupName = !string.IsNullOrEmpty(cmd.actionX) ? cmd.actionX : cmd.emotion;
-        database.emotionMappings.Set(cmd.emotion, groupName);
-
-        var entry = database.emotionMappings.GetEntry(cmd.emotion);
-        if (entry != null)
-        {
-            entry.facialOverride = cmd.facialX ?? "";
-            entry.facialWeightOverride = cmd.facialW > 0 ? cmd.facialW : -1f;
-        }
-        SaveMappings();
+        string facial = cmd.facialX ?? "";
+        ActionSystemRuntime.SetMapping(cmd.emotion, groupName, facial);
     }
 
     private void UpdateActionGroup(PipeCommand cmd)
     {
-        if (database == null || string.IsNullOrEmpty(cmd.name)) return;
-        var group = database.GetActionGroup(cmd.name);
-        if (group == null) return;
-
-        if (!string.IsNullOrEmpty(cmd.facialX))
-            group.facialPreset = cmd.facialX;
-        if (cmd.facialW > 0)
-            group.facialWeight = cmd.facialW;
-
-        ActionSystemJsonIO.SaveActionGroups(database.actionGroups);
-    }
-
-    private void SaveMappings()
-    {
-        if (database?.emotionMappings != null)
-            ActionSystemJsonIO.SaveEmotionMappings(database.emotionMappings.mappings);
+        if (string.IsNullOrEmpty(cmd.name)) return;
+        ActionSystemRuntime.UpdateActionGroup(cmd.name, cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f);
     }
 
     void OnDestroy() { StopServer(); }
