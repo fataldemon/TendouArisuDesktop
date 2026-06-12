@@ -29,8 +29,16 @@ public class EmotionPlayer : MonoBehaviour
     private void Start()
     {
         ActionSystemRuntime.EnsureInit();
+        Debug.Log("[EmotionPlayer] Start: facialEngine=" + (facialEngine != null) +
+            " bodyEngine=" + (bodyEngine != null) +
+            " animLibrary=" + (animLibrary != null) +
+            " clipRefs=" + (animLibrary != null && animLibrary.clipReferences != null ? animLibrary.clipReferences.Length : -1));
+        if (facialEngine != null)
+            Debug.Log("[EmotionPlayer] facialEngine.meshRenderer=" + (facialEngine.meshRenderer != null));
         if (ActionSystemRuntime.IdleGroup != null)
             TransitionTo(ActionSystemRuntime.IdleGroup, true);
+        else
+            Debug.LogWarning("[EmotionPlayer] IdleGroup is null!");
     }
 
     public void PlayEmotion(string emotion, float weight = 1f)
@@ -52,16 +60,24 @@ public class EmotionPlayer : MonoBehaviour
         var config = ActionSystemRuntime.ResolveEmotion(emotion);
         if (config == null)
         {
+            Debug.LogWarning("[EmotionPlayer] PlayEmotion: no config for '" + emotion + "', falling back to idle");
             config = ActionSystemRuntime.IdleGroup;
             if (config == null) return;
         }
+
+        Debug.Log("[EmotionPlayer] PlayEmotion: " + emotion + " → group=" + config.groupName +
+            " facial=" + (_facialOverride ?? config.facialPreset) + " w=" + (_facialWeightOverride >= 0 ? _facialWeightOverride : config.facialWeight) +
+            " clip=" + (config.bodyClips.Count > 0 ? config.bodyClips[0].clipName : "none"));
 
         TransitionTo(config, false);
     }
 
     public void RestoreToIdle()
     {
-        if (ActionSystemRuntime.IdleGroup == null) return;
+        _facialOverride = null;
+        _facialWeightOverride = -1f;
+        if (ActionSystemRuntime.IdleGroup == null) { Debug.LogWarning("[EmotionPlayer] RestoreToIdle: IdleGroup is null!"); return; }
+        Debug.Log("[EmotionPlayer] RestoreToIdle");
         TransitionTo(ActionSystemRuntime.IdleGroup, false);
     }
 
@@ -233,16 +249,21 @@ public class EmotionPlayer : MonoBehaviour
 
     private AnimationClip ResolveClipByName(string clipName)
     {
-        if (string.IsNullOrEmpty(clipName)) return null;
+        if (string.IsNullOrEmpty(clipName)) { Debug.LogWarning("[EmotionPlayer] ResolveClipByName: clipName is empty"); return null; }
 
         if (clipName == "Idle") return bodyEngine.idleClip;
 
-        if (animLibrary != null && animLibrary.clipReferences != null)
+        if (animLibrary == null) { Debug.LogWarning("[EmotionPlayer] ResolveClipByName: animLibrary is null!"); }
+        else if (animLibrary.clipReferences == null) { Debug.LogWarning("[EmotionPlayer] ResolveClipByName: clipReferences is null!"); }
+        else
         {
             for (int i = 0; i < animLibrary.clipReferences.Length; i++)
             {
                 if (animLibrary.clipReferences[i] != null && animLibrary.clipReferences[i].name == clipName)
+                {
+                    Debug.Log("[EmotionPlayer] ResolveClipByName: '" + clipName + "' found in clipRefs[" + i + "]");
                     return animLibrary.clipReferences[i];
+                }
             }
         }
 
@@ -250,6 +271,7 @@ public class EmotionPlayer : MonoBehaviour
         if (group != null && group.bodyClips.Count > 0 && group.bodyClips[0].clip != null)
             return group.bodyClips[0].clip;
 
+        Debug.LogWarning("[EmotionPlayer] ResolveClipByName: '" + clipName + "' NOT FOUND (clipRefs=" + (animLibrary?.clipReferences?.Length ?? -1) + ")");
         return null;
     }
 
@@ -275,7 +297,10 @@ public class EmotionPlayer : MonoBehaviour
     public void RefreshCurrentGroup(string groupName)
     {
         var group = ActionSystemRuntime.GetActionGroup(groupName);
-        if (group == null) return;
+        if (group == null) { Debug.LogWarning("[EmotionPlayer] RefreshCurrentGroup: group '" + groupName + "' not found"); return; }
+        Debug.Log("[EmotionPlayer] RefreshCurrentGroup: " + groupName + " isIdle=" + group.isIdle +
+            " currentIsIdle=" + (_current != null && _current.config.isIdle) +
+            " currentGroup=" + (_current?.config?.groupName ?? "null"));
 
         if (group.isIdle)
         {

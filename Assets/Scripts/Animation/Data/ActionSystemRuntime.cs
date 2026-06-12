@@ -25,15 +25,24 @@ public static class ActionSystemRuntime
 
         var jsonFacial = ActionSystemJsonIO.LoadFacialPresets();
         if (jsonFacial != null && jsonFacial.Count > 0)
+        {
             _facialPresets = jsonFacial;
+            Debug.Log("[Runtime] Loaded facial presets from JSON: " + jsonFacial.Count);
+        }
 
         var jsonGroups = ActionSystemJsonIO.LoadActionGroups();
         if (jsonGroups != null && jsonGroups.Count > 0)
+        {
             MergeActionGroups(jsonGroups);
+            Debug.Log("[Runtime] Merged action groups from JSON: " + jsonGroups.Count);
+        }
 
         var jsonMappings = ActionSystemJsonIO.LoadEmotionMappings();
         if (jsonMappings != null && jsonMappings.Count > 0)
+        {
             _emotionMappings = jsonMappings;
+            Debug.Log("[Runtime] Loaded emotion mappings from JSON: " + jsonMappings.Count);
+        }
 
         for (int i = 0; i < _actionGroups.Count; i++)
         {
@@ -44,8 +53,8 @@ public static class ActionSystemRuntime
             }
         }
 
-        Debug.Log("[ActionSystemRuntime] Init: " + _emotionMappings.Count + " mappings, " +
-            _facialPresets.Count + " facials, " + _actionGroups.Count + " groups");
+        Debug.Log("[Runtime] Init complete: " + _emotionMappings.Count + " mappings, " +
+            _facialPresets.Count + " facials, " + _actionGroups.Count + " groups, idle=" + (_idleGroup != null));
     }
 
     private static void MergeActionGroups(List<ActionGroupConfig> jsonGroups)
@@ -107,6 +116,7 @@ public static class ActionSystemRuntime
     public static void SetMapping(string emotion, string actionGroupName, string facialOverride)
     {
         EnsureInit();
+        Debug.Log("[Runtime] SetMapping: " + emotion + " → group=" + actionGroupName + " facial=" + facialOverride);
         for (int i = 0; i < _emotionMappings.Count; i++)
         {
             if (_emotionMappings[i].emotion == emotion)
@@ -131,7 +141,8 @@ public static class ActionSystemRuntime
     public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight, string clipName = null)
     {
         var group = GetActionGroup(groupName);
-        if (group == null) return;
+        if (group == null) { Debug.LogWarning("[Runtime] UpdateActionGroup: group '" + groupName + "' not found!"); return; }
+        Debug.Log("[Runtime] UpdateActionGroup: " + groupName + " facial=" + facialPreset + " w=" + facialWeight + " clip=" + (clipName ?? "(unchanged)"));
         if (!string.IsNullOrEmpty(facialPreset))
             group.facialPreset = facialPreset;
         if (facialWeight > 0f)

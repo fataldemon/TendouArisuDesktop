@@ -29,13 +29,18 @@ public class FacialEngine : MonoBehaviour
 
     public FacialPresetConfig GetPreset(string presetName)
     {
-        return ActionSystemRuntime.GetFacialPreset(presetName);
+        var p = ActionSystemRuntime.GetFacialPreset(presetName);
+        if (p == null && !string.IsNullOrEmpty(presetName))
+            Debug.LogWarning("[FacialEngine] Preset not found: '" + presetName + "'");
+        return p;
     }
 
     public void PlayExpression(string presetName, float weight = 1f, float duration = 0.15f, Action onComplete = null)
     {
         var preset = GetPreset(presetName);
-        if (preset == null || meshRenderer == null) return;
+        if (meshRenderer == null) { Debug.LogWarning("[FacialEngine] PlayExpression: meshRenderer is NULL! Cannot apply '" + presetName + "'"); return; }
+        if (preset == null) { Debug.LogWarning("[FacialEngine] PlayExpression: preset '" + presetName + "' not found"); return; }
+        Debug.Log("[FacialEngine] PlayExpression: '" + presetName + "' weight=" + weight + " targets=" + preset.targets.Count);
 
         var existingKeys = new List<int>(_activeBlends.Keys);
         for (int k = 0; k < existingKeys.Count; k++)
@@ -108,11 +113,9 @@ public class FacialEngine : MonoBehaviour
     public void CrossfadeTo(string presetName, float weight, float blendOutDuration, float blendInDuration, Action onComplete = null)
     {
         var preset = GetPreset(presetName);
-        if (preset == null || meshRenderer == null)
-        {
-            RestoreExpression(blendOutDuration, onComplete);
-            return;
-        }
+        if (meshRenderer == null) { Debug.LogWarning("[FacialEngine] CrossfadeTo: meshRenderer is NULL!"); RestoreExpression(blendOutDuration, onComplete); return; }
+        if (preset == null) { Debug.LogWarning("[FacialEngine] CrossfadeTo: preset '" + presetName + "' not found, restoring"); RestoreExpression(blendOutDuration, onComplete); return; }
+        Debug.Log("[FacialEngine] CrossfadeTo: '" + presetName + "' weight=" + weight);
 
         var newTargets = new HashSet<int>();
         for (int i = 0; i < preset.targets.Count; i++)

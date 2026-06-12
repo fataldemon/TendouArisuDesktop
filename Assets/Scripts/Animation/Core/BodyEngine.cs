@@ -123,7 +123,9 @@ public class BodyEngine : MonoBehaviour
 
     public void Play(AnimationClip clip, string bodyPart = "fullBody", float blendDuration = 0.35f, bool loop = false)
     {
-        if (clip == null || !_graphActive) return;
+        if (clip == null) { Debug.LogWarning("[BodyEngine] Play: clip is null!"); return; }
+        if (!_graphActive) { Debug.LogWarning("[BodyEngine] Play: graph not active!"); return; }
+        Debug.Log("[BodyEngine] Play: " + clip.name + " part=" + bodyPart + " blend=" + blendDuration + " loop=" + loop);
         int layer = GetLayerIndex(bodyPart);
         PlayOnLayer(layer, clip, blendDuration, loop);
     }
