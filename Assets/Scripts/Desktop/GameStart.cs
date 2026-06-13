@@ -454,6 +454,12 @@ public class GameStart : MonoBehaviour
                     SaveSettings();
                 }
             }
+
+            if (_ctrlDown)
+            {
+                Vector2 sm = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+                Debug.Log($"[GRIP] f={Time.frameCount} ctrl=T left={leftDown} over={_isOverGrip} track={_gripDragTracking} active={_gripDragActive} rect=({_gripRect.x:F0},{_gripRect.y:F0} {_gripRect.width:F0}x{_gripRect.height:F0}) rawMouse=({Input.mousePosition.x:F0},{Input.mousePosition.y:F0}) screenMouse=({sm.x:F0},{sm.y:F0}) target={(targetTransform != null)}");
+            }
         }
 
         if (onDialogue)

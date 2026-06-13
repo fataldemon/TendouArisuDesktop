@@ -201,7 +201,10 @@ public class TransparentWindow : MonoBehaviour
 
         // Defer actual drag start to LateUpdate (after GameStart.Update updates IsOverGrip)
         if (ctrlDown && mouseDownNow && !_isDraggingWindow)
+        {
             _dragPending = true;
+            Debug.Log($"[WDRAG] f={Time.frameCount} pending=T ctrl={ctrlDown} shift={shiftDown} anyMod={anyMod}");
+        }
 
         if (_isDraggingWindow)
         {
@@ -235,9 +238,9 @@ public class TransparentWindow : MonoBehaviour
 #if !UNITY_EDITOR
         if (!_dragPending) return;
         _dragPending = false;
-
-        if (gameStart != null && gameStart.GripDragActive)
-            return;
+        bool skip = gameStart != null && gameStart.GripDragActive;
+        Debug.Log($"[WDRAG-LATE] f={Time.frameCount} pending=T gripActive={skip} → {(skip ? "SKIP" : "START")}");
+        if (skip) return;
 
         SetTransparent(false);
         GetCursorPos(out _dragStartCursor);
