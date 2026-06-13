@@ -233,7 +233,13 @@ public class BodyEngine : MonoBehaviour
         var data = _layers[layer];
 
         if (layer > 0)
-            _layerMixer.SetInputWeight(layer, 1f);
+        {
+            float current = _layerMixer.GetInputWeight(layer);
+            if (current < 0.99f)
+                StartCoroutine(FadeInLayer(layer, blendDuration));
+            else
+                _layerMixer.SetInputWeight(layer, 1f);
+        }
 
         int inactiveIndex = data.activeSlotIsA ? 1 : 0;
         int activeIndex = data.activeSlotIsA ? 0 : 1;
@@ -258,6 +264,21 @@ public class BodyEngine : MonoBehaviour
         data.currentClip = clip;
 
         _layers[layer] = data;
+    }
+
+    private IEnumerator FadeInLayer(int layer, float duration)
+    {
+        Debug.Log("[BodyEngine] FadeInLayer START: layer=" + layer + "(" + BodyPartNames[layer] + ") duration=" + duration.ToString("F2") + " frame=" + Time.frameCount);
+        float startWeight = _layerMixer.GetInputWeight(layer);
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            _layerMixer.SetInputWeight(layer, Mathf.Lerp(startWeight, 1f, elapsed / duration));
+            yield return null;
+        }
+        _layerMixer.SetInputWeight(layer, 1f);
+        Debug.Log("[BodyEngine] FadeInLayer DONE: layer=" + layer + "(" + BodyPartNames[layer] + ") frame=" + Time.frameCount);
     }
 
     private IEnumerator FadeOutLayer(int layer, float duration)
