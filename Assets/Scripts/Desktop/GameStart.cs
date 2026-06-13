@@ -471,7 +471,7 @@ public class GameStart : MonoBehaviour
 
             if (_ctrlDown)
             {
-                Debug.Log($"[GRIP] f={Time.frameCount} ctrl=T left={leftDown} over={_isOverGrip} track={_gripDragTracking} active={_gripDragActive} rect=({_gripRect.x:F0},{_gripRect.y:F0} {_gripRect.width:F0}x{_gripRect.height:F0}) cursorScr=({cursor.X},{cursor.Y}) cursorWin=({cursorWindow.x:F0},{cursorWindow.y:F0}) winXY=({windowController.currentX},{windowController.currentY}) target={(targetTransform != null)}");
+                Debug.Log($"[GRIP v3] f={Time.frameCount} ctrl=T left={leftDown} over={_isOverGrip} track={_gripDragTracking} active={_gripDragActive} rect=({_gripRect.x:F0},{_gripRect.y:F0} {_gripRect.width:F0}x{_gripRect.height:F0}) cursorScr=({cursor.X},{cursor.Y}) cursorWin=({cursorWindow.x:F0},{cursorWindow.y:F0}) winXY=({windowController.currentX},{windowController.currentY}) target={(targetTransform != null)}");
             }
         }
 
@@ -807,7 +807,7 @@ public class GameStart : MonoBehaviour
             GUI.Box(gripRect, "");
             GUI.Label(gripRect, "╋");
             GUI.color = prevColor;
-            Debug.Log($"[GUI-GRIP] f={Time.frameCount} rect=({gripRect.x:F0},{gripRect.y:F0} {gripRect.width:F0}x{gripRect.height:F0}) screenWH=({Screen.width},{Screen.height}) bubbleXY=({gripBubbleX:F0},{gripBubbleY:F0}) guiOffset=({guiOffset.x:F0},{guiOffset.y:F0}) screenPos=({screenPos.x:F0},{screenPos.y:F0})");
+            Debug.Log($"[GUI-GRIP v3] f={Time.frameCount} rect=({gripRect.x:F0},{gripRect.y:F0} {gripRect.width:F0}x{gripRect.height:F0}) screenWH=({Screen.width},{Screen.height}) bubbleXY=({gripBubbleX:F0},{gripBubbleY:F0}) guiOffset=({guiOffset.x:F0},{guiOffset.y:F0}) screenPos=({screenPos.x:F0},{screenPos.y:F0})");
         }
     }
 

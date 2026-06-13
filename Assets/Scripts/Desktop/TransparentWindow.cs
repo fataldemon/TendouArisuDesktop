@@ -195,6 +195,9 @@ public class TransparentWindow : MonoBehaviour
         bool mouseDownNow = leftDownNow && !_wasLeftDown;
         bool mouseUpNow = !leftDownNow && _wasLeftDown;
 
+        if (anyMod)
+            Debug.Log($"[WDRAG-STATE v3] f={Time.frameCount} ctrl={ctrlDown} shift={shiftDown} left={leftDownNow} wasLeft={_wasLeftDown} mouseDown={mouseDownNow} pending={_dragPending} isDragging={_isDraggingWindow}");
+
         if (anyMod && !anyModWas && !_isDraggingWindow)
             SetTransparent(false);
 
@@ -205,7 +208,7 @@ public class TransparentWindow : MonoBehaviour
         if (ctrlDown && mouseDownNow && !_isDraggingWindow)
         {
             _dragPending = true;
-            Debug.Log($"[WDRAG] f={Time.frameCount} pending=T ctrl={ctrlDown} shift={shiftDown} anyMod={anyMod}");
+            Debug.Log($"[WDRAG v3] f={Time.frameCount} pending=T ctrl={ctrlDown} shift={shiftDown} anyMod={anyMod}");
         }
 
         if (_isDraggingWindow)
@@ -242,7 +245,7 @@ public class TransparentWindow : MonoBehaviour
         if (!_dragPending) return;
         _dragPending = false;
         bool skip = gameStart != null && gameStart.GripDragActive;
-        Debug.Log($"[WDRAG-LATE] f={Time.frameCount} pending=T gripActive={skip} → {(skip ? "SKIP" : "START")}");
+        Debug.Log($"[WDRAG-LATE v3] f={Time.frameCount} pending=T gripActive={skip} → {(skip ? "SKIP" : "START")}");
         if (skip) return;
 
         SetTransparent(false);
