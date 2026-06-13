@@ -111,7 +111,9 @@ public class TransparentWindow : MonoBehaviour
     private IntPtr hwnd = IntPtr.Zero;
     private bool _transparentEnabled;
     private bool _ctrlWasDown;
+    private bool _shiftWasDown;
     private bool _isDraggingWindow;
+    private bool _dragPending;
     private POINT _dragStartCursor;
     private POINT _lastDragCursor;
     private int _dragStartWindowX, _dragStartWindowY;
@@ -185,22 +187,21 @@ public class TransparentWindow : MonoBehaviour
         if (hwnd == IntPtr.Zero) return;
 
         bool ctrlDown = (GetAsyncKeyState(0x11) & 0x8000) != 0;
+        bool shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0;
+        bool anyMod = ctrlDown || shiftDown;
+        bool anyModWas = _ctrlWasDown || _shiftWasDown;
         bool mouseDownNow = Input.GetMouseButtonDown(0);
         bool mouseUpNow = Input.GetMouseButtonUp(0);
 
-        if (ctrlDown && mouseDownNow && !_isDraggingWindow && !(gameStart != null && gameStart.IsOverGrip))
-        {
+        if (anyMod && !anyModWas && !_isDraggingWindow)
             SetTransparent(false);
-            GetCursorPos(out _dragStartCursor);
-            _lastDragCursor = _dragStartCursor;
-            if (GetWindowRect(hwnd, out RECT rect))
-            {
-                _dragStartWindowX = rect.Left;
-                _dragStartWindowY = rect.Top;
-            }
-            _isDraggingWindow = true;
-            OnDragStart?.Invoke();
-        }
+
+        if (!anyMod && anyModWas && !_isDraggingWindow)
+            SetTransparent(true);
+
+        // Defer actual drag start to LateUpdate (after GameStart.Update updates IsOverGrip)
+        if (ctrlDown && mouseDownNow && !_isDraggingWindow)
+            _dragPending = true;
 
         if (_isDraggingWindow)
         {
@@ -219,17 +220,35 @@ public class TransparentWindow : MonoBehaviour
         if (_isDraggingWindow && (mouseUpNow || (!ctrlDown && _ctrlWasDown)))
         {
             _isDraggingWindow = false;
-            SetTransparent(true);
+            if (!(ctrlDown || shiftDown))
+                SetTransparent(true);
             OnDragEnd?.Invoke();
         }
 
-        if (ctrlDown && !_ctrlWasDown && !_isDraggingWindow)
-            SetTransparent(false);
-
-        if (!ctrlDown && _ctrlWasDown && !_isDraggingWindow)
-            SetTransparent(true);
-
         _ctrlWasDown = ctrlDown;
+        _shiftWasDown = shiftDown;
+#endif
+    }
+
+    void LateUpdate()
+    {
+#if !UNITY_EDITOR
+        if (!_dragPending) return;
+        _dragPending = false;
+
+        if (gameStart != null && gameStart.IsOverGrip)
+            return;
+
+        SetTransparent(false);
+        GetCursorPos(out _dragStartCursor);
+        _lastDragCursor = _dragStartCursor;
+        if (GetWindowRect(hwnd, out RECT rect))
+        {
+            _dragStartWindowX = rect.Left;
+            _dragStartWindowY = rect.Top;
+        }
+        _isDraggingWindow = true;
+        OnDragStart?.Invoke();
 #endif
     }
 

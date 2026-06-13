@@ -428,7 +428,7 @@ public class GameStart : MonoBehaviour
             screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
             float gx = Mathf.Clamp(screenPos.x + guiOffset.x, -msg_max_length + 80f, Screen.width - 80f);
             float gy = Mathf.Clamp(Screen.height - msg_height - 160f + guiOffset.y, 0f, Screen.height - msg_height);
-            float gripSize = 24f;
+            float gripSize = 36f;
             _gripRect = new Rect(gx + msg_max_length / 2f - gripSize / 2f,
                 gy + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
             _isOverGrip = _ctrlDown && _gripRect.Contains(Input.mousePosition);
@@ -692,7 +692,7 @@ public class GameStart : MonoBehaviour
 
         if (_ctrlDown && targetTransform != null)
         {
-            float gripSize = 24f;
+            float gripSize = 36f;
             Rect gripRect = new Rect(gripBubbleX + msg_max_length / 2f - gripSize / 2f,
                 gripBubbleY + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
 
@@ -784,7 +784,7 @@ public class GameStart : MonoBehaviour
 
         if (_ctrlDown && targetTransform != null)
         {
-            float gripSize = 24f;
+            float gripSize = 36f;
             Rect gripRect = new Rect(gripBubbleX + msg_max_length / 2f - gripSize / 2f,
                 gripBubbleY + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
 
