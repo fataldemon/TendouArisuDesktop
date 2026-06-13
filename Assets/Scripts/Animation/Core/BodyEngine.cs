@@ -21,12 +21,6 @@ public class BodyEngine : MonoBehaviour
     private LayerData[] _layers;
     private bool _graphActive;
     private bool _isPreviewing;
-    private Coroutine _previewRoutine;
-    private Vector3 _savedPos;
-    private Quaternion _savedRot;
-    private Vector3 _savedRootLocalPos;
-    private Quaternion _savedRootLocalRot;
-    private Quaternion _savedHipsLocalRot;
 
     private static readonly string[] BodyPartNames = { "fullBody", "upperBody", "head", "leftArm", "rightArm", "lowerBody" };
 
@@ -44,8 +38,9 @@ public class BodyEngine : MonoBehaviour
         public AnimationClip currentClip;
     }
 
-    public bool IsPreviewing => _isPreviewing;
     public bool IsGraphActive => _graphActive;
+
+    public void SetPreviewing(bool value) { _isPreviewing = value; }
 
     private void Awake()
     {
@@ -272,100 +267,6 @@ public class BodyEngine : MonoBehaviour
                 data.isCrossfading = false;
 
             _layers[i] = data;
-        }
-    }
-
-    public void Pause()
-    {
-        if (_graph.IsValid())
-            _graph.Stop();
-    }
-
-    public void Resume()
-    {
-        if (_graph.IsValid())
-            _graph.Play();
-        _isPreviewing = false;
-    }
-
-    public void PreviewSample(AnimationClip clip, bool loop = true)
-    {
-        if (clip == null || animator == null) return;
-
-        if (_previewRoutine != null)
-        {
-            StopCoroutine(_previewRoutine);
-            _previewRoutine = null;
-        }
-
-        if (!_isPreviewing)
-        {
-            _savedPos = animator.transform.position;
-            _savedRot = animator.transform.rotation;
-            var rootB = animator.transform.Find("root");
-            _savedRootLocalPos = rootB != null ? rootB.localPosition : Vector3.zero;
-            _savedRootLocalRot = rootB != null ? rootB.localRotation : Quaternion.identity;
-            var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
-            _savedHipsLocalRot = hips != null ? hips.localRotation : Quaternion.identity;
-            Pause();
-            _isPreviewing = true;
-        }
-
-        _previewRoutine = StartCoroutine(PreviewCoroutine(clip, loop));
-    }
-
-    public void StopPreview()
-    {
-        if (!_isPreviewing) return;
-
-        if (_previewRoutine != null)
-        {
-            StopCoroutine(_previewRoutine);
-            _previewRoutine = null;
-        }
-
-        animator.transform.position = _savedPos;
-        animator.transform.rotation = _savedRot;
-        var root = animator.transform.Find("root");
-        if (root != null)
-        {
-            root.localPosition = _savedRootLocalPos;
-            root.localRotation = _savedRootLocalRot;
-        }
-        var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
-        if (hips != null)
-            hips.localRotation = _savedHipsLocalRot;
-
-        _isPreviewing = false;
-        Resume();
-    }
-
-    private IEnumerator PreviewCoroutine(AnimationClip clip, bool loop)
-    {
-        float elapsed = 0f;
-        while (_isPreviewing)
-        {
-            float sampleTime = loop ? (elapsed % clip.length) : Mathf.Min(elapsed, clip.length);
-            clip.SampleAnimation(animator.gameObject, sampleTime);
-
-            if (!allowRootMotion)
-            {
-                animator.transform.position = _savedPos;
-                animator.transform.rotation = _savedRot;
-                var root = animator.transform.Find("root");
-                if (root != null)
-                {
-                    root.localPosition = _savedRootLocalPos;
-                    root.localRotation = _savedRootLocalRot;
-                }
-                var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
-                if (hips != null)
-                    hips.localRotation = _savedHipsLocalRot;
-            }
-
-            elapsed += Time.deltaTime;
-            if (!loop && elapsed >= clip.length) break;
-            yield return null;
         }
     }
 

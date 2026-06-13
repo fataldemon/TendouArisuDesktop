@@ -5,10 +5,10 @@ public class PreviewController : MonoBehaviour
 {
     public FacialEngine facialEngine;
     public BodyEngine bodyEngine;
+    public EmotionPlayer emotionPlayer;
 
     private bool _isPreviewing;
     private bool _facialPreviewing;
-    private bool _bodyPreviewing;
 
     public bool IsPreviewing => _isPreviewing;
 
@@ -19,19 +19,13 @@ public class PreviewController : MonoBehaviour
     {
         if (_isPreviewing) return;
         _isPreviewing = true;
-        bodyEngine.Pause();
+        bodyEngine.SetPreviewing(true);
         OnPreviewEnter?.Invoke();
     }
 
     public void ExitPreview()
     {
         if (!_isPreviewing) return;
-
-        if (_bodyPreviewing)
-        {
-            bodyEngine.StopPreview();
-            _bodyPreviewing = false;
-        }
 
         if (_facialPreviewing)
         {
@@ -40,7 +34,9 @@ public class PreviewController : MonoBehaviour
         }
 
         _isPreviewing = false;
-        bodyEngine.Resume();
+        bodyEngine.SetPreviewing(false);
+        if (emotionPlayer != null)
+            emotionPlayer.RestoreToIdle();
         OnPreviewExit?.Invoke();
     }
 
@@ -56,44 +52,22 @@ public class PreviewController : MonoBehaviour
     {
         if (clip == null) return;
         EnterPreview();
-        bodyEngine.PreviewSample(clip, loop);
-        _bodyPreviewing = true;
+        if (emotionPlayer != null)
+            emotionPlayer.PlayClipDirect(clip, loop);
     }
 
     public void PreviewActionGroup(string facialPreset, float facialWeight, AnimationClip bodyClip)
     {
         EnterPreview();
 
-        if (_facialPreviewing)
-            facialEngine.ResetInstant();
         if (!string.IsNullOrEmpty(facialPreset))
         {
+            facialEngine.ResetInstant();
             facialEngine.PreviewInstant(facialPreset, facialWeight);
             _facialPreviewing = true;
         }
 
-        if (bodyClip != null)
-        {
-            bodyEngine.PreviewSample(bodyClip, true);
-            _bodyPreviewing = true;
-        }
-    }
-
-    public void StopFacialPreview()
-    {
-        if (!_facialPreviewing) return;
-        facialEngine.ResetInstant();
-        _facialPreviewing = false;
-        if (!_bodyPreviewing)
-            ExitPreview();
-    }
-
-    public void StopBodyPreview()
-    {
-        if (!_bodyPreviewing) return;
-        bodyEngine.StopPreview();
-        _bodyPreviewing = false;
-        if (!_facialPreviewing)
-            ExitPreview();
+        if (bodyClip != null && emotionPlayer != null)
+            emotionPlayer.PlayClipDirect(bodyClip, true);
     }
 }

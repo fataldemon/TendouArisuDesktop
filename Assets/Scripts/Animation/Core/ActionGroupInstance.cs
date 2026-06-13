@@ -1,5 +1,12 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+
+public struct ResolvedClip
+{
+    public AnimationClip clip;
+    public string bodyPart;
+}
 
 public class ActionGroupInstance
 {
@@ -10,12 +17,12 @@ public class ActionGroupInstance
     public bool ttsStarted;
     public bool ttsEnded;
     public bool clipFinished;
-    public AnimationClip resolvedClip;
+    public List<ResolvedClip> resolvedClips = new List<ResolvedClip>();
 
-    public ActionGroupInstance(ActionGroupConfig config, AnimationClip clip)
+    public ActionGroupInstance(ActionGroupConfig config, List<ResolvedClip> clips)
     {
         this.config = config;
-        this.resolvedClip = clip;
+        this.resolvedClips = clips;
         state = ActionGroupState.Idle;
     }
 

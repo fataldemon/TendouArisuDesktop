@@ -26,6 +26,27 @@ public class EmotionPlayer : MonoBehaviour
     public event Action OnActionGroupStart;
     public event Action OnActionGroupEnd;
 
+    public void PlayClipDirect(AnimationClip clip, bool loop = true)
+    {
+        if (previewController != null && previewController.IsPreviewing) return;
+        _facialOverride = null;
+        _facialWeightOverride = -1f;
+        var config = new ActionGroupConfig
+        {
+            groupName = "Preview",
+            facialPreset = "",
+            loop = loop,
+            blendInBody = 0.1f,
+            blendInFacial = 0.1f,
+            blendOutBody = 0.2f,
+            blendOutFacial = 0.15f,
+            isIdle = false
+        };
+        config.bodyClips.Add(new PartClipEntry { bodyPart = "fullBody", clipName = clip.name, clip = clip });
+        _current = null;
+        TransitionTo(config, true);
+    }
+
     private void Start()
     {
         ActionSystemRuntime.EnsureInit();
@@ -118,8 +139,8 @@ public class EmotionPlayer : MonoBehaviour
 
     private void TransitionTo(ActionGroupConfig config, bool instant)
     {
-        var clip = ResolveBodyClip(config);
-        var instance = new ActionGroupInstance(config, clip);
+        var clips = ResolveAllBodyClips(config);
+        var instance = new ActionGroupInstance(config, clips);
 
         if (instant || _current == null)
         {
@@ -146,8 +167,12 @@ public class EmotionPlayer : MonoBehaviour
         else
             facialEngine.RestoreExpression(instance.config.blendInFacial);
 
-        if (instance.resolvedClip != null)
-            bodyEngine.Play(instance.resolvedClip, "fullBody", instance.config.blendInBody, instance.config.loop);
+        for (int i = 0; i < instance.resolvedClips.Count; i++)
+        {
+            var rc = instance.resolvedClips[i];
+            if (rc.clip != null)
+                bodyEngine.Play(rc.clip, rc.bodyPart, instance.config.blendInBody, instance.config.loop);
+        }
 
         UpdateAuxiliary(instance.config);
         OnActionGroupStart?.Invoke();
@@ -169,9 +194,13 @@ public class EmotionPlayer : MonoBehaviour
         else
             facialEngine.RestoreExpression(blendOutFacial);
 
-        if (newInstance.resolvedClip != null)
-            bodyEngine.Play(newInstance.resolvedClip, "fullBody", Mathf.Max(blendOutBody, blendInBody), newInstance.config.loop);
-        else if (bodyEngine.idleClip != null)
+        for (int i = 0; i < newInstance.resolvedClips.Count; i++)
+        {
+            var rc = newInstance.resolvedClips[i];
+            if (rc.clip != null)
+                bodyEngine.Play(rc.clip, rc.bodyPart, Mathf.Max(blendOutBody, blendInBody), newInstance.config.loop);
+        }
+        if (newInstance.resolvedClips.Count == 0 && bodyEngine.idleClip != null)
             bodyEngine.Play(bodyEngine.idleClip, "fullBody", blendOutBody, true);
 
         _current.state = ActionGroupState.BlendingOut;
@@ -231,19 +260,35 @@ public class EmotionPlayer : MonoBehaviour
         }
     }
 
+    private List<ResolvedClip> ResolveAllBodyClips(ActionGroupConfig config)
+    {
+        var results = new List<ResolvedClip>();
+        if (config?.bodyClips != null)
+        {
+            for (int i = 0; i < config.bodyClips.Count; i++)
+            {
+                var entry = config.bodyClips[i];
+                if (entry.clip != null)
+                {
+                    results.Add(new ResolvedClip { clip = entry.clip, bodyPart = entry.bodyPart });
+                }
+                else if (!string.IsNullOrEmpty(entry.clipName))
+                {
+                    var resolved = ResolveClipByName(entry.clipName);
+                    if (resolved != null)
+                        results.Add(new ResolvedClip { clip = resolved, bodyPart = entry.bodyPart });
+                }
+            }
+        }
+        return results;
+    }
+
     private AnimationClip ResolveBodyClip(ActionGroupConfig config)
     {
-        if (config == null) return null;
-
-        if (config.bodyClips != null && config.bodyClips.Count > 0)
-        {
-            var entry = config.bodyClips[0];
-            if (entry.clip != null) return entry.clip;
-
-            if (!string.IsNullOrEmpty(entry.clipName))
-                return ResolveClipByName(entry.clipName);
-        }
-
+        var clips = ResolveAllBodyClips(config);
+        for (int i = 0; i < clips.Count; i++)
+            if (clips[i].bodyPart == "fullBody")
+                return clips[i].clip;
         return null;
     }
 
@@ -279,9 +324,11 @@ public class EmotionPlayer : MonoBehaviour
     {
         var idle = ActionSystemRuntime.ResolveEmotion("待机") ?? ActionSystemRuntime.IdleGroup;
         if (idle == null) return;
-        var clip = ResolveBodyClip(idle);
-        if (clip != null) bodyEngine.idleClip = clip;
-        _current = new ActionGroupInstance(idle, clip);
+        var clips = ResolveAllBodyClips(idle);
+        for (int i = 0; i < clips.Count; i++)
+            if (clips[i].bodyPart == "fullBody" && clips[i].clip != null)
+                bodyEngine.idleClip = clips[i].clip;
+        _current = new ActionGroupInstance(idle, clips);
         _current.state = ActionGroupState.Active;
 
         facialEngine.ResetInstant();
@@ -291,8 +338,12 @@ public class EmotionPlayer : MonoBehaviour
         if (!string.IsNullOrEmpty(facial))
             facialEngine.PreviewInstant(facial, w);
 
-        if (clip != null)
-            bodyEngine.Play(clip, "fullBody", 0.1f, true);
+        for (int i = 0; i < clips.Count; i++)
+        {
+            var rc = clips[i];
+            if (rc.clip != null)
+                bodyEngine.Play(rc.clip, rc.bodyPart, 0.1f, true);
+        }
 
         UpdateAuxiliary(idle);
     }
@@ -307,15 +358,17 @@ public class EmotionPlayer : MonoBehaviour
 
         if (group.isIdle)
         {
-            var clip = ResolveBodyClip(group);
-            if (clip != null) bodyEngine.idleClip = clip;
+            var clips = ResolveAllBodyClips(group);
+            for (int i = 0; i < clips.Count; i++)
+                if (clips[i].bodyPart == "fullBody" && clips[i].clip != null)
+                    bodyEngine.idleClip = clips[i].clip;
             if (_current == null || _current.config.isIdle)
                 ForceIdle();
         }
         else if (_current != null && _current.config.groupName == groupName)
         {
-            var clip = ResolveBodyClip(group);
-            _current = new ActionGroupInstance(group, clip);
+            var clips = ResolveAllBodyClips(group);
+            _current = new ActionGroupInstance(group, clips);
             _current.state = ActionGroupState.Active;
 
             facialEngine.ResetInstant();
@@ -324,8 +377,12 @@ public class EmotionPlayer : MonoBehaviour
             if (!string.IsNullOrEmpty(facial))
                 facialEngine.PlayExpression(facial, weight, group.blendInFacial);
 
-            if (clip != null)
-                bodyEngine.Play(clip, "fullBody", group.blendInBody, group.loop);
+            for (int i = 0; i < clips.Count; i++)
+            {
+                var rc = clips[i];
+                if (rc.clip != null)
+                    bodyEngine.Play(rc.clip, rc.bodyPart, group.blendInBody, group.loop);
+            }
         }
     }
 }

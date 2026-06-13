@@ -459,27 +459,25 @@ public partial class MainWindow : Window
             string clipName = existing?.ClipName ?? "";
 
             var partRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-            partRow.Children.Add(new TextBlock { Text = part + ":", Width = 80, Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center });
+            partRow.Children.Add(new TextBlock { Text = part + ":", Width = 70, Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center });
 
-            var cbo = new ComboBox { Width = 200, IsEditable = true, IsTextSearchEnabled = true, MaxDropDownHeight = 300, StaysOpenOnEdit = true };
-            cbo.Items.Add("(无)");
-            if (_initData?.AnimationList != null)
-                foreach (var a in _initData.AnimationList.OrderBy(a => a.Name))
-                    cbo.Items.Add(a.Name);
-            cbo.SelectedItem = string.IsNullOrEmpty(clipName) ? "(无)" : clipName;
-            cbo.KeyUp += (_, _) =>
+            var txtFilter = new TextBox { Width = 100, Margin = new Thickness(0, 0, 4, 0), FontSize = 11 };
+            var cbo = new ComboBox { Width = 150, MaxDropDownHeight = 300 };
+            var allNames = new List<string> { "(无)" };
+            allNames.AddRange(_initData.AnimationList.Select(a => a.Name).OrderBy(name => name));
+            txtFilter.TextChanged += (_, _) =>
             {
-                string txt = cbo.Text ?? "";
-                var filtered = new List<string> { "(无)" };
-                if (_initData?.AnimationList != null)
-                    foreach (var a in _initData.AnimationList)
-                        if (string.IsNullOrEmpty(txt) || a.Name.Contains(txt, StringComparison.OrdinalIgnoreCase))
-                            filtered.Add(a.Name);
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    cbo.ItemsSource = filtered;
-                }), System.Windows.Threading.DispatcherPriority.Background);
+                string txt = txtFilter.Text ?? "";
+                if (string.IsNullOrEmpty(txt))
+                    cbo.ItemsSource = allNames;
+                else
+                    cbo.ItemsSource = allNames.Where(n => n.Contains(txt, StringComparison.OrdinalIgnoreCase)).ToList();
+                cbo.IsDropDownOpen = true;
             };
+            cbo.ItemsSource = allNames;
+            cbo.SelectedItem = string.IsNullOrEmpty(clipName) ? "(无)" : clipName;
+            partRow.Children.Add(txtFilter);
+            partRow.Children.Add(cbo);
             string capturedPart = part;
             cbo.SelectionChanged += (_, _) =>
             {
