@@ -325,6 +325,17 @@ public class BodyEngine : MonoBehaviour
 
             _layers[i] = data;
         }
+
+        for (int i = 0; i < _layers.Length; i++)
+        {
+            if (!_layers[i].isLoop || !_layers[i].isPlaying || _layers[i].isCrossfading || _layers[i].currentClip == null) continue;
+            var active = _layers[i].activeSlotIsA ? _layers[i].clipA : _layers[i].clipB;
+            if ((float)active.GetTime() >= _layers[i].currentClip.length - 0.05f)
+            {
+                active.SetTime(0f);
+                Debug.Log("[BodyEngine] Loop reset: layer=" + i + "(" + BodyPartNames[i] + ") clip=" + _layers[i].currentClip.name + " frame=" + Time.frameCount);
+            }
+        }
     }
 
     private void OnDestroy()
