@@ -434,6 +434,9 @@ public class GameStart : MonoBehaviour
             _isOverGrip = false;
             GetCursorPos(out POINT cursor);
             Vector2 cursorScreen = new Vector2(cursor.X, cursor.Y);
+            Vector2 cursorWindow = new Vector2(
+                cursor.X - windowController.currentX,
+                Screen.height - (cursor.Y - windowController.currentY));
             if (targetTransform != null)
             {
                 screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
@@ -442,13 +445,13 @@ public class GameStart : MonoBehaviour
                 float gripSize = 36f;
                 _gripRect = new Rect(gx + msg_max_length / 2f - gripSize / 2f,
                     gy + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
-                _isOverGrip = _ctrlDown && _gripRect.Contains(cursorScreen);
+                _isOverGrip = _ctrlDown && _gripRect.Contains(cursorWindow);
             }
 
             if (_ctrlDown && leftDown && _isOverGrip && !_gripDragTracking)
             {
                 _gripDragTracking = true;
-                _gripDragStartMouse = cursorScreen;
+                _gripDragStartMouse = cursorWindow;
                 _gripDragStartOffset = guiOffset;
             }
 
@@ -457,7 +460,7 @@ public class GameStart : MonoBehaviour
                 if (leftDown && _ctrlDown)
                 {
                     _gripDragActive = true;
-                    guiOffset = _gripDragStartOffset + (cursorScreen - _gripDragStartMouse);
+                    guiOffset = _gripDragStartOffset + (cursorWindow - _gripDragStartMouse);
                 }
                 else
                 {
@@ -468,7 +471,7 @@ public class GameStart : MonoBehaviour
 
             if (_ctrlDown)
             {
-                Debug.Log($"[GRIP] f={Time.frameCount} ctrl=T left={leftDown} over={_isOverGrip} track={_gripDragTracking} active={_gripDragActive} rect=({_gripRect.x:F0},{_gripRect.y:F0} {_gripRect.width:F0}x{_gripRect.height:F0}) cursor=({cursor.X},{cursor.Y}) target={(targetTransform != null)}");
+                Debug.Log($"[GRIP] f={Time.frameCount} ctrl=T left={leftDown} over={_isOverGrip} track={_gripDragTracking} active={_gripDragActive} rect=({_gripRect.x:F0},{_gripRect.y:F0} {_gripRect.width:F0}x{_gripRect.height:F0}) cursorScr=({cursor.X},{cursor.Y}) cursorWin=({cursorWindow.x:F0},{cursorWindow.y:F0}) winXY=({windowController.currentX},{windowController.currentY}) target={(targetTransform != null)}");
             }
         }
 
