@@ -272,21 +272,11 @@ public class ModelManager : MonoBehaviour
 
         if (profile.presets.Count == 0)
         {
-            Debug.Log("[ModelManager] BuildDefaultProfile: no VRM presets found, copying global defaults");
-            var globals = ActionSystemRuntime.FacialPresets;
-            foreach (var g in globals)
-            {
-                var copy = new FacialPresetConfig
-                {
-                    presetName = g.presetName,
-                    blushMode = g.blushMode
-                };
-                for (int i = 0; i < g.targets.Count; i++)
-                    copy.targets.Add(new BlendShapeTarget { index = g.targets[i].index, weight = g.targets[i].weight });
-                for (int i = 0; i < g.activateObjects.Count; i++)
-                    copy.activateObjects.Add(g.activateObjects[i]);
-                profile.presets.Add(copy);
-            }
+            Debug.Log("[ModelManager] BuildDefaultProfile: no VRM presets mapped, creating empty preset shells");
+            string[] presetNames = { "angry","serious","happy","fun","panic","curious","thinking",
+                "disappointed","sweating","confident","cry","plain","shy","touching","wink" };
+            foreach (var name in presetNames)
+                profile.presets.Add(new FacialPresetConfig { presetName = name });
         }
 
         return profile;
