@@ -436,7 +436,7 @@ public class GameStart : MonoBehaviour
             Vector2 cursorScreen = new Vector2(cursor.X, cursor.Y);
             Vector2 cursorWindow = new Vector2(
                 cursor.X - windowController.currentX,
-                Screen.height - (cursor.Y - windowController.currentY));
+                cursor.Y - windowController.currentY);
             if (targetTransform != null)
             {
                 screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
