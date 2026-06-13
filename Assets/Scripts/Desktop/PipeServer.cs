@@ -455,7 +455,6 @@ public class PipeServer : MonoBehaviour
                     Debug.Log("[Pipe] preview_group_action: facialX=" + (cmd.facialX ?? "null") + " facialW=" + cmd.facialW + " actionY=" + cmd.actionY + " actionW=" + cmd.actionW + " actionX=" + (cmd.actionX ?? "null"));
                     if (previewController != null)
                     {
-                        previewController.ExitPreview();
                         var multiClips = new System.Collections.Generic.List<(string, AnimationClip)>();
                         string clipsStr = cmd.actionX ?? "";
                         if (!string.IsNullOrEmpty(clipsStr))

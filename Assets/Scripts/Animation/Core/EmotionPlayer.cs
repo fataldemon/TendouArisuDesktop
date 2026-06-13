@@ -139,6 +139,12 @@ public class EmotionPlayer : MonoBehaviour
 
     public void TransitionTo(ActionGroupConfig config, bool instant)
     {
+        if (_current != null && (_current.state == ActionGroupState.BlendingOut || _current.state == ActionGroupState.BlendingIn))
+        {
+            Debug.Log("[EmotionPlayer] TransitionTo: previous crossfade still in progress (state=" + _current.state + "), forcing finish");
+            ForceIdle();
+        }
+
         var clips = ResolveAllBodyClips(config);
         var instance = new ActionGroupInstance(config, clips);
 
