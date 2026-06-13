@@ -112,6 +112,7 @@ public class TransparentWindow : MonoBehaviour
     private bool _transparentEnabled;
     private bool _ctrlWasDown;
     private bool _shiftWasDown;
+    private bool _wasLeftDown;
     private bool _isDraggingWindow;
     private bool _dragPending;
     private POINT _dragStartCursor;
@@ -190,8 +191,9 @@ public class TransparentWindow : MonoBehaviour
         bool shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0;
         bool anyMod = ctrlDown || shiftDown;
         bool anyModWas = _ctrlWasDown || _shiftWasDown;
-        bool mouseDownNow = Input.GetMouseButtonDown(0);
-        bool mouseUpNow = Input.GetMouseButtonUp(0);
+        bool leftDownNow = (GetAsyncKeyState(0x01) & 0x8000) != 0;
+        bool mouseDownNow = leftDownNow && !_wasLeftDown;
+        bool mouseUpNow = !leftDownNow && _wasLeftDown;
 
         if (anyMod && !anyModWas && !_isDraggingWindow)
             SetTransparent(false);
@@ -230,6 +232,7 @@ public class TransparentWindow : MonoBehaviour
 
         _ctrlWasDown = ctrlDown;
         _shiftWasDown = shiftDown;
+        _wasLeftDown = leftDownNow;
 #endif
     }
 
