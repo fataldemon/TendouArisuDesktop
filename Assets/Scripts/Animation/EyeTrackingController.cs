@@ -41,7 +41,7 @@ public class EyeTrackingController : MonoBehaviour
         if (meshRenderer == null) return;
         if (bodyEngine == null || bodyEngine.animator == null || Camera.main == null) return;
 
-        bool inAction = (previewController != null && previewController.IsPreviewing) || bodyEngine.IsAnyNonIdlePlaying() || expressionActive;
+        bool inAction = (previewController != null && previewController.IsPreviewing) || expressionActive;
 
         if (inAction)
         {
@@ -82,7 +82,7 @@ public class EyeTrackingController : MonoBehaviour
     {
         if (meshRenderer == null || bodyEngine == null || bodyEngine.animator == null) return;
 
-        bool headIdle = !bodyEngine.IsAnyNonIdlePlaying() && (previewController == null || !previewController.IsPreviewing) && !expressionActive;
+        bool headIdle = (previewController == null || !previewController.IsPreviewing) && !expressionActive;
 
         _headBlendOut = Mathf.Lerp(_headBlendOut, headIdle ? 1f : 0f, Time.deltaTime * 10f);
         if (_headBlendOut < 0.01f) return;

@@ -568,14 +568,16 @@ public partial class MainWindow : Window
         var btnGlobalPreview = new Button { Content = "全局预览", Width = 80, Style = (Style)FindResource("SmallButton") };
         btnGlobalPreview.Click += (_, _) =>
         {
-            _ = _pipe.SendCommand("reset_blendshapes");
-            if (!string.IsNullOrEmpty(g.FacialPreset))
-                _ = _pipe.SendCommand("preview_facial", new { facialX = g.FacialPreset, facialW = g.FacialWeight, noZoom = true });
+            var clipParts = new List<string>();
             foreach (var c in g.BodyClips)
-            {
                 if (!string.IsNullOrEmpty(c.ClipName))
-                    _ = _pipe.SendCommand("preview_animation", new { name = c.ClipName, bodyPart = c.BodyPart });
-            }
+                    clipParts.Add(c.BodyPart + "=" + c.ClipName);
+            _ = _pipe.SendCommand("preview_group_action", new
+            {
+                actionX = string.Join("|", clipParts),
+                facialX = g.FacialPreset ?? "",
+                facialW = g.FacialWeight
+            });
         };
         previewRow.Children.Add(btnGlobalPreview);
         var btnStop = new Button { Content = "停止", Width = 60, Margin = new Thickness(8, 0, 0, 0) };

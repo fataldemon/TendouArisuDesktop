@@ -451,6 +451,28 @@ public class PipeServer : MonoBehaviour
                             previewController.PreviewBody(clip);
                     }
                     break;
+                case "preview_group_action":
+                    if (previewController != null)
+                    {
+                        previewController.ExitPreview();
+                        previewController.EnterPreview();
+                        if (!string.IsNullOrEmpty(cmd.facialX))
+                            previewController.PreviewFacial(cmd.facialX, cmd.facialW > 0 ? cmd.facialW : 1f);
+                        string clipsStr = cmd.actionX ?? "";
+                        if (!string.IsNullOrEmpty(clipsStr))
+                        {
+                            foreach (var partStr in clipsStr.Split('|'))
+                            {
+                                var kv = partStr.Split('=');
+                                if (kv.Length == 2)
+                                {
+                                    var c = FindClipByName(kv[1]);
+                                    if (c != null) previewController.PreviewBody(c, kv[0]);
+                                }
+                            }
+                        }
+                    }
+                    break;
                 case "reset_blendshapes":
                     previewController?.ExitPreview();
                     gameStart.RestoreCharacterPublic();

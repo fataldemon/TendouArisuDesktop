@@ -53,6 +53,16 @@ public static class ActionSystemRuntime
             }
         }
 
+        bool hasRandom = false;
+        for (int i = 0; i < _emotionMappings.Count; i++)
+            if (_emotionMappings[i].isRandomEvent) { hasRandom = true; break; }
+        if (!hasRandom)
+        {
+            _emotionMappings.Add(new EmotionMappingEntry { emotion = "随机-好奇", actionGroupName = "Focused", facialOverride = "curious", isRandomEvent = true });
+            _emotionMappings.Add(new EmotionMappingEntry { emotion = "随机-眨眼", actionGroupName = "Cute", facialOverride = "wink", isRandomEvent = true });
+            Debug.Log("[Runtime] Added default random events");
+        }
+
         Debug.Log("[Runtime] Init complete: " + _emotionMappings.Count + " mappings, " +
             _facialPresets.Count + " facials, " + _actionGroups.Count + " groups, idle=" + (_idleGroup != null));
     }
