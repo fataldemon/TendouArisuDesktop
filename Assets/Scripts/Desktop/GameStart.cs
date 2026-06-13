@@ -411,7 +411,7 @@ public class GameStart : MonoBehaviour
         bool shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0;
         if (shiftDown && Input.GetMouseButton(0))
         {
-            float panSpeed = 0.003f;
+            float panSpeed = 0.006f;
             float mx = Input.GetAxis("Mouse X");
             float my = Input.GetAxis("Mouse Y");
             Camera.main.transform.Translate(-mx * panSpeed, -my * panSpeed, 0, Space.Self);
@@ -419,6 +419,7 @@ public class GameStart : MonoBehaviour
 
         // Grip resize logic (Input-driven, before OnGUI for TransparentWindow LateUpdate)
         {
+            bool leftDown = (GetAsyncKeyState(0x01) & 0x8000) != 0;
             _gripDragActive = false;
             _isOverGrip = false;
             if (targetTransform != null)
@@ -433,7 +434,7 @@ public class GameStart : MonoBehaviour
                     _isOverGrip = true;
             }
 
-            if (_ctrlDown && Input.GetMouseButtonDown(0) && _isOverGrip && !_gripDragTracking)
+            if (_ctrlDown && leftDown && _isOverGrip && !_gripDragTracking)
             {
                 _gripDragTracking = true;
                 _gripDragStartMouse = Input.mousePosition;
@@ -442,7 +443,6 @@ public class GameStart : MonoBehaviour
 
             if (_gripDragTracking)
             {
-                bool leftDown = Input.GetMouseButton(0);
                 if (leftDown && _ctrlDown)
                 {
                     _gripDragActive = true;
