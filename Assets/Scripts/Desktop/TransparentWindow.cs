@@ -102,6 +102,7 @@ public class TransparentWindow : MonoBehaviour
     public int currentY = 0;
 
     public SystemTrayManager trayManager;
+    public GameStart gameStart;
 
     public event Action? OnDragStart;
     public event Action? OnDragEnd;
@@ -112,6 +113,7 @@ public class TransparentWindow : MonoBehaviour
     private bool _ctrlWasDown;
     private bool _isDraggingWindow;
     private POINT _dragStartCursor;
+    private POINT _lastDragCursor;
     private int _dragStartWindowX, _dragStartWindowY;
 
     void Start()
@@ -186,10 +188,11 @@ public class TransparentWindow : MonoBehaviour
         bool mouseDownNow = Input.GetMouseButtonDown(0);
         bool mouseUpNow = Input.GetMouseButtonUp(0);
 
-        if (ctrlDown && mouseDownNow && !_isDraggingWindow)
+        if (ctrlDown && mouseDownNow && !_isDraggingWindow && !(gameStart != null && gameStart.IsOverGrip))
         {
             SetTransparent(false);
             GetCursorPos(out _dragStartCursor);
+            _lastDragCursor = _dragStartCursor;
             if (GetWindowRect(hwnd, out RECT rect))
             {
                 _dragStartWindowX = rect.Left;
@@ -202,11 +205,15 @@ public class TransparentWindow : MonoBehaviour
         if (_isDraggingWindow)
         {
             GetCursorPos(out POINT cur);
-            int newX = _dragStartWindowX + (cur.X - _dragStartCursor.X);
-            int newY = _dragStartWindowY + (cur.Y - _dragStartCursor.Y);
-            SetWindowPos(hwnd, 0, newX, newY, 0, 0, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOSIZE);
-            currentX = newX;
-            currentY = newY;
+            if (cur.X != _lastDragCursor.X || cur.Y != _lastDragCursor.Y)
+            {
+                int newX = _dragStartWindowX + (cur.X - _dragStartCursor.X);
+                int newY = _dragStartWindowY + (cur.Y - _dragStartCursor.Y);
+                SetWindowPos(hwnd, 0, newX, newY, 0, 0, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOSIZE);
+                currentX = newX;
+                currentY = newY;
+                _lastDragCursor = cur;
+            }
         }
 
         if (_isDraggingWindow && (mouseUpNow || (!ctrlDown && _ctrlWasDown)))

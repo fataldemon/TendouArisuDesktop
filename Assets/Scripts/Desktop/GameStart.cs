@@ -90,6 +90,9 @@ public class GameStart : MonoBehaviour
     private const float TouchScreenRadius = 150f;
     private int _touchLogFrame;
     private ActionGroupConfig _touchConfig;
+    private bool _isOverGrip;
+    private Rect _gripRect;
+    public bool IsOverGrip => _isOverGrip;
 
     private void SetupSkin()
     {
@@ -256,6 +259,7 @@ public class GameStart : MonoBehaviour
 
         if (windowController != null)
         {
+            windowController.gameStart = this;
             windowController.OnDragStart += () =>
             {
                 if (!emotionPlayer.IsPlaying && !_isTouching)
@@ -401,6 +405,39 @@ public class GameStart : MonoBehaviour
 
         _ctrlDown = ctrlDown;
 
+        bool shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0;
+        if (shiftDown && Input.GetMouseButton(0))
+        {
+            var anim = GetAnimator();
+            Vector3 headPos = Camera.main.transform.position + Camera.main.transform.forward;
+            if (anim != null)
+            {
+                var head = anim.GetBoneTransform(HumanBodyBones.Head);
+                if (head != null) headPos = head.position;
+            }
+            float dist = Vector3.Distance(Camera.main.transform.position, headPos);
+            float panSpeed = dist * 1.5f;
+            float mx = Input.GetAxis("Mouse X");
+            float my = Input.GetAxis("Mouse Y");
+            Camera.main.transform.Translate(-mx * panSpeed, -my * panSpeed, 0, Space.Self);
+        }
+
+        // Compute grip rect for TransparentWindow drag skip
+        if (targetTransform != null)
+        {
+            screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
+            float gx = Mathf.Clamp(screenPos.x + guiOffset.x, -msg_max_length + 80f, Screen.width - 80f);
+            float gy = Mathf.Clamp(Screen.height - msg_height - 160f + guiOffset.y, 0f, Screen.height - msg_height);
+            float gripSize = 24f;
+            _gripRect = new Rect(gx + msg_max_length / 2f - gripSize / 2f,
+                gy + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
+            _isOverGrip = _ctrlDown && _gripRect.Contains(Input.mousePosition);
+        }
+        else
+        {
+            _isOverGrip = false;
+        }
+
         if (onDialogue)
         {
             dialogueTimer += Time.deltaTime;
@@ -545,7 +582,7 @@ public class GameStart : MonoBehaviour
             bool touching = false;
             var anim = GetAnimator();
 
-            if (leftDown && anim != null)
+            if (leftDown && anim != null && !_ctrlDown && !shiftDown)
             {
                 var head = anim.GetBoneTransform(HumanBodyBones.Head);
                 if (head != null)
