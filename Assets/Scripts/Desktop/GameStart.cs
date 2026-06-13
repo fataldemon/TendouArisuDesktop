@@ -807,6 +807,7 @@ public class GameStart : MonoBehaviour
             GUI.Box(gripRect, "");
             GUI.Label(gripRect, "╋");
             GUI.color = prevColor;
+            Debug.Log($"[GUI-GRIP] f={Time.frameCount} rect=({gripRect.x:F0},{gripRect.y:F0} {gripRect.width:F0}x{gripRect.height:F0}) screenWH=({Screen.width},{Screen.height}) bubbleXY=({gripBubbleX:F0},{gripBubbleY:F0}) guiOffset=({guiOffset.x:F0},{guiOffset.y:F0}) screenPos=({screenPos.x:F0},{screenPos.y:F0})");
         }
     }
 
