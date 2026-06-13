@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class EmotionPlayer : MonoBehaviour
@@ -168,19 +167,22 @@ public class EmotionPlayer : MonoBehaviour
         else
             facialEngine.RestoreExpression(instance.config.blendInFacial);
 
-        for (int i = 0; i < instance.resolvedClips.Count; i++)
+        string[] allParts = { "fullBody", "upperBody", "head", "leftArm", "rightArm", "lowerBody" };
+        for (int p = 0; p < allParts.Length; p++)
         {
-            var rc = instance.resolvedClips[i];
-            if (rc.clip != null)
+            string part = allParts[p];
+            var rc = instance.GetClip(part);
+            if (rc != null && rc.Value.clip != null)
             {
-                Debug.Log("[EmotionPlayer] ApplyImmediate: play " + rc.clip.name + " on " + rc.bodyPart +
+                Debug.Log("[EmotionPlayer] ApplyImmediate: play " + rc.Value.clip.name + " on " + part +
                     " blend=" + instance.config.blendInBody + " loop=" + instance.config.loop);
-                bodyEngine.Play(rc.clip, rc.bodyPart, instance.config.blendInBody, instance.config.loop);
+                bodyEngine.Play(rc.Value.clip, part, instance.config.blendInBody, instance.config.loop);
+            }
+            else if (part != "fullBody")
+            {
+                bodyEngine.Stop(part, 0.2f);
             }
         }
-
-        var keepParts = instance.resolvedClips.Select(rc => rc.bodyPart).ToList();
-        bodyEngine.StopAllExcept(keepParts, 0.2f);
 
         if (bodyEngine != null && bodyEngine.animator != null)
             bodyEngine.animator.applyRootMotion = instance.config.allowRootMotion;
@@ -205,17 +207,16 @@ public class EmotionPlayer : MonoBehaviour
         else
             facialEngine.RestoreExpression(blendOutFacial);
 
-        for (int i = 0; i < newInstance.resolvedClips.Count; i++)
+        string[] allParts = { "fullBody", "upperBody", "head", "leftArm", "rightArm", "lowerBody" };
+        for (int p = 0; p < allParts.Length; p++)
         {
-            var rc = newInstance.resolvedClips[i];
-            if (rc.clip != null)
-                bodyEngine.Play(rc.clip, rc.bodyPart, Mathf.Max(blendOutBody, blendInBody), newInstance.config.loop);
+            string part = allParts[p];
+            var rc = newInstance.GetClip(part);
+            if (rc != null && rc.Value.clip != null)
+                bodyEngine.Play(rc.Value.clip, part, Mathf.Max(blendOutBody, blendInBody), newInstance.config.loop);
+            else if (part != "fullBody")
+                bodyEngine.Stop(part, 0.2f);
         }
-        if (newInstance.resolvedClips.Count == 0 && bodyEngine.idleClip != null)
-            bodyEngine.Play(bodyEngine.idleClip, "fullBody", blendOutBody, true);
-
-        var keepParts = newInstance.resolvedClips.Select(rc => rc.bodyPart).ToList();
-        bodyEngine.StopAllExcept(keepParts, 0.2f);
 
         if (bodyEngine != null && bodyEngine.animator != null)
             bodyEngine.animator.applyRootMotion = newInstance.config.allowRootMotion;

@@ -26,6 +26,13 @@ public class ActionGroupInstance
         state = ActionGroupState.Idle;
     }
 
+    public ResolvedClip? GetClip(string bodyPart)
+    {
+        for (int i = 0; i < resolvedClips.Count; i++)
+            if (resolvedClips[i].bodyPart == bodyPart) return resolvedClips[i];
+        return null;
+    }
+
     public bool ShouldEnd()
     {
         if (config.isIdle) return false;
