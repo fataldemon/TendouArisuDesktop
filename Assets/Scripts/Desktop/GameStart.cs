@@ -42,6 +42,8 @@ public class GameStart : MonoBehaviour
     public float dialogueInterval = 0.5f;
     private float dialogueTimer;
     private float dialogueClearTimer;
+    private float _dialogueHoldDuration = 10f;
+    private float _audioLength;
     private bool expressionApplied;
 
     public Transform targetTransform;
@@ -223,6 +225,8 @@ public class GameStart : MonoBehaviour
             }
             if (settings.guiOffsetX != 0f || settings.guiOffsetY != 0f)
                 guiOffset = new Vector2(settings.guiOffsetX, settings.guiOffsetY);
+            if (settings.dialogMinHoldTime > 0f)
+                _dialogueHoldDuration = settings.dialogMinHoldTime;
         }
 
         int ttsMode = config.tts;
@@ -315,6 +319,8 @@ public class GameStart : MonoBehaviour
 
     private bool _windowVisible = true;
 
+    public float DialogMinHoldTime => _dialogueHoldDuration;
+
     private void ToggleWindow()
     {
 #if !UNITY_EDITOR
@@ -403,20 +409,21 @@ public class GameStart : MonoBehaviour
                 int num = (int)Math.Round((float)msg_max_length * Time.deltaTime / dialogueInterval);
                 msg_length_receive += num;
             }
-            if (!emotionPlayer.IsPlaying && !m_AudioSource.isPlaying)
+            if (m_AudioSource.isPlaying)
+            {
+                dialogueClearTimer = 0f;
+            }
+            else
             {
                 dialogueClearTimer += Time.deltaTime;
-                if (dialogueClearTimer > 5f)
+                if (dialogueClearTimer > _dialogueHoldDuration)
                 {
+                    Debug.Log("[Dialog] Clearing after " + dialogueClearTimer.ToString("F1") + "s (hold=" + _dialogueHoldDuration.ToString("F1") + ")");
                     onDialogue = false;
                     dialogueTimer = 0f;
                     msg_length_receive = 0;
                     dialogueClearTimer = 0f;
                 }
-            }
-            else
-            {
-                dialogueClearTimer = 0f;
             }
         }
 
@@ -610,6 +617,16 @@ public class GameStart : MonoBehaviour
         Debug.Log(text_answer);
         waitingTimer = 0f;
 
+        _dialogueHoldDuration = 10f;
+        if (emotionPlayer.CurrentConfig != null)
+        {
+            float clipLen = emotionPlayer.bodyEngine != null ? emotionPlayer.bodyEngine.GetCurrentClipLength("fullBody") : 0f;
+            if (emotionPlayer.CurrentConfig.loop)
+                _dialogueHoldDuration = 10f;
+            else
+                _dialogueHoldDuration = Mathf.Max(10f, clipLen + 3f);
+        }
+
         string emotion = EmotionParser.Extract(answerPure);
         if (!string.IsNullOrEmpty(emotion))
             emotionPlayer.PlayEmotion(emotion);
@@ -785,6 +802,7 @@ public class GameStart : MonoBehaviour
         settings.camRotW = cam.rotation.w;
         settings.guiOffsetX = guiOffset.x;
         settings.guiOffsetY = guiOffset.y;
+        settings.dialogMinHoldTime = _dialogueHoldDuration > 0 ? _dialogueHoldDuration : 10f;
         config.PopulateTo(settings);
         settings.Save();
     }

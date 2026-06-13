@@ -71,6 +71,8 @@
                 <TextBox x:Name="TxtMsgWidth" Margin="0,0,0,12"/>
                 <Label Content="高度"/>
                 <TextBox x:Name="TxtMsgHeight" Margin="0,0,0,12"/>
+                <Label Content="最短保持时间(秒)"/>
+                <TextBox x:Name="TxtDialogHold" Margin="0,0,0,12"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                     <Button Content="保存" Width="80" Click="OnDialogSettingsSave"/>
                 </StackPanel>

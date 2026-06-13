@@ -170,6 +170,7 @@ public class PipeServer : MonoBehaviour
         sb.Append(',');
         sb.Append("\"msgMaxWidth\":").Append(gameStart.msg_max_length).Append(',');
         sb.Append("\"msgHeight\":").Append(gameStart.msg_height).Append(',');
+        sb.Append("\"dialogMinHoldTime\":").Append(gameStart.DialogMinHoldTime.ToString("F1")).Append(',');
         sb.Append("\"allowRootMotion\":").Append(
             (emotionPlayer != null && emotionPlayer.bodyEngine != null && emotionPlayer.bodyEngine.allowRootMotion) ? "true" : "false");
         sb.Append("}}");
@@ -589,6 +590,8 @@ public class PipeServer : MonoBehaviour
         }
         if (cmd.msgHeight > 0)
             gameStart.msg_height = cmd.msgHeight;
+        if (cmd.dialogHold > 0)
+            gameStart.GetType().GetField("_dialogueHoldDuration", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.SetValue(gameStart, cmd.dialogHold);
         gameStart.SaveSettings();
     }
 
@@ -648,5 +651,6 @@ public class PipeCommand
     public bool noZoom;
     public int msgWidth;
     public int msgHeight;
+    public float dialogHold;
     public string bodyPart = "fullBody";
 }

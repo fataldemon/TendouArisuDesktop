@@ -46,6 +46,7 @@ public class InitData
     public string DialogueHistory { get; set; } = "";
     public int MsgMaxWidth { get; set; }
     public int MsgHeight { get; set; }
+    public float DialogMinHoldTime { get; set; } = 10f;
     public bool AllowRootMotion { get; set; }
 
     // Legacy compatibility

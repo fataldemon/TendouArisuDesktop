@@ -118,6 +118,7 @@ public partial class MainWindow : Window
         TxtTranslationSalt.Text = d.TranslationSalt;
         TxtMsgWidth.Text = d.MsgMaxWidth.ToString();
         TxtMsgHeight.Text = d.MsgHeight.ToString();
+        TxtDialogHold.Text = d.DialogMinHoldTime.ToString("F0");
         UpdateConnectionStatus(d.Connected);
         PopulateModelHistory(d.ModelHistory);
         PopulateAnimationList(d.AnimationList);
@@ -232,9 +233,11 @@ public partial class MainWindow : Window
     #region Dialog Settings Tab Events
     private void OnDialogSettingsSave(object sender, RoutedEventArgs e)
     {
-        if (int.TryParse(TxtMsgWidth.Text, out int w) && int.TryParse(TxtMsgHeight.Text, out int h))
-            _ = _pipe.SendCommand("update_dialog", new { msgWidth = w, msgHeight = h });
+        float hold = 10f;
+        float.TryParse(TxtDialogHold.Text, out hold);
+        _ = _pipe.SendCommand("update_dialog", new { msgWidth = GetInt(TxtMsgWidth), msgHeight = GetInt(TxtMsgHeight), dialogHold = hold });
     }
+    private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
     #endregion
 
     #region Model Tab Events

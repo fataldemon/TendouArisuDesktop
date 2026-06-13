@@ -41,6 +41,7 @@ public class SettingsData
 
     public float guiOffsetX;
     public float guiOffsetY;
+    public float dialogMinHoldTime = 10f;
 
     public bool allowRootMotion;
 
