@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using UniVRM10;
+using VrmLib;  // for ExpressionPreset enum
 
 public class ModelManager : MonoBehaviour
 {
@@ -84,11 +86,14 @@ public class ModelManager : MonoBehaviour
         instance.transform.localPosition = Vector3.zero;
         instance.transform.localRotation = defaultRotation;
 
+        _currentModelKey = ModelExpressionIO.ComputeModelKey(path);
         ReplaceModel(instance.gameObject);
 
         string modelName = Path.GetFileNameWithoutExtension(path);
         AddToHistory(path, modelName);
     }
+
+    private string _currentModelKey;
 
     private void ReplaceModel(GameObject newModel)
     {
@@ -118,6 +123,22 @@ public class ModelManager : MonoBehaviour
             if (renderer != null)
                 facialEngine.meshRenderer = renderer;
             facialEngine.ResetInstant();
+
+            if (!string.IsNullOrEmpty(_currentModelKey))
+            {
+                var profile = ModelExpressionIO.Load(_currentModelKey);
+                if (profile == null)
+                {
+                    profile = BuildDefaultProfile(_currentModelKey, newModel);
+                    ModelExpressionIO.Save(profile);
+                    Debug.Log("[ModelManager] Created default expression profile for model " + _currentModelKey + " with " + profile.presets.Count + " presets");
+                }
+                else
+                {
+                    Debug.Log("[ModelManager] Loaded existing expression profile for model " + _currentModelKey + " (" + profile.presets.Count + " presets)");
+                }
+                facialEngine.SetModelExpressionProfile(profile);
+            }
         }
 
         var ep = bodyEngine != null ? bodyEngine.GetComponent<EmotionPlayer>() : null;
@@ -135,6 +156,7 @@ public class ModelManager : MonoBehaviour
 
         defaultModel.SetActive(true);
         currentModel = defaultModel;
+        _currentModelKey = null;
 
         if (bodyEngine != null)
         {
@@ -149,6 +171,7 @@ public class ModelManager : MonoBehaviour
             var renderer = defaultModel.GetComponentInChildren<SkinnedMeshRenderer>();
             if (renderer != null)
                 facialEngine.meshRenderer = renderer;
+            facialEngine.ClearModelExpressionProfile();
             facialEngine.ResetInstant();
         }
 
@@ -212,5 +235,87 @@ public class ModelManager : MonoBehaviour
     private class HistoryWrapper
     {
         public List<string> entries;
+    }
+
+    private ModelExpressionProfile BuildDefaultProfile(string modelKey, GameObject model)
+    {
+        var profile = new ModelExpressionProfile { modelKey = modelKey };
+
+        var vrmInstance = model.GetComponent<Vrm10Instance>();
+        if (vrmInstance != null && vrmInstance.Vrm != null)
+        {
+            var expression = vrmInstance.Vrm.Expression;
+            var clips = expression?.Clips;
+            if (clips != null && clips.Count > 0)
+            {
+                Debug.Log("[ModelManager] BuildDefaultProfile: found " + clips.Count + " VRM expression clips");
+
+                var mappedNames = new HashSet<string>();
+                foreach (var clip in clips)
+                {
+                    if (clip == null || clip.Clip == null || clip.Preset == ExpressionPreset.custom) continue;
+                    string presetName = MapVrmPreset(clip.Preset);
+                    if (string.IsNullOrEmpty(presetName) || mappedNames.Contains(presetName)) continue;
+                    mappedNames.Add(presetName);
+
+                    var config = new FacialPresetConfig { presetName = presetName };
+                    var bindings = clip.Clip.BlendShapeBindings;
+                    if (bindings != null)
+                    {
+                        foreach (var b in bindings)
+                            config.targets.Add(new BlendShapeTarget { index = b.Index, weight = b.Weight });
+                    }
+                    profile.presets.Add(config);
+                    Debug.Log("[ModelManager]   " + presetName + " ← VRM " + clip.Preset + " (" + config.targets.Count + " blends)");
+                }
+            }
+        }
+
+        if (profile.presets.Count == 0)
+        {
+            Debug.Log("[ModelManager] BuildDefaultProfile: no VRM presets found, copying global defaults");
+            var globals = ActionSystemRuntime.FacialPresets;
+            foreach (var g in globals)
+            {
+                var copy = new FacialPresetConfig
+                {
+                    presetName = g.presetName,
+                    blushMode = g.blushMode
+                };
+                for (int i = 0; i < g.targets.Count; i++)
+                    copy.targets.Add(new BlendShapeTarget { index = g.targets[i].index, weight = g.targets[i].weight });
+                for (int i = 0; i < g.activateObjects.Count; i++)
+                    copy.activateObjects.Add(g.activateObjects[i]);
+                profile.presets.Add(copy);
+            }
+        }
+
+        return profile;
+    }
+
+    private static string MapVrmPreset(ExpressionPreset preset)
+    {
+        switch (preset)
+        {
+            case ExpressionPreset.happy: return "happy";
+            case ExpressionPreset.angry: return "angry";
+            case ExpressionPreset.sad: return "cry";
+            case ExpressionPreset.relaxed: return "plain";
+            case ExpressionPreset.surprised: return "fun";
+            case ExpressionPreset.aa: return null;
+            case ExpressionPreset.ih: return null;
+            case ExpressionPreset.ou: return null;
+            case ExpressionPreset.ee: return null;
+            case ExpressionPreset.oh: return null;
+            case ExpressionPreset.blink: return null;
+            case ExpressionPreset.blinkLeft: return null;
+            case ExpressionPreset.blinkRight: return null;
+            case ExpressionPreset.lookUp: return null;
+            case ExpressionPreset.lookDown: return null;
+            case ExpressionPreset.lookLeft: return null;
+            case ExpressionPreset.lookRight: return null;
+            case ExpressionPreset.neutral: return "plain";
+            default: return null;
+        }
     }
 }

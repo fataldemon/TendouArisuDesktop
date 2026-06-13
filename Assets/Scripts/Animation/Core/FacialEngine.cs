@@ -17,6 +17,18 @@ public class FacialEngine : MonoBehaviour
     private float _blendDuration;
     private bool _isBlending;
     private Action _onBlendComplete;
+    private ModelExpressionProfile _modelProfile;
+
+    public void SetModelExpressionProfile(ModelExpressionProfile profile)
+    {
+        _modelProfile = profile;
+        Debug.Log("[FacialEngine] SetModelExpressionProfile: modelKey=" + (profile != null ? profile.modelKey : "null") + " presets=" + (profile != null ? profile.presets.Count : 0));
+    }
+
+    public void ClearModelExpressionProfile()
+    {
+        _modelProfile = null;
+    }
 
     private struct BlendState
     {
@@ -29,10 +41,15 @@ public class FacialEngine : MonoBehaviour
 
     public FacialPresetConfig GetPreset(string presetName)
     {
-        var p = ActionSystemRuntime.GetFacialPreset(presetName);
-        if (p == null && !string.IsNullOrEmpty(presetName))
+        if (_modelProfile != null)
+        {
+            var p = _modelProfile.Find(presetName);
+            if (p != null) return p;
+        }
+        var global = ActionSystemRuntime.GetFacialPreset(presetName);
+        if (global == null && !string.IsNullOrEmpty(presetName))
             Debug.LogWarning("[FacialEngine] Preset not found: '" + presetName + "'");
-        return p;
+        return global;
     }
 
     public void PlayExpression(string presetName, float weight = 1f, float duration = 0.15f, Action onComplete = null)

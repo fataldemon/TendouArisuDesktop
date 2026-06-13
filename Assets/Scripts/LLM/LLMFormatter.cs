@@ -267,7 +267,7 @@ public class LLMFormatter : MonoBehaviour
 	{
 		line = line.Replace("(", "（");
 		line = line.Replace(")", "）");
-		string pattern = "（[^\\（^\\）]*）";
+		string pattern = "（[^（）]*）";
 		MatchCollection matchCollection = Regex.Matches(line, pattern);
 		if (matchCollection.Count == 0)
 		{
