@@ -326,11 +326,22 @@ public partial class MainWindow : Window
         var btnPreviewAll = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(8, 0, 0, 0) };
         btnPreviewAll.Click += (_, _) =>
         {
-            _ = _pipe.SendCommand("reset_blendshapes");
-            if (!string.IsNullOrEmpty(entry.FacialOverride))
-                _ = _pipe.SendCommand("preview_facial", new { facialX = entry.FacialOverride, facialW = 1f, noZoom = true });
-            if (!string.IsNullOrEmpty(entry.ActionGroupName))
-                _ = _pipe.SendCommand("preview_action", new { name = entry.ActionGroupName });
+            var group = _initData?.ActionGroups.FirstOrDefault(g => g.GroupName == entry.ActionGroupName);
+            var clipParts = new List<string>();
+            if (group != null)
+                foreach (var c in group.BodyClips)
+                    if (!string.IsNullOrEmpty(c.ClipName))
+                        clipParts.Add(c.BodyPart + "=" + c.ClipName);
+            string facial = !string.IsNullOrEmpty(entry.FacialOverride) ? entry.FacialOverride : (group?.FacialPreset ?? "");
+            float facialW = entry.FacialWeightOverride > 0 ? entry.FacialWeightOverride : (group?.FacialWeight ?? 1f);
+            _ = _pipe.SendCommand("preview_group_action", new
+            {
+                actionX = string.Join("|", clipParts),
+                facialX = facial,
+                facialW = facialW,
+                actionY = group?.AllowRootMotion ?? false ? 1f : 0f,
+                actionW = group?.EnableEyeTracking ?? false ? 1f : 0f
+            });
         };
         emoPanel.Children.Add(btnPreviewAll);
         sp.Children.Add(emoPanel);
