@@ -28,7 +28,6 @@ public class EmotionPlayer : MonoBehaviour
 
     public void PlayClipDirect(AnimationClip clip, bool loop = true)
     {
-        if (previewController != null && previewController.IsPreviewing) return;
         _facialOverride = null;
         _facialWeightOverride = -1f;
         var config = new ActionGroupConfig

@@ -464,7 +464,7 @@ public partial class MainWindow : Window
             var txtFilter = new TextBox { Width = 100, Margin = new Thickness(0, 0, 4, 0), FontSize = 11 };
             var cbo = new ComboBox { Width = 150, MaxDropDownHeight = 300 };
             var allNames = new List<string> { "(无)" };
-            allNames.AddRange(_initData.AnimationList.Select(a => a.Name).OrderBy(name => name));
+            allNames.AddRange((_initData?.AnimationList ?? new List<AnimationEntry>()).Select(a => a.Name).OrderBy(name => name));
             txtFilter.TextChanged += (_, _) =>
             {
                 string txt = txtFilter.Text ?? "";
@@ -487,7 +487,6 @@ public partial class MainWindow : Window
                 if (entry != null) entry.ClipName = sel;
                 else g.BodyClips.Add(new PartClipEntryDto { BodyPart = capturedPart, ClipName = sel });
             };
-            partRow.Children.Add(cbo);
 
             var btnPrev = new Button { Content = "▶", Width = 32, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(4, 0, 0, 0) };
             string capturedClip = clipName;
