@@ -21,6 +21,9 @@ public class BodyEngine : MonoBehaviour
     private LayerData[] _layers;
     private bool _graphActive;
     private bool _isPreviewing;
+    private bool _previewLock;
+    private Vector3 _previewLockedPos;
+    private Quaternion _previewLockedRot;
 
     private static readonly string[] BodyPartNames = { "fullBody", "upperBody", "head", "leftArm", "rightArm", "lowerBody" };
 
@@ -41,6 +44,31 @@ public class BodyEngine : MonoBehaviour
     public bool IsGraphActive => _graphActive;
 
     public void SetPreviewing(bool value) { _isPreviewing = value; }
+
+    public void StartPreviewLock()
+    {
+        if (animator == null) return;
+        _previewLockedPos = animator.transform.position;
+        _previewLockedRot = animator.transform.rotation;
+        _previewLock = true;
+    }
+
+    public void EndPreviewLock()
+    {
+        if (animator == null) return;
+        _previewLock = false;
+        animator.transform.position = _previewLockedPos;
+        animator.transform.rotation = _previewLockedRot;
+    }
+
+    void LateUpdate()
+    {
+        if (_previewLock && !allowRootMotion && animator != null)
+        {
+            animator.transform.position = _previewLockedPos;
+            animator.transform.rotation = _previewLockedRot;
+        }
+    }
 
     private void Awake()
     {

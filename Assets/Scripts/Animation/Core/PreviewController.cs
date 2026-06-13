@@ -20,6 +20,7 @@ public class PreviewController : MonoBehaviour
         if (_isPreviewing) return;
         _isPreviewing = true;
         bodyEngine.SetPreviewing(true);
+        bodyEngine.StartPreviewLock();
         OnPreviewEnter?.Invoke();
     }
 
@@ -35,6 +36,7 @@ public class PreviewController : MonoBehaviour
 
         _isPreviewing = false;
         bodyEngine.SetPreviewing(false);
+        bodyEngine.EndPreviewLock();
         if (emotionPlayer != null)
             emotionPlayer.RestoreToIdle();
         OnPreviewExit?.Invoke();
@@ -51,6 +53,7 @@ public class PreviewController : MonoBehaviour
     public void PreviewBody(AnimationClip clip, bool loop = true)
     {
         if (clip == null) return;
+        if (_isPreviewing) bodyEngine.EndPreviewLock();
         EnterPreview();
         if (emotionPlayer != null)
             emotionPlayer.PlayClipDirect(clip, loop);
@@ -58,6 +61,7 @@ public class PreviewController : MonoBehaviour
 
     public void PreviewActionGroup(string facialPreset, float facialWeight, AnimationClip bodyClip)
     {
+        if (_isPreviewing) bodyEngine.EndPreviewLock();
         EnterPreview();
 
         if (!string.IsNullOrEmpty(facialPreset))
