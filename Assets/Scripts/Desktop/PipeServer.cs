@@ -452,6 +452,7 @@ public class PipeServer : MonoBehaviour
                     }
                     break;
                 case "preview_group_action":
+                    Debug.Log("[Pipe] preview_group_action: facialX=" + (cmd.facialX ?? "null") + " facialW=" + cmd.facialW + " actionY=" + cmd.actionY + " actionW=" + cmd.actionW + " actionX=" + (cmd.actionX ?? "null"));
                     if (previewController != null)
                     {
                         previewController.ExitPreview();
@@ -469,6 +470,7 @@ public class PipeServer : MonoBehaviour
                                 }
                             }
                         }
+                        Debug.Log("[Pipe] preview_group_action: " + multiClips.Count + " clips parsed, calling PreviewMultiBody(facial=" + (cmd.facialX ?? "") + " w=" + cmd.facialW + " arm=" + (cmd.actionY > 0f) + " et=" + (cmd.actionW > 0f) + ")");
                         previewController.PreviewMultiBody(cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, multiClips, cmd.actionY > 0f, cmd.actionW > 0f);
                     }
                     break;

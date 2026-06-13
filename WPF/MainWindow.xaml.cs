@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -503,6 +504,15 @@ public partial class MainWindow : Window
         }
         sp.Children.Add(facialPanel);
 
+        var fwRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 4) };
+        fwRow.Children.Add(new TextBlock { Text = "表情权重:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
+        var sliderFW = new Slider { Width = 140, Minimum = 0, Maximum = 1, Value = g.FacialWeight, SmallChange = 0.05, TickFrequency = 0.1 };
+        var lblFW = new TextBlock { Text = g.FacialWeight.ToString("F1"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
+        sliderFW.ValueChanged += (_, ev) => { g.FacialWeight = (float)ev.NewValue; lblFW.Text = ev.NewValue.ToString("F1"); };
+        fwRow.Children.Add(sliderFW);
+        fwRow.Children.Add(lblFW);
+        sp.Children.Add(fwRow);
+
         var btnPrevFacial = new Button { Content = "预览表情", Width = 80, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 0, 8) };
         btnPrevFacial.Click += (_, _) =>
         {
@@ -580,6 +590,7 @@ public partial class MainWindow : Window
             foreach (var c in g.BodyClips)
                 if (!string.IsNullOrEmpty(c.ClipName))
                     clipParts.Add(c.BodyPart + "=" + c.ClipName);
+            Debug.WriteLine("[WPF] preview_group_action: facialX=" + (g.FacialPreset ?? "") + " w=" + g.FacialWeight + " arm=" + (g.AllowRootMotion ? 1 : 0) + " et=" + (g.EnableEyeTracking ? 1 : 0) + " clips=" + clipParts.Count);
             _ = _pipe.SendCommand("preview_group_action", new
             {
                 actionX = string.Join("|", clipParts),

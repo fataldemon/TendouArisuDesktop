@@ -42,6 +42,8 @@ public class EyeTrackingController : MonoBehaviour
         if (bodyEngine == null || bodyEngine.animator == null || Camera.main == null) return;
 
         bool inAction = (previewController != null && previewController.IsPreviewing) || expressionActive;
+        if (Time.frameCount % 120 == 0)
+            Debug.Log("[EyeTracking] inAction: preview=" + (previewController != null && previewController.IsPreviewing) + " exprActive=" + expressionActive);
 
         if (inAction)
         {

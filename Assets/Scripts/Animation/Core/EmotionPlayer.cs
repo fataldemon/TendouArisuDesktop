@@ -160,6 +160,7 @@ public class EmotionPlayer : MonoBehaviour
 
         string facialPreset = _facialOverride ?? instance.config.facialPreset;
         float facialWeight = _facialWeightOverride >= 0f ? _facialWeightOverride : instance.config.facialWeight;
+        Debug.Log("[EmotionPlayer] ApplyImmediate: override='" + _facialOverride + "' default='" + instance.config.facialPreset + "' → use='" + facialPreset + "' w=" + facialWeight + " arm=" + instance.config.allowRootMotion + " et=" + instance.config.enableEyeTracking);
         Debug.Log("[EmotionPlayer] ApplyImmediate: override='" + _facialOverride + "' default='" + instance.config.facialPreset + "' → use='" + facialPreset + "' w=" + facialWeight);
 
         if (!string.IsNullOrEmpty(facialPreset))
@@ -252,6 +253,7 @@ public class EmotionPlayer : MonoBehaviour
     private void UpdateAuxiliary(ActionGroupConfig config)
     {
         bool suppress = !config.isIdle && !config.enableEyeTracking;
+        Debug.Log("[EmotionPlayer] UpdateAuxiliary: isIdle=" + config.isIdle + " enableET=" + config.enableEyeTracking + " → suppress=" + suppress);
         if (blinkController != null)
             blinkController.suppressed = suppress;
         if (eyeTrackingController != null)

@@ -79,6 +79,7 @@ public class PreviewController : MonoBehaviour
 
     public void PreviewMultiBody(string facialPreset, float facialWeight, List<(string bodyPart, AnimationClip clip)> clips, bool arm = false, bool et = false)
     {
+        Debug.Log("[Preview] PreviewMultiBody: facial=" + (facialPreset ?? "null") + " w=" + facialWeight + " arm=" + arm + " et=" + et + " clips=" + (clips?.Count ?? 0));
         if (clips == null || clips.Count == 0)
         {
             if (!string.IsNullOrEmpty(facialPreset))
@@ -107,6 +108,8 @@ public class PreviewController : MonoBehaviour
             var (bp, c) = clips[i];
             config.bodyClips.Add(new PartClipEntry { bodyPart = bp, clipName = c.name, clip = c });
         }
+
+        Debug.Log("[Preview] config built: facialPreset='" + config.facialPreset + "' w=" + config.facialWeight + " ARM=" + config.allowRootMotion + " ET=" + config.enableEyeTracking);
 
         emotionPlayer.TransitionTo(config, true);
     }
