@@ -702,8 +702,10 @@ public partial class MainWindow : Window
         for (int i = 0; i < p.Targets.Count; i++)
         {
             var t = p.Targets[i];
+            string bsName = (_initData?.BlendShapeNames != null && t.Index < _initData.BlendShapeNames.Count)
+                ? _initData.BlendShapeNames[t.Index] : "?";
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-            row.Children.Add(new TextBlock { Text = $"Index [{t.Index}]:", Width = 80, VerticalAlignment = VerticalAlignment.Center });
+            row.Children.Add(new TextBlock { Text = $"Index [{t.Index}] ({bsName}):", Width = 180, VerticalAlignment = VerticalAlignment.Center });
             var slider = new Slider { Width = 150, Minimum = 0, Maximum = 100, Value = t.Weight };
             var lbl = new TextBlock { Text = t.Weight.ToString("F0"), Width = 40, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
             int idx = i;

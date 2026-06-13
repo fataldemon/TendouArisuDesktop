@@ -166,6 +166,9 @@ public class PipeServer : MonoBehaviour
         sb.Append("\"facialPresets\":");
         AppendFacialPresets(sb);
         sb.Append(',');
+        sb.Append("\"blendShapeNames\":");
+        AppendBlendShapeNames(sb);
+        sb.Append(',');
         AppendJsonProperty(sb, "dialogueHistory", llmFormatter.formatted_history);
         sb.Append(',');
         sb.Append("\"msgMaxWidth\":").Append(gameStart.msg_max_length).Append(',');
@@ -329,6 +332,23 @@ public class PipeServer : MonoBehaviour
                 sb.Append('"').Append(EscapeJson(p.activateObjects[j])).Append('"');
             }
             sb.Append("],\"blushMode\":\"").Append(EscapeJson(p.blushMode ?? "")).Append("\"}");
+        }
+        sb.Append(']');
+    }
+
+    private void AppendBlendShapeNames(StringBuilder sb)
+    {
+        sb.Append('[');
+        var meshRenderer = emotionPlayer?.facialEngine?.meshRenderer;
+        var mesh = meshRenderer?.sharedMesh;
+        if (mesh != null)
+        {
+            int count = mesh.blendShapeCount;
+            for (int i = 0; i < count; i++)
+            {
+                if (i > 0) sb.Append(',');
+                sb.Append('"').Append(EscapeJson(mesh.GetBlendShapeName(i))).Append('"');
+            }
         }
         sb.Append(']');
     }

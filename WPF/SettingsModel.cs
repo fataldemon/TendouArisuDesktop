@@ -43,6 +43,7 @@ public class InitData
     public List<ExpressionMappingEntry> ExpressionMappings { get; set; } = new();
     public List<ActionGroupFullEntry> ActionGroups { get; set; } = new();
     public List<FacialPresetEntry> FacialPresets { get; set; } = new();
+    public List<string> BlendShapeNames { get; set; } = new();
     public string DialogueHistory { get; set; } = "";
     public int MsgMaxWidth { get; set; }
     public int MsgHeight { get; set; }
