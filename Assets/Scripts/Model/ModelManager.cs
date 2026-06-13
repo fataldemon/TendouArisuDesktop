@@ -107,7 +107,9 @@ public class ModelManager : MonoBehaviour
             var animator = currentModel.GetComponent<Animator>();
             if (animator == null)
                 animator = currentModel.AddComponent<Animator>();
+            animator.runtimeAnimatorController = null;
             bodyEngine.animator = animator;
+            bodyEngine.RebuildGraph();
         }
 
         if (facialEngine != null)
@@ -115,7 +117,13 @@ public class ModelManager : MonoBehaviour
             var renderer = currentModel.GetComponentInChildren<SkinnedMeshRenderer>();
             if (renderer != null)
                 facialEngine.meshRenderer = renderer;
+            facialEngine.ResetInstant();
         }
+
+        var ep = bodyEngine != null ? bodyEngine.GetComponent<EmotionPlayer>() : null;
+        if (ep == null) ep = FindObjectOfType<EmotionPlayer>();
+        if (ep != null)
+            ep.ForceIdle();
     }
 
     public void RestoreDefault()
@@ -129,14 +137,25 @@ public class ModelManager : MonoBehaviour
         currentModel = defaultModel;
 
         if (bodyEngine != null)
-            bodyEngine.animator = defaultModel.GetComponent<Animator>();
+        {
+            var a = defaultModel.GetComponent<Animator>();
+            if (a != null) a.runtimeAnimatorController = null;
+            bodyEngine.animator = a;
+            bodyEngine.RebuildGraph();
+        }
 
         if (facialEngine != null)
         {
             var renderer = defaultModel.GetComponentInChildren<SkinnedMeshRenderer>();
             if (renderer != null)
                 facialEngine.meshRenderer = renderer;
+            facialEngine.ResetInstant();
         }
+
+        var ep = bodyEngine != null ? bodyEngine.GetComponent<EmotionPlayer>() : null;
+        if (ep == null) ep = FindObjectOfType<EmotionPlayer>();
+        if (ep != null)
+            ep.ForceIdle();
 
         SaveHistory();
     }

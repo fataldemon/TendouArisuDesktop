@@ -45,6 +45,13 @@ public class BodyEngine : MonoBehaviour
 
     public void SetPreviewing(bool value) { _isPreviewing = value; }
 
+    public void RebuildGraph()
+    {
+        if (_graph.IsValid())
+            _graph.Destroy();
+        BuildGraph();
+    }
+
     public void StartPreviewLock()
     {
         if (animator == null) return;
