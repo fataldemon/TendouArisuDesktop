@@ -50,13 +50,13 @@ public class PreviewController : MonoBehaviour
         _facialPreviewing = true;
     }
 
-    public void PreviewBody(AnimationClip clip, bool loop = true)
+    public void PreviewBody(AnimationClip clip, string bodyPart = "fullBody", bool loop = true)
     {
         if (clip == null) return;
         if (_isPreviewing) bodyEngine.EndPreviewLock();
         EnterPreview();
         if (emotionPlayer != null)
-            emotionPlayer.PlayClipDirect(clip, loop);
+            emotionPlayer.PlayClipDirect(clip, loop, bodyPart);
     }
 
     public void PreviewActionGroup(string facialPreset, float facialWeight, AnimationClip bodyClip)

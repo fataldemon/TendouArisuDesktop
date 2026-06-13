@@ -184,6 +184,16 @@ public class BodyEngine : MonoBehaviour
             PlayOnLayer(0, idleClip, blendDuration, true);
     }
 
+    public void StopAllExcept(List<string> keepParts, float blendDuration = 0.2f)
+    {
+        for (int i = 0; i < BodyPartNames.Length; i++)
+        {
+            if (keepParts.Contains(BodyPartNames[i])) continue;
+            if (_layers[i].isPlaying)
+                StartCoroutine(FadeOutLayer(i, blendDuration));
+        }
+    }
+
     public bool IsPlaying(string bodyPart = "fullBody")
     {
         int layer = GetLayerIndex(bodyPart);

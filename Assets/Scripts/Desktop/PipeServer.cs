@@ -415,8 +415,9 @@ public class PipeServer : MonoBehaviour
                     if (!string.IsNullOrEmpty(cmd.name) && previewController != null)
                     {
                         var clip = FindClipByName(cmd.name);
+                        string bp = !string.IsNullOrEmpty(cmd.bodyPart) ? cmd.bodyPart : "fullBody";
                         if (clip != null)
-                            previewController.PreviewBody(clip);
+                            previewController.PreviewBody(clip, bp);
                     }
                     break;
                 case "stop_preview":
@@ -619,4 +620,5 @@ public class PipeCommand
     public bool noZoom;
     public int msgWidth;
     public int msgHeight;
+    public string bodyPart = "fullBody";
 }

@@ -538,7 +538,7 @@ public partial class MainWindow : Window
             {
                 string current = capturedCbo.SelectedItem?.ToString();
                 if (!string.IsNullOrEmpty(current) && current != "(无)")
-                    _ = _pipe.SendCommand("preview_animation", new { name = current });
+                    _ = _pipe.SendCommand("preview_animation", new { name = current, bodyPart = capturedPart });
             };
             partRow.Children.Add(btnPrev);
 
@@ -553,9 +553,11 @@ public partial class MainWindow : Window
             _ = _pipe.SendCommand("reset_blendshapes");
             if (!string.IsNullOrEmpty(g.FacialPreset))
                 _ = _pipe.SendCommand("preview_facial", new { facialX = g.FacialPreset, facialW = g.FacialWeight, noZoom = true });
-            var fullClip = g.BodyClips.FirstOrDefault(c => c.BodyPart == "fullBody");
-            if (fullClip != null && !string.IsNullOrEmpty(fullClip.ClipName))
-                _ = _pipe.SendCommand("preview_animation", new { name = fullClip.ClipName });
+            foreach (var c in g.BodyClips)
+            {
+                if (!string.IsNullOrEmpty(c.ClipName))
+                    _ = _pipe.SendCommand("preview_animation", new { name = c.ClipName, bodyPart = c.BodyPart });
+            }
         };
         previewRow.Children.Add(btnGlobalPreview);
         var btnStop = new Button { Content = "停止", Width = 60, Margin = new Thickness(8, 0, 0, 0) };

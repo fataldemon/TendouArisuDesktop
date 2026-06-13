@@ -26,7 +26,7 @@ public class EmotionPlayer : MonoBehaviour
     public event Action OnActionGroupStart;
     public event Action OnActionGroupEnd;
 
-    public void PlayClipDirect(AnimationClip clip, bool loop = true)
+    public void PlayClipDirect(AnimationClip clip, bool loop = true, string bodyPart = "fullBody")
     {
         _facialOverride = null;
         _facialWeightOverride = -1f;
@@ -41,7 +41,7 @@ public class EmotionPlayer : MonoBehaviour
             blendOutFacial = 0.15f,
             isIdle = false
         };
-        config.bodyClips.Add(new PartClipEntry { bodyPart = "fullBody", clipName = clip.name, clip = clip });
+        config.bodyClips.Add(new PartClipEntry { bodyPart = bodyPart, clipName = clip.name, clip = clip });
         config.allowRootMotion = bodyEngine != null && bodyEngine.allowRootMotion;
         _current = null;
         TransitionTo(config, true);
@@ -178,6 +178,9 @@ public class EmotionPlayer : MonoBehaviour
             }
         }
 
+        var keepParts = instance.resolvedClips.Select(rc => rc.bodyPart).ToList();
+        bodyEngine.StopAllExcept(keepParts, 0.2f);
+
         if (bodyEngine != null && bodyEngine.animator != null)
             bodyEngine.animator.applyRootMotion = instance.config.allowRootMotion;
 
@@ -209,6 +212,9 @@ public class EmotionPlayer : MonoBehaviour
         }
         if (newInstance.resolvedClips.Count == 0 && bodyEngine.idleClip != null)
             bodyEngine.Play(bodyEngine.idleClip, "fullBody", blendOutBody, true);
+
+        var keepParts = newInstance.resolvedClips.Select(rc => rc.bodyPart).ToList();
+        bodyEngine.StopAllExcept(keepParts, 0.2f);
 
         if (bodyEngine != null && bodyEngine.animator != null)
             bodyEngine.animator.applyRootMotion = newInstance.config.allowRootMotion;
