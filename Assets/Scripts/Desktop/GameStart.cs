@@ -433,9 +433,9 @@ public class GameStart : MonoBehaviour
             emotionPlayer.NotifyTTSEnd();
         }
 
-        if (!emotionPlayer.IsPlaying && NetManager.M_Instance.response_queue.Count > 0 && !m_AudioSource.isPlaying && !onVoice)
+        if (!emotionPlayer.IsPlaying && !m_AudioSource.isPlaying && !onVoice
+            && NetManager.M_Instance.response_queue.TryDequeue(out reply))
         {
-            reply = NetManager.M_Instance.response_queue.Dequeue();
 
             LLMFormatter.LLMResponseWrapper wrapper = null;
             try { wrapper = JsonUtility.FromJson<LLMFormatter.LLMResponseWrapper>(reply); } catch { }

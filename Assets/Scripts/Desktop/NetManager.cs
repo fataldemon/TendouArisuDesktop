@@ -1,6 +1,6 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
@@ -40,7 +40,7 @@ public class NetManager
         return m_isDoThread;
     }
 
-    public Queue<string> response_queue = new Queue<string>();
+    public ConcurrentQueue<string> response_queue = new ConcurrentQueue<string>();
 
     public void Connect(string uriStr)
     {
@@ -85,7 +85,7 @@ public class NetManager
                 response_queue.Enqueue(data);
                 if (response_queue.Count > 5)
                 { 
-                    response_queue.Dequeue();
+                    response_queue.TryDequeue(out _);
                 }
             }
         }
@@ -157,6 +157,7 @@ public class NetManager
         if (m_dataReceiveThread != null && m_dataReceiveThread.IsAlive)
         {
             m_isDoThread = false;
+            m_dataReceiveThread.Join(1000);
             m_dataReceiveThread = null;
         }
     }
