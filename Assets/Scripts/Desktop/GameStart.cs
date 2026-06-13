@@ -9,6 +9,16 @@ public class GameStart : MonoBehaviour
 {
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
     private string msg;
     private string reply;
     private string thought;
@@ -422,6 +432,8 @@ public class GameStart : MonoBehaviour
             bool leftDown = (GetAsyncKeyState(0x01) & 0x8000) != 0;
             _gripDragActive = false;
             _isOverGrip = false;
+            GetCursorPos(out POINT cursor);
+            Vector2 cursorScreen = new Vector2(cursor.X, cursor.Y);
             if (targetTransform != null)
             {
                 screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
@@ -430,14 +442,13 @@ public class GameStart : MonoBehaviour
                 float gripSize = 36f;
                 _gripRect = new Rect(gx + msg_max_length / 2f - gripSize / 2f,
                     gy + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
-                if (_ctrlDown && _gripRect.Contains(Input.mousePosition))
-                    _isOverGrip = true;
+                _isOverGrip = _ctrlDown && _gripRect.Contains(cursorScreen);
             }
 
             if (_ctrlDown && leftDown && _isOverGrip && !_gripDragTracking)
             {
                 _gripDragTracking = true;
-                _gripDragStartMouse = Input.mousePosition;
+                _gripDragStartMouse = cursorScreen;
                 _gripDragStartOffset = guiOffset;
             }
 
@@ -446,7 +457,7 @@ public class GameStart : MonoBehaviour
                 if (leftDown && _ctrlDown)
                 {
                     _gripDragActive = true;
-                    guiOffset = _gripDragStartOffset + ((Vector2)Input.mousePosition - _gripDragStartMouse);
+                    guiOffset = _gripDragStartOffset + (cursorScreen - _gripDragStartMouse);
                 }
                 else
                 {
@@ -457,8 +468,7 @@ public class GameStart : MonoBehaviour
 
             if (_ctrlDown)
             {
-                Vector2 sm = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-                Debug.Log($"[GRIP] f={Time.frameCount} ctrl=T left={leftDown} over={_isOverGrip} track={_gripDragTracking} active={_gripDragActive} rect=({_gripRect.x:F0},{_gripRect.y:F0} {_gripRect.width:F0}x{_gripRect.height:F0}) rawMouse=({Input.mousePosition.x:F0},{Input.mousePosition.y:F0}) screenMouse=({sm.x:F0},{sm.y:F0}) target={(targetTransform != null)}");
+                Debug.Log($"[GRIP] f={Time.frameCount} ctrl=T left={leftDown} over={_isOverGrip} track={_gripDragTracking} active={_gripDragActive} rect=({_gripRect.x:F0},{_gripRect.y:F0} {_gripRect.width:F0}x{_gripRect.height:F0}) cursor=({cursor.X},{cursor.Y}) target={(targetTransform != null)}");
             }
         }
 
