@@ -69,8 +69,6 @@ public class GameStart : MonoBehaviour
 
     private bool isResizingDialog;
     private Vector2 resizeStartMouse;
-    private int resizeStartWidth;
-    private int resizeStartHeight;
 
     private Vector3 screenPos;
     private Vector2 guiOffset = new Vector2(-450f, -200f);
@@ -93,6 +91,11 @@ public class GameStart : MonoBehaviour
     private bool _isOverGrip;
     private Rect _gripRect;
     public bool IsOverGrip => _isOverGrip;
+    private bool _gripDragActive;
+    public bool GripDragActive => _gripDragActive;
+    private bool _gripDragTracking;
+    private Vector2 _gripDragStartMouse;
+    private Vector2 _gripDragStartOffset;
 
     private void SetupSkin()
     {
@@ -408,34 +411,49 @@ public class GameStart : MonoBehaviour
         bool shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0;
         if (shiftDown && Input.GetMouseButton(0))
         {
-            var anim = GetAnimator();
-            Vector3 headPos = Camera.main.transform.position + Camera.main.transform.forward;
-            if (anim != null)
-            {
-                var head = anim.GetBoneTransform(HumanBodyBones.Head);
-                if (head != null) headPos = head.position;
-            }
-            float dist = Vector3.Distance(Camera.main.transform.position, headPos);
-            float panSpeed = dist * 1.5f;
+            float panSpeed = 0.003f;
             float mx = Input.GetAxis("Mouse X");
             float my = Input.GetAxis("Mouse Y");
             Camera.main.transform.Translate(-mx * panSpeed, -my * panSpeed, 0, Space.Self);
         }
 
-        // Compute grip rect for TransparentWindow drag skip
-        if (targetTransform != null)
+        // Grip resize logic (Input-driven, before OnGUI for TransparentWindow LateUpdate)
         {
-            screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
-            float gx = Mathf.Clamp(screenPos.x + guiOffset.x, -msg_max_length + 80f, Screen.width - 80f);
-            float gy = Mathf.Clamp(Screen.height - msg_height - 160f + guiOffset.y, 0f, Screen.height - msg_height);
-            float gripSize = 36f;
-            _gripRect = new Rect(gx + msg_max_length / 2f - gripSize / 2f,
-                gy + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
-            _isOverGrip = _ctrlDown && _gripRect.Contains(Input.mousePosition);
-        }
-        else
-        {
+            _gripDragActive = false;
             _isOverGrip = false;
+            if (targetTransform != null)
+            {
+                screenPos = Camera.main.WorldToScreenPoint(targetTransform.position);
+                float gx = Mathf.Clamp(screenPos.x + guiOffset.x, -msg_max_length + 80f, Screen.width - 80f);
+                float gy = Mathf.Clamp(Screen.height - msg_height - 160f + guiOffset.y, 0f, Screen.height - msg_height);
+                float gripSize = 36f;
+                _gripRect = new Rect(gx + msg_max_length / 2f - gripSize / 2f,
+                    gy + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
+                if (_ctrlDown && _gripRect.Contains(Input.mousePosition))
+                    _isOverGrip = true;
+            }
+
+            if (_ctrlDown && Input.GetMouseButtonDown(0) && _isOverGrip && !_gripDragTracking)
+            {
+                _gripDragTracking = true;
+                _gripDragStartMouse = Input.mousePosition;
+                _gripDragStartOffset = guiOffset;
+            }
+
+            if (_gripDragTracking)
+            {
+                bool leftDown = Input.GetMouseButton(0);
+                if (leftDown && _ctrlDown)
+                {
+                    _gripDragActive = true;
+                    guiOffset = _gripDragStartOffset + ((Vector2)Input.mousePosition - _gripDragStartMouse);
+                }
+                else
+                {
+                    _gripDragTracking = false;
+                    SaveSettings();
+                }
+            }
         }
 
         if (onDialogue)
@@ -695,29 +713,6 @@ public class GameStart : MonoBehaviour
             float gripSize = 36f;
             Rect gripRect = new Rect(gripBubbleX + msg_max_length / 2f - gripSize / 2f,
                 gripBubbleY + msg_height / 2f - gripSize / 2f, gripSize, gripSize);
-
-            Event e = Event.current;
-            if (e.type == EventType.MouseDown && gripRect.Contains(e.mousePosition))
-            {
-                isResizingDialog = true;
-                resizeStartMouse = e.mousePosition;
-                resizeStartWidth = (int)guiOffset.x;
-                resizeStartHeight = (int)guiOffset.y;
-                e.Use();
-            }
-            if (e.type == EventType.MouseDrag && isResizingDialog)
-            {
-                Vector2 delta = e.mousePosition - resizeStartMouse;
-                guiOffset.x = resizeStartWidth + (int)delta.x;
-                guiOffset.y = resizeStartHeight + (int)delta.y;
-                e.Use();
-            }
-            if (e.type == EventType.MouseUp && isResizingDialog)
-            {
-                isResizingDialog = false;
-                SaveSettings();
-                e.Use();
-            }
 
             float scroll = Input.GetAxis("Mouse ScrollWheel");
             if (Mathf.Abs(scroll) > 0.01f)

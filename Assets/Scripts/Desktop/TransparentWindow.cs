@@ -236,7 +236,7 @@ public class TransparentWindow : MonoBehaviour
         if (!_dragPending) return;
         _dragPending = false;
 
-        if (gameStart != null && gameStart.IsOverGrip)
+        if (gameStart != null && gameStart.GripDragActive)
             return;
 
         SetTransparent(false);
