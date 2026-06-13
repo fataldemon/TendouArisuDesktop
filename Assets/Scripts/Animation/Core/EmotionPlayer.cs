@@ -160,6 +160,9 @@ public class EmotionPlayer : MonoBehaviour
 
         string facialPreset = _facialOverride ?? instance.config.facialPreset;
         float facialWeight = _facialWeightOverride >= 0f ? _facialWeightOverride : instance.config.facialWeight;
+        if (bodyEngine != null && bodyEngine.animator != null)
+            bodyEngine.animator.applyRootMotion = instance.config.allowRootMotion;
+
         Debug.Log("[EmotionPlayer] ApplyImmediate: override='" + _facialOverride + "' default='" + instance.config.facialPreset + "' → use='" + facialPreset + "' w=" + facialWeight + " arm=" + instance.config.allowRootMotion + " et=" + instance.config.enableEyeTracking);
         Debug.Log("[EmotionPlayer] ApplyImmediate: override='" + _facialOverride + "' default='" + instance.config.facialPreset + "' → use='" + facialPreset + "' w=" + facialWeight);
 
@@ -167,6 +170,9 @@ public class EmotionPlayer : MonoBehaviour
             facialEngine.PlayExpression(facialPreset, facialWeight, instance.config.blendInFacial);
         else
             facialEngine.RestoreExpression(instance.config.blendInFacial);
+
+        if (bodyEngine != null && bodyEngine.animator != null)
+            bodyEngine.animator.applyRootMotion = instance.config.allowRootMotion;
 
         Debug.Log("[EmotionPlayer] ApplyImmediate: pos=" + (bodyEngine.animator != null ? bodyEngine.animator.transform.position.ToString("F2") : "?") +
             " frame=" + Time.frameCount);
@@ -188,9 +194,6 @@ public class EmotionPlayer : MonoBehaviour
             }
         }
 
-        if (bodyEngine != null && bodyEngine.animator != null)
-            bodyEngine.animator.applyRootMotion = instance.config.allowRootMotion;
-
         UpdateAuxiliary(instance.config);
         OnActionGroupStart?.Invoke();
     }
@@ -211,6 +214,9 @@ public class EmotionPlayer : MonoBehaviour
         else
             facialEngine.RestoreExpression(blendOutFacial);
 
+        if (bodyEngine != null && bodyEngine.animator != null)
+            bodyEngine.animator.applyRootMotion = newInstance.config.allowRootMotion;
+
         Debug.Log("[EmotionPlayer] StartCrossfade: pos=" + (bodyEngine != null && bodyEngine.animator != null ? bodyEngine.animator.transform.position.ToString("F2") : "?") +
             " frame=" + Time.frameCount);
         float blend = Mathf.Max(blendOutBody, blendInBody);
@@ -230,9 +236,6 @@ public class EmotionPlayer : MonoBehaviour
                 bodyEngine.Stop(part, blend);
             }
         }
-
-        if (bodyEngine != null && bodyEngine.animator != null)
-            bodyEngine.animator.applyRootMotion = newInstance.config.allowRootMotion;
 
         _current.state = ActionGroupState.BlendingOut;
         newInstance.state = ActionGroupState.BlendingIn;
