@@ -67,6 +67,15 @@ public class TransparentWindow : MonoBehaviour
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
 
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
     private const int WS_POPUP = 0x800000;
     private const int GWL_EXSTYLE = -20;
     private const int GWL_STYLE = -16;
@@ -74,6 +83,8 @@ public class TransparentWindow : MonoBehaviour
     private const int WS_BORDER = 0x00800000;
     private const int WS_CAPTION = 0x00C00000;
     private const int SWP_SHOWWINDOW = 0x0040;
+    private const int SWP_NOZORDER = 0x0004;
+    private const int SWP_NOSIZE = 0x0001;
     private const int WS_EX_TRANSPARENT = 0x20;
     private const int WM_NCLBUTTONDOWN = 0x00A1;
     private const int HTCAPTION = 2;
@@ -99,6 +110,9 @@ public class TransparentWindow : MonoBehaviour
     private IntPtr hwnd = IntPtr.Zero;
     private bool _transparentEnabled;
     private bool _ctrlWasDown;
+    private bool _isDraggingWindow;
+    private POINT _dragStartCursor;
+    private int _dragStartWindowX, _dragStartWindowY;
 
     void Start()
     {
@@ -169,27 +183,44 @@ public class TransparentWindow : MonoBehaviour
         if (hwnd == IntPtr.Zero) return;
 
         bool ctrlDown = (GetAsyncKeyState(0x11) & 0x8000) != 0;
+        bool mouseDownNow = Input.GetMouseButtonDown(0);
+        bool mouseUpNow = Input.GetMouseButtonUp(0);
 
-        // Ctrl pressed → temporarily disable penetration for interaction
-        if (ctrlDown && !_ctrlWasDown)
+        if (ctrlDown && mouseDownNow && !_isDraggingWindow)
         {
             SetTransparent(false);
+            GetCursorPos(out _dragStartCursor);
+            if (GetWindowRect(hwnd, out RECT rect))
+            {
+                _dragStartWindowX = rect.Left;
+                _dragStartWindowY = rect.Top;
+            }
+            _isDraggingWindow = true;
             OnDragStart?.Invoke();
         }
 
-        // Ctrl+drag to move the window
-        if (ctrlDown && Input.GetMouseButtonDown(0))
+        if (_isDraggingWindow)
         {
-            ReleaseCapture();
-            SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+            GetCursorPos(out POINT cur);
+            int newX = _dragStartWindowX + (cur.X - _dragStartCursor.X);
+            int newY = _dragStartWindowY + (cur.Y - _dragStartCursor.Y);
+            SetWindowPos(hwnd, 0, newX, newY, 0, 0, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOSIZE);
+            currentX = newX;
+            currentY = newY;
         }
 
-        // Ctrl released → restore penetration
-        if (!ctrlDown && _ctrlWasDown)
+        if (_isDraggingWindow && (mouseUpNow || (!ctrlDown && _ctrlWasDown)))
         {
+            _isDraggingWindow = false;
             SetTransparent(true);
             OnDragEnd?.Invoke();
         }
+
+        if (ctrlDown && !_ctrlWasDown && !_isDraggingWindow)
+            SetTransparent(false);
+
+        if (!ctrlDown && _ctrlWasDown && !_isDraggingWindow)
+            SetTransparent(true);
 
         _ctrlWasDown = ctrlDown;
 #endif
