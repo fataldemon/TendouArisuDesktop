@@ -155,6 +155,8 @@ public class TransparentWindow : MonoBehaviour
         SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TRANSPARENT);
         SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_BORDER & ~WS_CAPTION);
         SetWindowPos(hwnd, -1, _realX, _realY, _realWidth, _realHeight, SWP_SHOWWINDOW);
+        currentX = _realX;
+        currentY = _realY;
 
         yield return null;
         var margins = new MARGINS() { cxLeftWidth = -1 };
