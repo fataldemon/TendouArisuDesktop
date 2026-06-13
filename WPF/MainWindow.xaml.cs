@@ -503,6 +503,14 @@ public partial class MainWindow : Window
         }
         sp.Children.Add(facialPanel);
 
+        var btnPrevFacial = new Button { Content = "预览表情", Width = 80, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 0, 8) };
+        btnPrevFacial.Click += (_, _) =>
+        {
+            if (!string.IsNullOrEmpty(g.FacialPreset))
+                _ = _pipe.SendCommand("preview_facial", new { facialX = g.FacialPreset, facialW = g.FacialWeight });
+        };
+        sp.Children.Add(btnPrevFacial);
+
         // Loop
         var loopRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
         loopRow.Children.Add(new TextBlock { Text = "循环:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
@@ -576,7 +584,9 @@ public partial class MainWindow : Window
             {
                 actionX = string.Join("|", clipParts),
                 facialX = g.FacialPreset ?? "",
-                facialW = g.FacialWeight
+                facialW = g.FacialWeight,
+                actionY = g.AllowRootMotion ? 1f : 0f,
+                actionW = g.EnableEyeTracking ? 1f : 0f
             });
         };
         previewRow.Children.Add(btnGlobalPreview);

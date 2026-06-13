@@ -76,30 +76,30 @@ public class PreviewController : MonoBehaviour
             emotionPlayer.PlayClipDirect(bodyClip, true);
     }
 
-    public void PreviewMultiBody(string facialPreset, float facialWeight, List<(string bodyPart, AnimationClip clip)> clips)
+    public void PreviewMultiBody(string facialPreset, float facialWeight, List<(string bodyPart, AnimationClip clip)> clips, bool arm = false, bool et = false)
     {
-        if (clips == null || clips.Count == 0) return;
+        if (clips == null || clips.Count == 0)
+        {
+            if (!string.IsNullOrEmpty(facialPreset))
+                PreviewFacial(facialPreset, facialWeight);
+            return;
+        }
         if (_isPreviewing) bodyEngine.EndPreviewLock();
         EnterPreview();
-
-        if (!string.IsNullOrEmpty(facialPreset))
-        {
-            facialEngine.ResetInstant();
-            facialEngine.PreviewInstant(facialPreset, facialWeight);
-            _facialPreviewing = true;
-        }
 
         var config = new ActionGroupConfig
         {
             groupName = "MultiPreview",
-            facialPreset = "",
+            facialPreset = facialPreset ?? "",
+            facialWeight = facialWeight,
             loop = true,
             blendInBody = 0.1f,
             blendInFacial = 0.1f,
             blendOutBody = 0.2f,
             blendOutFacial = 0.15f,
             isIdle = false,
-            allowRootMotion = bodyEngine.allowRootMotion
+            allowRootMotion = arm,
+            enableEyeTracking = et
         };
         for (int i = 0; i < clips.Count; i++)
         {

@@ -469,7 +469,7 @@ public class PipeServer : MonoBehaviour
                                 }
                             }
                         }
-                        previewController.PreviewMultiBody(cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, multiClips);
+                        previewController.PreviewMultiBody(cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, multiClips, cmd.actionY > 0f, cmd.actionW > 0f);
                     }
                     break;
                 case "reset_blendshapes":
