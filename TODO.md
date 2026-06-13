@@ -4,18 +4,34 @@
 
 | # | 问题 | 文件 | 严重度 |
 |---|------|------|:--:|
-| 1 | `NetManager.response_queue` 竞态条件 | `NetManager.cs:85` | 严重 |
-| 2 | `LLMFormatter` 创建 function 但未添加到列表 | `LLMFormatter.cs:180-219` | 中 |
-| 3 | `NetManager.Send` 对文本用 Binary 消息类型 | `NetManager.cs:134` | 中 |
-| 4 | `LLMFormatter.RemoveAction` 正则未正确转义 | `LLMFormatter.cs:270` | 中 |
-| 5 | `streamBuffer` WebSocket 中断后残留 | `GameStart.cs:18,507-517` | 轻 |
-| 6 | `msg_length_receive` 无上限 | `GameStart.cs:429-430` | 轻 |
-| 7 | `onDialogue` 可能永不为 false | `GameStart.cs:424-438` | 轻 |
-| 8 | LLM 对话历史无限增长 | `LLMFormatter.cs:248,260` | 轻 |
-| 9 | `TransparentWindow.GetWindowPosition` 回退值为 0 | `TransparentWindow.cs:240-241` | 轻 |
-| 10 | `System.Random` 无种子频繁创建 | `SimpleVitsApi.cs:70`, `GameStart.cs:72` | 轻 |
-| 11 | 拖拽 `OnDragStart` 触发时机不对（Ctrl 按下就触发，应该是 Ctrl+MouseDown） | `TransparentWindow.cs:180` | 轻 |
-| 12 | 模型切换后 BlendShape 索引不兼容 | `ModelManager.cs` | 中 |
+| 1 | `LLMFormatter.RemoveAction` 正则未正确转义 | `LLMFormatter.cs:270` | 中 |
+| 2 | `streamBuffer` WebSocket 中断后残留 | `GameStart.cs:18,507-517` | 轻 |
+| 3 | `msg_length_receive` 无上限 | `GameStart.cs:429-430` | 轻 |
+| 4 | `TransparentWindow.GetWindowPosition` 回退值为 0 | `TransparentWindow.cs:240-241` | 轻 |
+| 5 | `System.Random` 无种子频繁创建 | `SimpleVitsApi.cs:70`, `GameStart.cs:72` | 轻 |
+| 6 | 模型切换后 BlendShape 索引不兼容 | `ModelManager.cs` | 中 |
+| 7 | Connect 错误处理中 m_clientWebSocket 可能为 null | `NetManager.cs:70` | 轻 |
+
+## 已完成 Bug 修复 (2026-06-13 session)
+
+| # | 问题 | 修复方式 |
+|---|------|---------|
+| — | `NetManager.response_queue` 竞态条件 | `Queue` → `ConcurrentQueue` |
+| — | `CloseClientWebSocket` 丢弃线程引用未 Join | 添加 `Join(1000)` 等待线程退出 |
+| — | 拖拽 `WM_NCLBUTTONDOWN` 阻塞导致窗口冻结 | 改为 `GetCursorPos + SetWindowPos` 非阻塞方案 |
+| — | `OnDragStart` 触发时机不对（Ctrl 按下就触发） | Ctrl+MouseDown 才触发 |
+| — | Ctrl+拖拽窗口时误触发触摸动画 | 触摸检测加 `!_ctrlDown && !_shiftDown` |
+| — | 对话框 grip 无法交互 | grip resize 从 OnGUI 迁到 Update(Input驱动)；`GetCursorPos` 屏幕坐标→窗口坐标转换 |
+| — | 首帧 grip 坐标偏移（cursorWin 不准） | 初始化 `currentX/Y` 为窗口实际位置 |
+| — | `Input.GetMouseButton` 透明窗口下不响应 | 全局改用 `GetAsyncKeyState(0x01)` |
+| — | Y轴翻转导致 cursorWin 偏移 | `cursorWin.y` 改为 top-left 原点（`cursor.Y - currentY`） |
+
+## 新增功能 (2026-06-13 session)
+
+| # | 功能 |
+|---|------|
+| — | **Shift+左键拖拽** 平移镜头（`panSpeed = 0.006f`，`Space.Self`） |
+| — | 窗口拖拽不再阻塞 Unity Update（`SetWindowPos` 非模态） |
 
 ## 已完成功能
 
