@@ -177,6 +177,12 @@ public static class ActionSystemRuntime
                 {
                     string bodyPart = kv[0];
                     string clipName = kv[1];
+                    // Remove entry if clipName is empty
+                    if (string.IsNullOrEmpty(clipName))
+                    {
+                        group.bodyClips.RemoveAll(c => c.bodyPart == bodyPart);
+                        continue;
+                    }
                     bool found = false;
                     for (int j = 0; j < group.bodyClips.Count; j++)
                     {

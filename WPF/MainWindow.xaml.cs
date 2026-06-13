@@ -533,11 +533,12 @@ public partial class MainWindow : Window
             };
 
             var btnPrev = new Button { Content = "▶", Width = 32, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(4, 0, 0, 0) };
-            string capturedClip = clipName;
+            var capturedCbo = cbo;
             btnPrev.Click += (_, _) =>
             {
-                if (!string.IsNullOrEmpty(capturedClip))
-                    _ = _pipe.SendCommand("preview_animation", new { name = capturedClip });
+                string current = capturedCbo.SelectedItem?.ToString();
+                if (!string.IsNullOrEmpty(current) && current != "(无)")
+                    _ = _pipe.SendCommand("preview_animation", new { name = current });
             };
             partRow.Children.Add(btnPrev);
 
@@ -575,10 +576,7 @@ public partial class MainWindow : Window
         {
             var clipParts = new List<string>();
             foreach (var c in g.BodyClips)
-            {
-                if (!string.IsNullOrEmpty(c.ClipName))
-                    clipParts.Add(c.BodyPart + "=" + c.ClipName);
-            }
+                clipParts.Add(c.BodyPart + "=" + (c.ClipName ?? ""));
             _ = _pipe.SendCommand("update_action_group", new
             {
                 name = g.GroupName,

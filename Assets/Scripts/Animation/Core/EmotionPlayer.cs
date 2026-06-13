@@ -42,6 +42,7 @@ public class EmotionPlayer : MonoBehaviour
             isIdle = false
         };
         config.bodyClips.Add(new PartClipEntry { bodyPart = "fullBody", clipName = clip.name, clip = clip });
+        config.allowRootMotion = bodyEngine != null && bodyEngine.allowRootMotion;
         _current = null;
         TransitionTo(config, true);
     }
@@ -170,7 +171,11 @@ public class EmotionPlayer : MonoBehaviour
         {
             var rc = instance.resolvedClips[i];
             if (rc.clip != null)
+            {
+                Debug.Log("[EmotionPlayer] ApplyImmediate: play " + rc.clip.name + " on " + rc.bodyPart +
+                    " blend=" + instance.config.blendInBody + " loop=" + instance.config.loop);
                 bodyEngine.Play(rc.clip, rc.bodyPart, instance.config.blendInBody, instance.config.loop);
+            }
         }
 
         if (bodyEngine != null && bodyEngine.animator != null)

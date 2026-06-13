@@ -155,8 +155,8 @@
                 <TabItem Header="情绪映射">
                     <Grid Margin="12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.2*" MinWidth="320"/>
                             <ColumnDefinition Width="*" MinWidth="320"/>
+                            <ColumnDefinition Width="2*" MinWidth="360"/>
                         </Grid.ColumnDefinitions>
                         <Grid Grid.Column="0" Margin="0,0,8,0">
                             <Grid.RowDefinitions>
