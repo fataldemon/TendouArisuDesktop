@@ -807,6 +807,12 @@ public class GameStart : MonoBehaviour
             GUI.Box(gripRect, "");
             GUI.Label(gripRect, "╋");
             GUI.color = prevColor;
+
+            GetCursorPos(out POINT cur);
+            Vector2 cw = new Vector2(cur.X - windowController.currentX, cur.Y - windowController.currentY);
+            GUI.DrawTexture(new Rect(gripRect.center.x - 5, gripRect.center.y - 5, 10, 10), Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Color.blue, 0, 0);
+            GUI.DrawTexture(new Rect(cw.x - 5, cw.y - 5, 10, 10), Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Color.red, 0, 0);
+
             Debug.Log($"[GUI-GRIP v3] f={Time.frameCount} rect=({gripRect.x:F0},{gripRect.y:F0} {gripRect.width:F0}x{gripRect.height:F0}) screenWH=({Screen.width},{Screen.height}) bubbleXY=({gripBubbleX:F0},{gripBubbleY:F0}) guiOffset=({guiOffset.x:F0},{guiOffset.y:F0}) screenPos=({screenPos.x:F0},{screenPos.y:F0})");
         }
     }
