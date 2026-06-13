@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PreviewController : MonoBehaviour
@@ -73,5 +74,39 @@ public class PreviewController : MonoBehaviour
 
         if (bodyClip != null && emotionPlayer != null)
             emotionPlayer.PlayClipDirect(bodyClip, true);
+    }
+
+    public void PreviewMultiBody(string facialPreset, float facialWeight, List<(string bodyPart, AnimationClip clip)> clips)
+    {
+        if (clips == null || clips.Count == 0) return;
+        if (_isPreviewing) bodyEngine.EndPreviewLock();
+        EnterPreview();
+
+        if (!string.IsNullOrEmpty(facialPreset))
+        {
+            facialEngine.ResetInstant();
+            facialEngine.PreviewInstant(facialPreset, facialWeight);
+            _facialPreviewing = true;
+        }
+
+        var config = new ActionGroupConfig
+        {
+            groupName = "MultiPreview",
+            facialPreset = "",
+            loop = true,
+            blendInBody = 0.1f,
+            blendInFacial = 0.1f,
+            blendOutBody = 0.2f,
+            blendOutFacial = 0.15f,
+            isIdle = false,
+            allowRootMotion = bodyEngine.allowRootMotion
+        };
+        for (int i = 0; i < clips.Count; i++)
+        {
+            var (bp, c) = clips[i];
+            config.bodyClips.Add(new PartClipEntry { bodyPart = bp, clipName = c.name, clip = c });
+        }
+
+        emotionPlayer.TransitionTo(config, true);
     }
 }

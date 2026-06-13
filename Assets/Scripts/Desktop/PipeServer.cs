@@ -455,9 +455,7 @@ public class PipeServer : MonoBehaviour
                     if (previewController != null)
                     {
                         previewController.ExitPreview();
-                        previewController.EnterPreview();
-                        if (!string.IsNullOrEmpty(cmd.facialX))
-                            previewController.PreviewFacial(cmd.facialX, cmd.facialW > 0 ? cmd.facialW : 1f);
+                        var multiClips = new System.Collections.Generic.List<(string, AnimationClip)>();
                         string clipsStr = cmd.actionX ?? "";
                         if (!string.IsNullOrEmpty(clipsStr))
                         {
@@ -467,10 +465,11 @@ public class PipeServer : MonoBehaviour
                                 if (kv.Length == 2)
                                 {
                                     var c = FindClipByName(kv[1]);
-                                    if (c != null) previewController.PreviewBody(c, kv[0]);
+                                    if (c != null) multiClips.Add((kv[0], c));
                                 }
                             }
                         }
+                        previewController.PreviewMultiBody(cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, multiClips);
                     }
                     break;
                 case "reset_blendshapes":

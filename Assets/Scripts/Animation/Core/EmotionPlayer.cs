@@ -137,7 +137,7 @@ public class EmotionPlayer : MonoBehaviour
         return ActionSystemRuntime.GetActionGroup(groupName);
     }
 
-    private void TransitionTo(ActionGroupConfig config, bool instant)
+    public void TransitionTo(ActionGroupConfig config, bool instant)
     {
         var clips = ResolveAllBodyClips(config);
         var instance = new ActionGroupInstance(config, clips);
