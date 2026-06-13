@@ -169,7 +169,8 @@ public partial class MainWindow : Window
         var displayList = mappings.Select(m => new
         {
             m.Emotion,
-            EmotionDisplay = (m.Emotion is "待机" or "触摸" or "拖拽") ? "★ " + m.Emotion : m.Emotion,
+            m.IsRandomEvent,
+            EmotionDisplay = m.IsRandomEvent ? "🎲 " + m.Emotion : (m.Emotion is "待机" or "触摸" or "拖拽") ? "★ " + m.Emotion : m.Emotion,
             FacialSummary = !string.IsNullOrEmpty(m.FacialOverride) ? m.FacialOverride : (m.FacialGroup?.Preset ?? "-"),
             ActionSummary = !string.IsNullOrEmpty(m.ActionGroupName) ? m.ActionGroupName : (m.ActionGroup?.AnimationName ?? "-"),
         }).ToList();
@@ -366,6 +367,14 @@ public partial class MainWindow : Window
         weightRow.Children.Add(lblW);
         sp.Children.Add(weightRow);
 
+        // Random event
+        var rndRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 0) };
+        var chkRnd = new CheckBox { Content = "随机事件", VerticalAlignment = VerticalAlignment.Center, IsChecked = entry.IsRandomEvent };
+        chkRnd.Checked += (_, _) => entry.IsRandomEvent = true;
+        chkRnd.Unchecked += (_, _) => entry.IsRandomEvent = false;
+        rndRow.Children.Add(chkRnd);
+        sp.Children.Add(rndRow);
+
         var btnPreviewFacial = new Button { Content = "预览表情", Width = 80, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 4, 0, 0) };
         btnPreviewFacial.Click += (_, _) =>
         {
@@ -385,7 +394,8 @@ public partial class MainWindow : Window
                 emotion = entry.Emotion,
                 actionX = entry.ActionGroupName,
                 facialX = entry.FacialOverride ?? "",
-                facialW = entry.FacialWeightOverride > 0 ? entry.FacialWeightOverride : 1f
+                facialW = entry.FacialWeightOverride > 0 ? entry.FacialWeightOverride : 1f,
+                isRandom = entry.IsRandomEvent
             });
             _ = _pipe.SendCommand("restore_expression");
             _exprEditing = null;
@@ -468,6 +478,14 @@ public partial class MainWindow : Window
         chkARM.Unchecked += (_, _) => g.AllowRootMotion = false;
         armRow.Children.Add(chkARM);
         sp.Children.Add(armRow);
+
+        // Enable Eye Tracking (per-group)
+        var etRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+        var chkET = new CheckBox { Content = "眼球/头部跟踪", VerticalAlignment = VerticalAlignment.Center, IsChecked = g.EnableEyeTracking };
+        chkET.Checked += (_, _) => g.EnableEyeTracking = true;
+        chkET.Unchecked += (_, _) => g.EnableEyeTracking = false;
+        etRow.Children.Add(chkET);
+        sp.Children.Add(etRow);
 
         // Facial preset (editable)
         sp.Children.Add(new TextBlock { Text = "默认表情:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 0, 0, 4) });
@@ -585,7 +603,8 @@ public partial class MainWindow : Window
                 facialX = g.FacialPreset ?? "",
                 facialW = g.FacialWeight,
                 actionX = string.Join("|", clipParts),
-                actionY = g.AllowRootMotion ? 1f : 0f
+                actionY = g.AllowRootMotion ? 1f : 0f,
+                actionW = g.EnableEyeTracking ? 1f : 0f
             });
             _ = _pipe.SendCommand("stop_preview");
             PanelPresetEdit.Children.Clear();

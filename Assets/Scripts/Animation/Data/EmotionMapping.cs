@@ -9,6 +9,7 @@ public class EmotionMappingEntry
     public string actionGroupName;
     public string facialOverride;
     public float facialWeightOverride = -1f;
+    public bool isRandomEvent;
 }
 
 [CreateAssetMenu(fileName = "EmotionMappings", menuName = "AliceBot/Emotion Mapping Database")]

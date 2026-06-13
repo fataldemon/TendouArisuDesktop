@@ -252,7 +252,8 @@ public class PipeServer : MonoBehaviour
             sb.Append("{\"emotion\":\"").Append(EscapeJson(m.emotion)).Append('"');
             sb.Append(",\"actionGroupName\":\"").Append(EscapeJson(m.actionGroupName)).Append('"');
             sb.Append(",\"facialOverride\":\"").Append(EscapeJson(m.facialOverride ?? "")).Append('"');
-            sb.Append(",\"facialWeightOverride\":").Append(m.facialWeightOverride.ToString("F2"));
+                sb.Append(",\"facialWeightOverride\":").Append(m.facialWeightOverride.ToString("F2"));
+                sb.Append(",\"isRandomEvent\":").Append(m.isRandomEvent ? "true" : "false");
             sb.Append(",\"facialGroup\":{\"preset\":\"").Append(EscapeJson(facial ?? ""));
             sb.Append("\",\"weight\":").Append(facialW.ToString("F2")).Append('}');
             if (group != null)
@@ -286,6 +287,7 @@ public class PipeServer : MonoBehaviour
                 sb.Append(",\"holdNoTTS\":").Append(g.holdNoTTS.ToString("F1"));
                 sb.Append(",\"isIdle\":").Append(g.isIdle ? "true" : "false");
                 sb.Append(",\"allowRootMotion\":").Append(g.allowRootMotion ? "true" : "false");
+                sb.Append(",\"enableEyeTracking\":").Append(g.enableEyeTracking ? "true" : "false");
                 sb.Append(",\"bodyClips\":[");
                 for (int j = 0; j < g.bodyClips.Count; j++)
                 {
@@ -573,14 +575,16 @@ public class PipeServer : MonoBehaviour
         if (string.IsNullOrEmpty(cmd.emotion)) return;
         string groupName = !string.IsNullOrEmpty(cmd.actionX) ? cmd.actionX : cmd.emotion;
         string facial = cmd.facialX ?? "";
-        ActionSystemRuntime.SetMapping(cmd.emotion, groupName, facial);
+        bool random = cmd.isRandom;
+        ActionSystemRuntime.SetMapping(cmd.emotion, groupName, facial, random);
     }
 
     private void UpdateActionGroup(PipeCommand cmd)
     {
         if (string.IsNullOrEmpty(cmd.name)) return;
         bool arm = cmd.actionY > 0f;
-        ActionSystemRuntime.UpdateActionGroup(cmd.name, cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, cmd.actionX ?? "", arm);
+        bool et = cmd.actionW > 0f;
+        ActionSystemRuntime.UpdateActionGroup(cmd.name, cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, cmd.actionX ?? "", arm, et);
         if (emotionPlayer != null)
             emotionPlayer.RefreshCurrentGroup(cmd.name);
     }
@@ -614,6 +618,8 @@ public class PipeCommand
     public string actionX = "";
     public string actionP = "";
     public float actionY;
+    public float actionW;
+    public bool isRandom;
     public string facialGroupsJson = "";
     public string actionGroupsJson = "";
     public int actionParam = -1;

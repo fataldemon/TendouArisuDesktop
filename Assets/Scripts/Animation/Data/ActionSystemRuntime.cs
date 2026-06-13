@@ -113,21 +113,22 @@ public static class ActionSystemRuntime
         return null;
     }
 
-    public static void SetMapping(string emotion, string actionGroupName, string facialOverride)
+    public static void SetMapping(string emotion, string actionGroupName, string facialOverride, bool isRandom = false)
     {
         EnsureInit();
-        Debug.Log("[Runtime] SetMapping: " + emotion + " → group=" + actionGroupName + " facial=" + facialOverride);
+        Debug.Log("[Runtime] SetMapping: " + emotion + " → group=" + actionGroupName + " facial=" + facialOverride + " random=" + isRandom);
         for (int i = 0; i < _emotionMappings.Count; i++)
         {
             if (_emotionMappings[i].emotion == emotion)
             {
                 _emotionMappings[i].actionGroupName = actionGroupName;
                 _emotionMappings[i].facialOverride = facialOverride;
+                _emotionMappings[i].isRandomEvent = isRandom;
                 ActionSystemJsonIO.SaveEmotionMappings(_emotionMappings);
                 return;
             }
         }
-        _emotionMappings.Add(new EmotionMappingEntry { emotion = emotion, actionGroupName = actionGroupName, facialOverride = facialOverride });
+        _emotionMappings.Add(new EmotionMappingEntry { emotion = emotion, actionGroupName = actionGroupName, facialOverride = facialOverride, isRandomEvent = isRandom });
         ActionSystemJsonIO.SaveEmotionMappings(_emotionMappings);
     }
 
@@ -148,7 +149,7 @@ public static class ActionSystemRuntime
         ActionSystemJsonIO.SaveActionGroups(_actionGroups);
     }
 
-    public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight, string clipsJson, bool allowRM = false)
+    public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight, string clipsJson, bool allowRM = false, bool enableET = false)
     {
         var group = GetActionGroup(groupName);
         if (group == null)
@@ -160,9 +161,10 @@ public static class ActionSystemRuntime
         }
         else
         {
-            Debug.Log("[Runtime] UpdateActionGroup: " + groupName + " facial=" + facialPreset + " w=" + facialWeight + " clips=" + clipsJson + " arm=" + allowRM);
+            Debug.Log("[Runtime] UpdateActionGroup: " + groupName + " facial=" + facialPreset + " w=" + facialWeight + " clips=" + clipsJson + " arm=" + allowRM + " et=" + enableET);
         }
         group.allowRootMotion = allowRM;
+        group.enableEyeTracking = enableET;
         if (!string.IsNullOrEmpty(facialPreset))
             group.facialPreset = facialPreset;
         if (facialWeight > 0f)

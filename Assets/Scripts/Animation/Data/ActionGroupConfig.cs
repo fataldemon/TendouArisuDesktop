@@ -18,6 +18,7 @@ public class ActionGroupConfig
     public float holdNoTTS = 4f;
     public bool isIdle;
     public bool allowRootMotion;
+    public bool enableEyeTracking;
 
     public AnimationClip GetBodyClip(string bodyPart)
     {

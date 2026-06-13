@@ -66,6 +66,7 @@ public class ExpressionMappingEntry
     public string ActionGroupName { get; set; } = "";
     public string FacialOverride { get; set; } = "";
     public float FacialWeightOverride { get; set; } = -1f;
+    public bool IsRandomEvent { get; set; }
 
     // Legacy compatibility
     public FacialGroupEntry? FacialGroup { get; set; }
@@ -100,6 +101,7 @@ public class ActionGroupFullEntry
     public float HoldNoTTS { get; set; } = 4f;
     public bool IsIdle { get; set; }
     public bool AllowRootMotion { get; set; }
+    public bool EnableEyeTracking { get; set; }
 }
 
 public class PartClipEntryDto

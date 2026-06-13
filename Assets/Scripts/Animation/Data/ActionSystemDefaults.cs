@@ -142,6 +142,14 @@ public static class ActionSystemDefaults
         M(list, "卖萌", "Cat", "wink");
         M(list, "眨眼", "Cute", "wink");
 
+        // Random events
+        var events = new List<EmotionMappingEntry>
+        {
+            new EmotionMappingEntry { emotion = "随机-好奇", actionGroupName = "Focused", facialOverride = "curious", isRandomEvent = true },
+            new EmotionMappingEntry { emotion = "随机-眨眼", actionGroupName = "Cute", facialOverride = "wink", isRandomEvent = true }
+        };
+        list.AddRange(events);
+
         return list;
     }
 
@@ -177,7 +185,8 @@ public static class ActionSystemDefaults
             blendOutBody = 0.35f,
             blendOutFacial = 0.2f,
             holdAfterTTS = 3f,
-            holdNoTTS = 4f
+            holdNoTTS = 4f,
+            enableEyeTracking = idle
         };
         config.bodyClips.Add(new PartClipEntry { bodyPart = "fullBody", clipName = actionPreset });
         return config;

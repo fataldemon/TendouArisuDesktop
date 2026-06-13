@@ -518,15 +518,11 @@ public class GameStart : MonoBehaviour
         }
         else if (!emotionPlayer.IsPlaying && waitingTimer > waitingInterval && !isCameraZoomed)
         {
-            int num3 = rand.Next(1, 4);
-            switch (num3)
+            var randomEvents = ActionSystemRuntime.EmotionMappings.Where(m => m.isRandomEvent).ToList();
+            if (randomEvents.Count > 0)
             {
-                case 2:
-                    emotionPlayer.PlayEmotion("好奇");
-                    break;
-                case 3:
-                    emotionPlayer.PlayEmotion("眨眼");
-                    break;
+                int idx = rand.Next(randomEvents.Count);
+                emotionPlayer.PlayEmotion(randomEvents[idx].emotion);
             }
             waitingTimer = 0f;
             waitingInterval = rand.Next(30, 50);
