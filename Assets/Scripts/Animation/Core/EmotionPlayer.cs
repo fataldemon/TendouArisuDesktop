@@ -173,6 +173,9 @@ public class EmotionPlayer : MonoBehaviour
                 bodyEngine.Play(rc.clip, rc.bodyPart, instance.config.blendInBody, instance.config.loop);
         }
 
+        if (bodyEngine != null && bodyEngine.animator != null)
+            bodyEngine.animator.applyRootMotion = instance.config.allowRootMotion;
+
         UpdateAuxiliary(instance.config);
         OnActionGroupStart?.Invoke();
     }
@@ -201,6 +204,9 @@ public class EmotionPlayer : MonoBehaviour
         }
         if (newInstance.resolvedClips.Count == 0 && bodyEngine.idleClip != null)
             bodyEngine.Play(bodyEngine.idleClip, "fullBody", blendOutBody, true);
+
+        if (bodyEngine != null && bodyEngine.animator != null)
+            bodyEngine.animator.applyRootMotion = newInstance.config.allowRootMotion;
 
         _current.state = ActionGroupState.BlendingOut;
         newInstance.state = ActionGroupState.BlendingIn;
@@ -343,6 +349,9 @@ public class EmotionPlayer : MonoBehaviour
             if (rc.clip != null)
                 bodyEngine.Play(rc.clip, rc.bodyPart, 0.1f, true);
         }
+
+        if (bodyEngine != null && bodyEngine.animator != null)
+            bodyEngine.animator.applyRootMotion = idle.allowRootMotion;
 
         UpdateAuxiliary(idle);
     }

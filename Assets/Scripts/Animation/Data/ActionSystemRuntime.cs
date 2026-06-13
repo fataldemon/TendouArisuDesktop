@@ -138,11 +138,31 @@ public static class ActionSystemRuntime
         ActionSystemJsonIO.SaveEmotionMappings(_emotionMappings);
     }
 
-    public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight, string clipsJson)
+    public static void RemoveActionGroup(string groupName)
+    {
+        EnsureInit();
+        var group = GetActionGroup(groupName);
+        if (group == null || group.isIdle) return;
+        Debug.Log("[Runtime] RemoveActionGroup: " + groupName);
+        _actionGroups.Remove(group);
+        ActionSystemJsonIO.SaveActionGroups(_actionGroups);
+    }
+
+    public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight, string clipsJson, bool allowRM = false)
     {
         var group = GetActionGroup(groupName);
-        if (group == null) { Debug.LogWarning("[Runtime] UpdateActionGroup: group '" + groupName + "' not found!"); return; }
-        Debug.Log("[Runtime] UpdateActionGroup: " + groupName + " facial=" + facialPreset + " w=" + facialWeight + " clips=" + clipsJson);
+        if (group == null)
+        {
+            Debug.Log("[Runtime] UpdateActionGroup: creating new group '" + groupName + "'");
+            group = new ActionGroupConfig { groupName = groupName, isIdle = false, allowRootMotion = allowRM };
+            group.bodyClips.Add(new PartClipEntry { bodyPart = "fullBody", clipName = "" });
+            _actionGroups.Add(group);
+        }
+        else
+        {
+            Debug.Log("[Runtime] UpdateActionGroup: " + groupName + " facial=" + facialPreset + " w=" + facialWeight + " clips=" + clipsJson + " arm=" + allowRM);
+        }
+        group.allowRootMotion = allowRM;
         if (!string.IsNullOrEmpty(facialPreset))
             group.facialPreset = facialPreset;
         if (facialWeight > 0f)

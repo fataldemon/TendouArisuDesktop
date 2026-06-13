@@ -285,6 +285,7 @@ public class PipeServer : MonoBehaviour
                 sb.Append(",\"holdAfterTTS\":").Append(g.holdAfterTTS.ToString("F1"));
                 sb.Append(",\"holdNoTTS\":").Append(g.holdNoTTS.ToString("F1"));
                 sb.Append(",\"isIdle\":").Append(g.isIdle ? "true" : "false");
+                sb.Append(",\"allowRootMotion\":").Append(g.allowRootMotion ? "true" : "false");
                 sb.Append(",\"bodyClips\":[");
                 for (int j = 0; j < g.bodyClips.Count; j++)
                 {
@@ -495,6 +496,13 @@ public class PipeServer : MonoBehaviour
                 case "delete_action_preset":
                     RefreshInitData();
                     break;
+                case "delete_action_group":
+                    if (!string.IsNullOrEmpty(cmd.name))
+                    {
+                        ActionSystemRuntime.RemoveActionGroup(cmd.name);
+                        RefreshInitData();
+                    }
+                    break;
                 case "update_action_group":
                     UpdateActionGroup(cmd);
                     RefreshInitData();
@@ -570,7 +578,8 @@ public class PipeServer : MonoBehaviour
     private void UpdateActionGroup(PipeCommand cmd)
     {
         if (string.IsNullOrEmpty(cmd.name)) return;
-        ActionSystemRuntime.UpdateActionGroup(cmd.name, cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, cmd.actionX ?? "");
+        bool arm = cmd.actionY > 0f;
+        ActionSystemRuntime.UpdateActionGroup(cmd.name, cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, cmd.actionX ?? "", arm);
         if (emotionPlayer != null)
             emotionPlayer.RefreshCurrentGroup(cmd.name);
     }

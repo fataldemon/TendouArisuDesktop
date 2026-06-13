@@ -155,7 +155,7 @@
                 <TabItem Header="情绪映射">
                     <Grid Margin="12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.2*" MinWidth="380"/>
+                            <ColumnDefinition Width="1.2*" MinWidth="320"/>
                             <ColumnDefinition Width="*" MinWidth="320"/>
                         </Grid.ColumnDefinitions>
                         <Grid Grid.Column="0" Margin="0,0,8,0">
@@ -219,7 +219,7 @@
                 <TabItem Header="动作组">
                     <Grid Margin="12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" MinWidth="290"/>
+                            <ColumnDefinition Width="*" MinWidth="320"/>
                             <ColumnDefinition Width="2*" MinWidth="360"/>
                         </Grid.ColumnDefinitions>
                         <Grid Grid.Column="0" Margin="0,0,8,0">
@@ -229,6 +229,7 @@
                             </Grid.RowDefinitions>
                             <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,6">
                                 <Button Content="恢复默认" Width="80" Click="OnPresetRestoreDefaults"/>
+                                <Button Content="新建" Width="60" Click="OnGroupAdd" Margin="8,0,0,0"/>
                             </StackPanel>
                             <ListBox x:Name="LstPresets" Grid.Row="1" SelectionChanged="OnPresetSelect">
                                 <ListBox.ItemTemplate>
@@ -244,6 +245,18 @@
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                                 <Button Content="编辑" Width="48" Style="{StaticResource SmallButton}" Tag="{Binding GroupName}" Click="OnPresetEditClick"/>
+                                                <Button Content="删" Width="40" Tag="{Binding GroupName}" Click="OnGroupDeleteClick" Margin="4,0,0,0">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource SmallButton}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsIdle}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
                                             </StackPanel>
                                         </Grid>
                                     </DataTemplate>

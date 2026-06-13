@@ -99,6 +99,7 @@ public class ActionGroupFullEntry
     public float HoldAfterTTS { get; set; } = 3f;
     public float HoldNoTTS { get; set; } = 4f;
     public bool IsIdle { get; set; }
+    public bool AllowRootMotion { get; set; }
 }
 
 public class PartClipEntryDto

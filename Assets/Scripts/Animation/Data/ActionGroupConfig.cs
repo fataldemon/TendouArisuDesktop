@@ -17,6 +17,7 @@ public class ActionGroupConfig
     public float holdAfterTTS = 3f;
     public float holdNoTTS = 4f;
     public bool isIdle;
+    public bool allowRootMotion;
 
     public AnimationClip GetBodyClip(string bodyPart)
     {

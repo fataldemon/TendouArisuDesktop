@@ -53,6 +53,21 @@ public partial class MainWindow : Window
             if (_initData != null)
                 PopulateAnimationList(_initData.AnimationList);
         };
+        LstExprMappings.MouseDoubleClick += (_, _) =>
+        {
+            var sel = (LstExprMappings.SelectedItem as dynamic)?.Emotion;
+            if (sel != null) { _exprEditing = _initData?.ExpressionMappings.FirstOrDefault(m => m.Emotion == sel); if (_exprEditing != null) BuildExprEditPanel(); }
+        };
+        LstPresets.MouseDoubleClick += (_, _) =>
+        {
+            var sel = (LstPresets.SelectedItem as dynamic)?.GroupName;
+            if (sel != null) { _groupEditing = _initData?.ActionGroups.FirstOrDefault(g => g.GroupName == sel); if (_groupEditing != null) BuildActionGroupEditPanel(); }
+        };
+        LstFacialPresets.MouseDoubleClick += (_, _) =>
+        {
+            var sel = (LstFacialPresets.SelectedItem as dynamic)?.PresetName;
+            if (sel != null) { _facialEditing = _initData?.FacialPresets.FirstOrDefault(p => p.PresetName == sel); if (_facialEditing != null) BuildFacialEditPanel(); }
+        };
         SetTtsModeButtons(0);
     }
 
@@ -166,6 +181,7 @@ public partial class MainWindow : Window
         var displayList = groups.Select(g => new
         {
             g.GroupName,
+            g.IsIdle,
             DisplayName = g.IsIdle ? "★ " + g.GroupName : g.GroupName,
             Summary = (g.Loop ? "循环" : "单播") + " | " + g.FacialPreset + " | " +
                       string.Join("+", g.BodyClips.Select(c => c.BodyPart + ":" + (string.IsNullOrEmpty(c.ClipName) ? "-" : c.ClipName.Length > 15 ? c.ClipName[..15] + ".." : c.ClipName)))
@@ -407,6 +423,33 @@ public partial class MainWindow : Window
 
     private void OnPresetDeleteClick(object sender, RoutedEventArgs e) { }
 
+    private void OnGroupAdd(object sender, RoutedEventArgs e)
+    {
+        _groupEditing = new ActionGroupFullEntry
+        {
+            GroupName = "",
+            FacialPreset = "",
+            FacialWeight = 1f,
+            Loop = false,
+            AllowRootMotion = false,
+            BlendInBody = 0.35f,
+            BlendInFacial = 0.15f,
+            BlendOutBody = 0.35f,
+            BlendOutFacial = 0.2f,
+            HoldAfterTTS = 3f,
+            HoldNoTTS = 4f,
+            IsIdle = false
+        };
+        _groupEditing.BodyClips.Add(new PartClipEntryDto { BodyPart = "fullBody", ClipName = "" });
+        BuildActionGroupEditPanel();
+    }
+
+    private void OnGroupDeleteClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string name && name != "Idle")
+            _ = _pipe.SendCommand("delete_action_group", new { name });
+    }
+
     private void BuildActionGroupEditPanel()
     {
         PanelPresetEdit.Children.Clear();
@@ -414,16 +457,17 @@ public partial class MainWindow : Window
         var sp = PanelPresetEdit;
         var g = _groupEditing;
 
-        sp.Children.Add(new TextBlock { Text = g.GroupName, FontSize = 16, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 8) });
+        var txtName = new TextBox { Text = g.GroupName, FontSize = 14, FontWeight = FontWeights.Bold, Width = 250, Margin = new Thickness(0, 0, 0, 8) };
+        txtName.TextChanged += (_, _) => g.GroupName = txtName.Text;
+        sp.Children.Add(txtName);
 
-        // Root Motion checkbox
-        var rmRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
-        var chkRM = new CheckBox { Content = "Allow Root Motion", VerticalAlignment = VerticalAlignment.Center, 
-            IsChecked = _initData?.AllowRootMotion ?? false };
-        chkRM.Checked += (_, _) => _ = _pipe.SendCommand("set_root_motion", new { enable = true });
-        chkRM.Unchecked += (_, _) => _ = _pipe.SendCommand("set_root_motion", new { enable = false });
-        rmRow.Children.Add(chkRM);
-        sp.Children.Add(rmRow);
+        // Allow Root Motion (per-group)
+        var armRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+        var chkARM = new CheckBox { Content = "Allow Root Motion", VerticalAlignment = VerticalAlignment.Center, IsChecked = g.AllowRootMotion };
+        chkARM.Checked += (_, _) => g.AllowRootMotion = true;
+        chkARM.Unchecked += (_, _) => g.AllowRootMotion = false;
+        armRow.Children.Add(chkARM);
+        sp.Children.Add(armRow);
 
         // Facial preset (editable)
         sp.Children.Add(new TextBlock { Text = "默认表情:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 0, 0, 4) });
@@ -540,7 +584,8 @@ public partial class MainWindow : Window
                 name = g.GroupName,
                 facialX = g.FacialPreset ?? "",
                 facialW = g.FacialWeight,
-                actionX = string.Join("|", clipParts)
+                actionX = string.Join("|", clipParts),
+                actionY = g.AllowRootMotion ? 1f : 0f
             });
             _ = _pipe.SendCommand("stop_preview");
             PanelPresetEdit.Children.Clear();

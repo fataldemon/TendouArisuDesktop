@@ -223,13 +223,6 @@ public class GameStart : MonoBehaviour
             }
             if (settings.guiOffsetX != 0f || settings.guiOffsetY != 0f)
                 guiOffset = new Vector2(settings.guiOffsetX, settings.guiOffsetY);
-
-            if (settings.allowRootMotion && emotionPlayer != null && emotionPlayer.bodyEngine != null)
-            {
-                emotionPlayer.bodyEngine.allowRootMotion = true;
-                if (emotionPlayer.bodyEngine.animator != null)
-                    emotionPlayer.bodyEngine.animator.applyRootMotion = true;
-            }
         }
 
         int ttsMode = config.tts;
@@ -796,7 +789,6 @@ public class GameStart : MonoBehaviour
         settings.camRotW = cam.rotation.w;
         settings.guiOffsetX = guiOffset.x;
         settings.guiOffsetY = guiOffset.y;
-        settings.allowRootMotion = emotionPlayer != null && emotionPlayer.bodyEngine != null && emotionPlayer.bodyEngine.allowRootMotion;
         config.PopulateTo(settings);
         settings.Save();
     }
