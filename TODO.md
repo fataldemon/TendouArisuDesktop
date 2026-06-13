@@ -15,28 +15,44 @@
 | 9 | `TransparentWindow.GetWindowPosition` 回退值为 0 | `TransparentWindow.cs:240-241` | 轻 |
 | 10 | `System.Random` 无种子频繁创建 | `SimpleVitsApi.cs:70`, `GameStart.cs:72` | 轻 |
 | 11 | 拖拽 `OnDragStart` 触发时机不对（Ctrl 按下就触发，应该是 Ctrl+MouseDown） | `TransparentWindow.cs:180` | 轻 |
+| 12 | 模型切换后 BlendShape 索引不兼容 | `ModelManager.cs` | 中 |
 
 ## 已完成功能
 
 | # | 功能 | 状态 |
 |---|------|:--:|
+| — | 动作系统 v2 重构 (Playable API + 数据驱动) | ✅ |
+| — | 统一 PlayEmotion 入口 | ✅ |
+| — | PartClip 多部位播放引擎 (6层独立) | ✅ |
+| — | 表情预设编辑器 (数据驱动 FemaleEngine 替代 15 硬编码协程) | ✅ |
+| — | 眨眼抑制 (动作/预览/触摸时) | ✅ |
+| — | 全局预览 (表情+多部位+ARM+ET 组合) | ✅ |
+| — | 情绪映射 WPF 编辑器 (表情覆盖 + 权重 + 随机事件标记) | ✅ |
+| — | 动作组 WPF 编辑器 (多部位 clip + ARM + ET + 搜索) | ✅ |
+| — | 表情预设 WPF 查看器 | ✅ |
+| — | Apply Root Motion 按动作组独立控制 | ✅ |
+| — | Eye Tracking 按动作组独立控制 | ✅ |
+| — | 对话框最短保持时间可配 (音频+最短10s) | ✅ |
+| — | Layer FadeIn/FadeOut 平滑过渡 | ✅ |
+| — | Crossfade 中 BlendingOut 转场保护 | ✅ |
+| — | 循环动画 Loop 修复 | ✅ |
+| — | 旧 Animator Controller 移除 (Playable API 替代) | ✅ |
+| — | 动作组新建/删除 | ✅ |
+| — | 双击列表编辑 | ✅ |
 | — | 情绪映射简化（单分组 + weight 应用） | ✅ |
 | — | 头部平滑 blend-out + eye tracking switch 修复 | ✅ |
 | — | 对话框 grip 移动位置 + 宽高 WPF 设置 | ✅ |
-| — | TCP 重连鲁棒性（防火墙 + `ReadTimeout` + 退出优化） | ✅ |
-| — | 动作预设第一期（预设名↔actionParam + WPF 编辑器 + 迁移） | ✅ |
-| — | 触摸/拖拽事件（情绪映射映射链路 + 面部联动 + 恢复） | ✅ |
-| — | `onAction` 由 Animator 状态机驱动（不再手动设） | ✅ |
-| — | 表情先清再设（消除 idle→动作表情叠加） | ✅ |
-| — | 全局预览 `reset_blendshapes`（不启动待机协程） | ✅ |
-| — | WPF 重复打开 → 切到老窗口（Mutex + WM_COPYDATA） | ✅ |
-| — | 待机→随机待机头动过渡平滑 | ✅ |
+| — | TCP 重连鲁棒性 | ✅ |
+| — | 动作预设第一期 | ✅ |
+| — | 触摸/拖拽事件 | ✅ |
+| — | WPF 重复打开 → 切到老窗口 | ✅ |
+| — | 托盘菜单文本同步 | ✅ |
 
 ## 待实现功能
 
 | # | 功能 | 复杂度 |
 |---|------|:--:|
-| 12 | **统一 PlayEmotion 入口**（等动作系统重做后一起改） | 中 |
-| 13 | **动作预设第二期**：PartClip 多部位播放引擎 | 大 |
-| 14 | **面部预设编辑器**：FacialController 硬编码 → 数据驱动 | 大 |
-| 15 | **眨眼抑制**（动作/预览/触摸时不眨眼） | 小 → 待定 |
+| 13 | 正常播放也支持 apply root motion (目前仅预览模式生效) | 中 |
+| 14 | 模型切换后 BlendShape 预设兼容 | 大 |
+| 15 | 多部位动画全局预览带 Mask (目前预览用 fullBody) | 中 |
+| 16 | 随机事件 loop/时长优化 | 小 |
