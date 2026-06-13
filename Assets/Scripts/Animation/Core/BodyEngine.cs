@@ -64,7 +64,7 @@ public class BodyEngine : MonoBehaviour
 
     void LateUpdate()
     {
-        if (_previewLock && !allowRootMotion && animator != null)
+        if (_previewLock && !animator.applyRootMotion && animator != null)
         {
             Debug.Log("[BodyEngine] LateUpdate LOCK: pos=" + _previewLockedPos.ToString("F2") + " frame=" + Time.frameCount);
             animator.transform.position = _previewLockedPos;
