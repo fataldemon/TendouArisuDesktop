@@ -56,6 +56,7 @@ public class BodyEngine : MonoBehaviour
     public void EndPreviewLock()
     {
         if (animator == null) return;
+        Debug.Log("[BodyEngine] EndPreviewLock: restore pos=" + _previewLockedPos.ToString("F2") + " lock=" + _previewLock + " frame=" + Time.frameCount);
         _previewLock = false;
         animator.transform.position = _previewLockedPos;
         animator.transform.rotation = _previewLockedRot;
@@ -65,6 +66,7 @@ public class BodyEngine : MonoBehaviour
     {
         if (_previewLock && !allowRootMotion && animator != null)
         {
+            Debug.Log("[BodyEngine] LateUpdate LOCK: pos=" + _previewLockedPos.ToString("F2") + " frame=" + Time.frameCount);
             animator.transform.position = _previewLockedPos;
             animator.transform.rotation = _previewLockedRot;
         }
@@ -227,6 +229,7 @@ public class BodyEngine : MonoBehaviour
 
     private void PlayOnLayer(int layer, AnimationClip clip, float blendDuration, bool loop)
     {
+        Debug.Log("[BodyEngine] PlayOnLayer: layer=" + layer + "(" + BodyPartNames[layer] + ") clip=" + clip.name + " blend=" + blendDuration.ToString("F2") + " frame=" + Time.frameCount);
         var data = _layers[layer];
 
         if (layer > 0)
@@ -259,6 +262,7 @@ public class BodyEngine : MonoBehaviour
 
     private IEnumerator FadeOutLayer(int layer, float duration)
     {
+        Debug.Log("[BodyEngine] FadeOutLayer START: layer=" + layer + "(" + BodyPartNames[layer] + ") duration=" + duration.ToString("F2") + " frame=" + Time.frameCount);
         float elapsed = 0f;
         float startWeight = _layerMixer.GetInputWeight(layer);
         while (elapsed < duration)
@@ -272,6 +276,7 @@ public class BodyEngine : MonoBehaviour
         var data = _layers[layer];
         data.isPlaying = false;
         _layers[layer] = data;
+        Debug.Log("[BodyEngine] FadeOutLayer DONE: layer=" + layer + "(" + BodyPartNames[layer] + ") frame=" + Time.frameCount);
     }
 
     private void Update()
@@ -292,7 +297,10 @@ public class BodyEngine : MonoBehaviour
             data.mixer.SetInputWeight(inactiveIndex, 1f - t);
 
             if (t >= 1f)
+            {
                 data.isCrossfading = false;
+                Debug.Log("[BodyEngine] Crossfade DONE: layer=" + i + "(" + BodyPartNames[i] + ") frame=" + Time.frameCount);
+            }
 
             _layers[i] = data;
         }

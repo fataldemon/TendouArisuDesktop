@@ -28,6 +28,7 @@ public class PreviewController : MonoBehaviour
     public void ExitPreview()
     {
         if (!_isPreviewing) return;
+        Debug.Log("[Preview] ExitPreview frame=" + Time.frameCount);
 
         if (_facialPreviewing)
         {

@@ -167,6 +167,9 @@ public class EmotionPlayer : MonoBehaviour
         else
             facialEngine.RestoreExpression(instance.config.blendInFacial);
 
+        Debug.Log("[EmotionPlayer] ApplyImmediate: pos=" + (bodyEngine.animator != null ? bodyEngine.animator.transform.position.ToString("F2") : "?") +
+            " frame=" + Time.frameCount);
+        float blend = instance.config.blendInBody;
         string[] allParts = { "fullBody", "upperBody", "head", "leftArm", "rightArm", "lowerBody" };
         for (int p = 0; p < allParts.Length; p++)
         {
@@ -174,13 +177,13 @@ public class EmotionPlayer : MonoBehaviour
             var rc = instance.GetClip(part);
             if (rc != null && rc.Value.clip != null)
             {
-                Debug.Log("[EmotionPlayer] ApplyImmediate: play " + rc.Value.clip.name + " on " + part +
-                    " blend=" + instance.config.blendInBody + " loop=" + instance.config.loop);
-                bodyEngine.Play(rc.Value.clip, part, instance.config.blendInBody, instance.config.loop);
+                Debug.Log("[EmotionPlayer] ApplyImmediate: " + part + " PLAY " + rc.Value.clip.name + " blend=" + blend);
+                bodyEngine.Play(rc.Value.clip, part, blend, instance.config.loop);
             }
             else if (part != "fullBody")
             {
-                bodyEngine.Stop(part, 0.2f);
+                Debug.Log("[EmotionPlayer] ApplyImmediate: " + part + " STOP blend=" + blend);
+                bodyEngine.Stop(part, blend);
             }
         }
 
@@ -207,15 +210,24 @@ public class EmotionPlayer : MonoBehaviour
         else
             facialEngine.RestoreExpression(blendOutFacial);
 
+        Debug.Log("[EmotionPlayer] StartCrossfade: pos=" + (bodyEngine != null && bodyEngine.animator != null ? bodyEngine.animator.transform.position.ToString("F2") : "?") +
+            " frame=" + Time.frameCount);
+        float blend = Mathf.Max(blendOutBody, blendInBody);
         string[] allParts = { "fullBody", "upperBody", "head", "leftArm", "rightArm", "lowerBody" };
         for (int p = 0; p < allParts.Length; p++)
         {
             string part = allParts[p];
             var rc = newInstance.GetClip(part);
             if (rc != null && rc.Value.clip != null)
-                bodyEngine.Play(rc.Value.clip, part, Mathf.Max(blendOutBody, blendInBody), newInstance.config.loop);
+            {
+                Debug.Log("[EmotionPlayer] StartCrossfade: " + part + " PLAY " + rc.Value.clip.name + " blend=" + blend);
+                bodyEngine.Play(rc.Value.clip, part, blend, newInstance.config.loop);
+            }
             else if (part != "fullBody")
-                bodyEngine.Stop(part, 0.2f);
+            {
+                Debug.Log("[EmotionPlayer] StartCrossfade: " + part + " STOP blend=" + blend);
+                bodyEngine.Stop(part, blend);
+            }
         }
 
         if (bodyEngine != null && bodyEngine.animator != null)
