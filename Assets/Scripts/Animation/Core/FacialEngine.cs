@@ -30,6 +30,18 @@ public class FacialEngine : MonoBehaviour
         _modelProfile = null;
     }
 
+    public ModelExpressionProfile GetModelExpressionProfile()
+    {
+        return _modelProfile;
+    }
+
+    public List<FacialPresetConfig> GetModelPresetsOrDefault()
+    {
+        if (_modelProfile != null && _modelProfile.presets.Count > 0)
+            return _modelProfile.presets;
+        return ActionSystemRuntime.FacialPresets;
+    }
+
     private struct BlendState
     {
         public float currentWeight;

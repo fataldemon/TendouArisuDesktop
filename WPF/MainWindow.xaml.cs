@@ -675,10 +675,26 @@ public partial class MainWindow : Window
 
         sp.Children.Add(new TextBlock { Text = p.PresetName, FontSize = 16, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 8) });
 
-        // Preview button
-        var btnPreview = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 0, 8) };
+        // Preview + Save buttons
+        var btnRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+        var btnPreview = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 8, 0) };
         btnPreview.Click += (_, _) => _ = _pipe.SendCommand("preview_facial", new { facialX = p.PresetName, facialW = 1f });
-        sp.Children.Add(btnPreview);
+        btnRow.Children.Add(btnPreview);
+
+        var btnSave = new Button { Content = "保存", Width = 60, Style = (Style)FindResource("SmallButton") };
+        btnSave.Click += async (_, _) =>
+        {
+            var targetsJson = JsonSerializer.Serialize(p.Targets.Select(t => new { index = t.Index, weight = t.Weight }));
+            await _pipe.SendCommand("update_facial_preset", new
+            {
+                name = p.PresetName,
+                targetsJson,
+                blushMode = p.BlushMode ?? ""
+            });
+            MessageBox.Show($"表情预设 '{p.PresetName}' 已保存。", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+        };
+        btnRow.Children.Add(btnSave);
+        sp.Children.Add(btnRow);
 
         // Blend shape targets
         sp.Children.Add(new TextBlock { Text = "BlendShape 目标:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 4, 0, 4) });

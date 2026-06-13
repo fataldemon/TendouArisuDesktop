@@ -305,7 +305,11 @@ public class PipeServer : MonoBehaviour
     private void AppendFacialPresets(StringBuilder sb)
     {
         sb.Append('[');
-        var presets = ActionSystemRuntime.FacialPresets;
+        List<FacialPresetConfig> presets;
+        if (emotionPlayer != null && emotionPlayer.facialEngine != null)
+            presets = emotionPlayer.facialEngine.GetModelPresetsOrDefault();
+        else
+            presets = ActionSystemRuntime.FacialPresets;
         for (int i = 0; i < presets.Count; i++)
         {
             if (i > 0) sb.Append(',');
@@ -533,6 +537,10 @@ public class PipeServer : MonoBehaviour
                     UpdateActionGroup(cmd);
                     RefreshInitData();
                     break;
+                case "update_facial_preset":
+                    UpdateFacialPreset(cmd);
+                    RefreshInitData();
+                    break;
                 case "clear_history":
                     llmFormatter.history.Clear();
                     llmFormatter.formatted_history = "";
@@ -614,6 +622,53 @@ public class PipeServer : MonoBehaviour
             emotionPlayer.RefreshCurrentGroup(cmd.name);
     }
 
+    [Serializable]
+    private class BlendShapeTargetDto
+    {
+        public int index;
+        public float weight;
+    }
+
+    private void UpdateFacialPreset(PipeCommand cmd)
+    {
+        if (string.IsNullOrEmpty(cmd.name)) return;
+        string presetName = cmd.name;
+
+        var profile = emotionPlayer?.facialEngine?.GetModelExpressionProfile();
+        if (profile == null)
+        {
+            Debug.LogWarning("[PipeServer] UpdateFacialPreset: no model profile loaded, skipping save");
+            return;
+        }
+
+        FacialPresetConfig preset = profile.Find(presetName);
+        if (preset == null)
+        {
+            preset = new FacialPresetConfig { presetName = presetName };
+            profile.presets.Add(preset);
+        }
+
+        if (!string.IsNullOrEmpty(cmd.targetsJson))
+        {
+            var dtos = JsonUtility.FromJson<TargetsWrapper>("{\"items\":" + cmd.targetsJson + "}");
+            if (dtos?.items != null)
+            {
+                preset.targets.Clear();
+                for (int i = 0; i < dtos.items.Length; i++)
+                    preset.targets.Add(new BlendShapeTarget { index = dtos.items[i].index, weight = dtos.items[i].weight });
+            }
+        }
+
+        if (!string.IsNullOrEmpty(cmd.blushMode))
+            preset.blushMode = cmd.blushMode;
+
+        ModelExpressionIO.Save(profile);
+        Debug.Log("[PipeServer] UpdateFacialPreset: saved '" + presetName + "' with " + preset.targets.Count + " targets");
+    }
+
+    [Serializable]
+    private class TargetsWrapper { public BlendShapeTargetDto[] items; }
+
     void OnDestroy() { StopServer(); }
     void OnApplicationQuit() { StopServer(); }
 }
@@ -647,6 +702,8 @@ public class PipeCommand
     public bool isRandom;
     public string facialGroupsJson = "";
     public string actionGroupsJson = "";
+    public string targetsJson = "";
+    public string blushMode = "";
     public int actionParam = -1;
     public bool noZoom;
     public int msgWidth;
