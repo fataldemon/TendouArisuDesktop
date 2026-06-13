@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using UniVRM10;
-using VrmLib;  // for ExpressionPreset enum
 
 public class ModelManager : MonoBehaviour
 {
@@ -246,28 +245,28 @@ public class ModelManager : MonoBehaviour
         {
             var expression = vrmInstance.Vrm.Expression;
             var clips = expression?.Clips;
-            if (clips != null && clips.Count > 0)
+            if (clips != null)
             {
-                Debug.Log("[ModelManager] BuildDefaultProfile: found " + clips.Count + " VRM expression clips");
-
                 var mappedNames = new HashSet<string>();
-                foreach (var clip in clips)
+                foreach (var (preset, clip) in clips)
                 {
-                    if (clip == null || clip.Clip == null || clip.Preset == ExpressionPreset.custom) continue;
-                    string presetName = MapVrmPreset(clip.Preset);
+                    if (clip == null || preset == ExpressionPreset.custom) continue;
+                    string presetName = MapVrmPreset(preset);
                     if (string.IsNullOrEmpty(presetName) || mappedNames.Contains(presetName)) continue;
                     mappedNames.Add(presetName);
 
                     var config = new FacialPresetConfig { presetName = presetName };
-                    var bindings = clip.Clip.BlendShapeBindings;
+                    var bindings = clip.MorphTargetBindings;
                     if (bindings != null)
                     {
                         foreach (var b in bindings)
-                            config.targets.Add(new BlendShapeTarget { index = b.Index, weight = b.Weight });
+                            config.targets.Add(new BlendShapeTarget { index = b.Index, weight = b.Weight * 100f });
                     }
                     profile.presets.Add(config);
-                    Debug.Log("[ModelManager]   " + presetName + " ← VRM " + clip.Preset + " (" + config.targets.Count + " blends)");
+                    Debug.Log("[ModelManager]   " + presetName + " ← VRM " + preset + " (" + config.targets.Count + " blends)");
                 }
+
+                Debug.Log("[ModelManager] BuildDefaultProfile: mapped " + profile.presets.Count + " VRM expression presets");
             }
         }
 
