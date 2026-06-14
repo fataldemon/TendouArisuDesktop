@@ -344,11 +344,16 @@ public class PipeServer : MonoBehaviour
         if (mesh != null)
         {
             int count = mesh.blendShapeCount;
+            Debug.Log("[PipeServer] AppendBlendShapeNames: mesh=" + mesh.name + " count=" + count);
             for (int i = 0; i < count; i++)
             {
                 if (i > 0) sb.Append(',');
                 sb.Append('"').Append(EscapeJson(mesh.GetBlendShapeName(i))).Append('"');
             }
+        }
+        else
+        {
+            Debug.LogWarning("[PipeServer] AppendBlendShapeNames: meshRenderer=" + (meshRenderer != null) + " sharedMesh=" + (mesh != null));
         }
         sb.Append(']');
     }

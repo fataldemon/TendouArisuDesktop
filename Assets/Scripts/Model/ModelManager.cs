@@ -12,6 +12,7 @@ public class ModelManager : MonoBehaviour
     public BodyEngine bodyEngine;
     public FacialEngine facialEngine;
     public Transform modelParent;
+    public PipeServer pipeServer;
 
     [SerializeField] private List<string> modelHistory = new List<string>();
 
@@ -144,6 +145,8 @@ public class ModelManager : MonoBehaviour
         if (ep == null) ep = FindObjectOfType<EmotionPlayer>();
         if (ep != null)
             ep.ForceIdle();
+
+        pipeServer?.RefreshInitData();
     }
 
     public void RestoreDefault()
@@ -180,6 +183,7 @@ public class ModelManager : MonoBehaviour
             ep.ForceIdle();
 
         SaveHistory();
+        pipeServer?.RefreshInitData();
     }
 
     private void AddToHistory(string path, string name)

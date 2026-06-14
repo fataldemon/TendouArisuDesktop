@@ -257,6 +257,9 @@ public class GameStart : MonoBehaviour
             Debug.Log("[GameStart] PipeServer started");
         }
 
+        if (modelManager != null)
+            modelManager.pipeServer = pipeServer;
+
         if (trayManager != null)
         {
             trayManager.OnOpenPanel += OpenSettingsPanel;
