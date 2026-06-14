@@ -159,22 +159,23 @@ public static class ActionSystemRuntime
         ActionSystemJsonIO.SaveActionGroups(_actionGroups);
     }
 
-    public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight, string clipsJson, bool allowRM = false, bool enableET = false)
+    public static void UpdateActionGroup(string groupName, string facialPreset, float facialWeight, string clipsJson, bool allowRM = false, bool enableET = false, bool loop = false)
     {
         var group = GetActionGroup(groupName);
         if (group == null)
         {
             Debug.Log("[Runtime] UpdateActionGroup: creating new group '" + groupName + "'");
-            group = new ActionGroupConfig { groupName = groupName, isIdle = false, allowRootMotion = allowRM };
+            group = new ActionGroupConfig { groupName = groupName, isIdle = false, allowRootMotion = allowRM, loop = loop };
             group.bodyClips.Add(new PartClipEntry { bodyPart = "fullBody", clipName = "" });
             _actionGroups.Add(group);
         }
         else
         {
-            Debug.Log("[Runtime] UpdateActionGroup: " + groupName + " facial=" + facialPreset + " w=" + facialWeight + " clips=" + clipsJson + " arm=" + allowRM + " et=" + enableET);
+            Debug.Log("[Runtime] UpdateActionGroup: " + groupName + " facial=" + facialPreset + " w=" + facialWeight + " clips=" + clipsJson + " arm=" + allowRM + " et=" + enableET + " loop=" + loop);
         }
         group.allowRootMotion = allowRM;
         group.enableEyeTracking = enableET;
+        group.loop = loop;
         if (!string.IsNullOrEmpty(facialPreset))
             group.facialPreset = facialPreset;
         if (facialWeight > 0f)

@@ -665,7 +665,8 @@ public partial class MainWindow : Window
                 facialW = g.FacialWeight,
                 actionX = string.Join("|", clipParts),
                 actionY = g.AllowRootMotion ? 1f : 0f,
-                actionW = g.EnableEyeTracking ? 1f : 0f
+                actionW = g.EnableEyeTracking ? 1f : 0f,
+                loop = g.Loop
             });
             _ = _pipe.SendCommand("stop_preview");
             PanelPresetEdit.Children.Clear();

@@ -650,7 +650,7 @@ public class PipeServer : MonoBehaviour
         if (string.IsNullOrEmpty(cmd.name)) return;
         bool arm = cmd.actionY > 0f;
         bool et = cmd.actionW > 0f;
-        ActionSystemRuntime.UpdateActionGroup(cmd.name, cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, cmd.actionX ?? "", arm, et);
+        ActionSystemRuntime.UpdateActionGroup(cmd.name, cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, cmd.actionX ?? "", arm, et, cmd.loop);
         if (emotionPlayer != null)
             emotionPlayer.RefreshCurrentGroup(cmd.name);
     }
@@ -733,6 +733,7 @@ public class PipeCommand
     public float actionY;
     public float actionW;
     public bool isRandom;
+    public bool loop;
     public string facialGroupsJson = "";
     public string actionGroupsJson = "";
     public string targetsJson = "";
