@@ -430,9 +430,13 @@ public class PipeServer : MonoBehaviour
                     break;
                 case "load_model":
                     if (!string.IsNullOrEmpty(cmd.path))
+                    {
+                        Debug.Log("[PipeServer] load_model: path=" + cmd.path + " modelManager=" + (modelManager != null));
                         modelManager?.LoadModel(cmd.path);
+                    }
                     break;
                 case "restore_default_model":
+                    Debug.Log("[PipeServer] restore_default_model: modelManager=" + (modelManager != null));
                     modelManager?.RestoreDefault();
                     break;
                 case "load_model_from_history":

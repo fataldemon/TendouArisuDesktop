@@ -71,11 +71,13 @@ public class ModelManager : MonoBehaviour
 
     private System.Collections.IEnumerator LoadVrmCoroutine(string path)
     {
+        Debug.Log("[ModelManager] LoadVrmCoroutine START: path=" + path);
         var task = Vrm10.LoadPathAsync(path);
         while (!task.IsCompleted)
             yield return null;
 
         var instance = task.Result;
+        Debug.Log("[ModelManager] LoadVrmCoroutine: task.Result=" + (instance != null ? instance.name : "NULL"));
         if (instance == null)
         {
             Debug.LogError("ModelManager: failed to load VRM");
@@ -97,6 +99,7 @@ public class ModelManager : MonoBehaviour
 
     private void ReplaceModel(GameObject newModel)
     {
+        Debug.Log("[ModelManager] ReplaceModel START: new=" + newModel.name + " current=" + (currentModel != null ? currentModel.name : "NULL"));
         if (currentModel != null)
         {
             if (currentModel == defaultModel)
@@ -147,10 +150,12 @@ public class ModelManager : MonoBehaviour
             ep.ForceIdle();
 
         pipeServer?.RefreshInitData();
+        Debug.Log("[ModelManager] ReplaceModel DONE: current=" + currentModel.name);
     }
 
     public void RestoreDefault()
     {
+        Debug.Log("[ModelManager] RestoreDefault: current=" + (currentModel != null ? currentModel.name : "NULL") + " → default=" + (defaultModel != null ? defaultModel.name : "NULL"));
         if (defaultModel == null) return;
 
         if (currentModel != null && currentModel != defaultModel)
