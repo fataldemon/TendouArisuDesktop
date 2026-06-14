@@ -246,8 +246,17 @@ public class TransparentWindow : MonoBehaviour
         bool skip = gameStart != null && gameStart.GripDragActive;
         if (skip) return;
 
-        SetTransparent(false);
         GetCursorPos(out _dragStartCursor);
+        if (gameStart != null && gameStart.targetTransform != null)
+        {
+            var ms = Camera.main.WorldToScreenPoint(gameStart.targetTransform.position);
+            float dist = Vector2.Distance(
+                new Vector2(_dragStartCursor.X, _dragStartCursor.Y),
+                new Vector2(ms.x, Screen.height - ms.y));
+            if (dist > 400f) return;
+        }
+
+        SetTransparent(false);
         _lastDragCursor = _dragStartCursor;
         if (GetWindowRect(hwnd, out RECT rect))
         {
