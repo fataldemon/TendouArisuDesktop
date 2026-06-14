@@ -277,10 +277,26 @@ public class ModelManager : MonoBehaviour
         if (profile.presets.Count == 0)
         {
             Debug.Log("[ModelManager] BuildDefaultProfile: no VRM presets mapped, creating empty preset shells");
-            string[] presetNames = { "angry","serious","happy","fun","panic","curious","thinking",
-                "disappointed","sweating","confident","cry","plain","shy","touching","wink" };
-            foreach (var name in presetNames)
-                profile.presets.Add(new FacialPresetConfig { presetName = name });
+        }
+
+        // Always fill in any preset names referenced by emotion mappings or action groups
+        {
+            var usedNames = new HashSet<string>();
+            foreach (var m in ActionSystemRuntime.EmotionMappings)
+                if (!string.IsNullOrEmpty(m.facialOverride))
+                    usedNames.Add(m.facialOverride);
+            foreach (var g in ActionSystemRuntime.ActionGroups)
+                if (!string.IsNullOrEmpty(g.facialPreset))
+                    usedNames.Add(g.facialPreset);
+
+            foreach (var name in usedNames)
+            {
+                if (profile.Find(name) == null)
+                {
+                    profile.presets.Add(new FacialPresetConfig { presetName = name });
+                    Debug.Log("[ModelManager] BuildDefaultProfile: added shell preset '" + name + "' from references");
+                }
+            }
         }
 
         return profile;
