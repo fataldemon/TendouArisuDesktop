@@ -250,9 +250,12 @@ public class TransparentWindow : MonoBehaviour
         if (gameStart != null && gameStart.targetTransform != null)
         {
             var ms = Camera.main.WorldToScreenPoint(gameStart.targetTransform.position);
+            Vector2 modelAbs = new Vector2(
+                currentX + ms.x,
+                currentY + (Screen.height - ms.y));
             float dist = Vector2.Distance(
                 new Vector2(_dragStartCursor.X, _dragStartCursor.Y),
-                new Vector2(ms.x, Screen.height - ms.y));
+                modelAbs);
             if (dist > 400f) return;
         }
 
