@@ -254,10 +254,12 @@ public partial class MainWindow : Window
     }
     private void OnModelLoadClick(object sender, RoutedEventArgs e)
     {
-        if (!string.IsNullOrEmpty(TxtVrmPath.Text))
+        if (LstModelHistory.SelectedIndex >= 0)
+            _ = _pipe.SendCommand("load_model_from_history", new { index = LstModelHistory.SelectedIndex });
+        else if (!string.IsNullOrEmpty(TxtVrmPath.Text))
             _ = _pipe.SendCommand("load_model", new { path = TxtVrmPath.Text });
         else
-            MessageBox.Show("请先浏览选择 VRM 文件或在历史列表中双击条目。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("请先在历史列表中选择条目，或浏览选择 VRM 文件。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void OnModelRestoreClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("restore_default_model");
     private void OnModelHistorySelect(object sender, SelectionChangedEventArgs e)

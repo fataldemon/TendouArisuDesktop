@@ -122,7 +122,7 @@ public class ModelManager : MonoBehaviour
 
         if (facialEngine != null)
         {
-            var renderer = currentModel.GetComponentInChildren<SkinnedMeshRenderer>();
+            var renderer = FindBestBlendShapeRenderer(currentModel);
             if (renderer != null)
                 facialEngine.meshRenderer = renderer;
             facialEngine.ResetInstant();
@@ -139,6 +139,8 @@ public class ModelManager : MonoBehaviour
                 else
                 {
                     Debug.Log("[ModelManager] Loaded existing expression profile for model " + _currentModelKey + " (" + profile.presets.Count + " presets)");
+                    EnsureRequiredPresets(profile);
+                    ModelExpressionIO.Save(profile);
                 }
                 facialEngine.SetModelExpressionProfile(profile);
             }
@@ -175,7 +177,7 @@ public class ModelManager : MonoBehaviour
 
         if (facialEngine != null)
         {
-            var renderer = defaultModel.GetComponentInChildren<SkinnedMeshRenderer>();
+            var renderer = FindBestBlendShapeRenderer(defaultModel);
             if (renderer != null)
                 facialEngine.meshRenderer = renderer;
             facialEngine.ClearModelExpressionProfile();
@@ -285,26 +287,47 @@ public class ModelManager : MonoBehaviour
         }
 
         // Always fill in any preset names referenced by emotion mappings or action groups
-        {
-            var usedNames = new HashSet<string>();
-            foreach (var m in ActionSystemRuntime.EmotionMappings)
-                if (!string.IsNullOrEmpty(m.facialOverride))
-                    usedNames.Add(m.facialOverride);
-            foreach (var g in ActionSystemRuntime.ActionGroups)
-                if (!string.IsNullOrEmpty(g.facialPreset))
-                    usedNames.Add(g.facialPreset);
-
-            foreach (var name in usedNames)
-            {
-                if (profile.Find(name) == null)
-                {
-                    profile.presets.Add(new FacialPresetConfig { presetName = name });
-                    Debug.Log("[ModelManager] BuildDefaultProfile: added shell preset '" + name + "' from references");
-                }
-            }
-        }
+        EnsureRequiredPresets(profile);
 
         return profile;
+    }
+
+    private void EnsureRequiredPresets(ModelExpressionProfile profile)
+    {
+        var usedNames = new HashSet<string>();
+        foreach (var m in ActionSystemRuntime.EmotionMappings)
+            if (!string.IsNullOrEmpty(m.facialOverride))
+                usedNames.Add(m.facialOverride);
+        foreach (var g in ActionSystemRuntime.ActionGroups)
+            if (!string.IsNullOrEmpty(g.facialPreset))
+                usedNames.Add(g.facialPreset);
+
+        foreach (var name in usedNames)
+        {
+            if (profile.Find(name) == null)
+            {
+                profile.presets.Add(new FacialPresetConfig { presetName = name });
+                Debug.Log("[ModelManager] EnsureRequiredPresets: added shell preset '" + name + "' from references");
+            }
+        }
+    }
+
+    private static SkinnedMeshRenderer FindBestBlendShapeRenderer(GameObject model)
+    {
+        SkinnedMeshRenderer best = null;
+        int maxBlends = 0;
+        foreach (var r in model.GetComponentsInChildren<SkinnedMeshRenderer>())
+        {
+            if (r.sharedMesh != null && r.sharedMesh.blendShapeCount > maxBlends)
+            {
+                best = r;
+                maxBlends = r.sharedMesh.blendShapeCount;
+            }
+        }
+        if (best == null)
+            best = model.GetComponentInChildren<SkinnedMeshRenderer>();
+        Debug.Log("[ModelManager] FindBestBlendShapeRenderer: " + (best != null ? best.name + " (" + maxBlends + " blends)" : "none"));
+        return best;
     }
 
     private static string MapVrmPreset(ExpressionPreset preset)
