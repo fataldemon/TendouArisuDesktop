@@ -468,7 +468,13 @@ public class PipeServer : MonoBehaviour
                     if (!string.IsNullOrEmpty(cmd.facialX) && previewController != null)
                     {
                         if (!cmd.noZoom) gameStart.ZoomToHeadPublic();
-                        previewController.PreviewFacial(cmd.facialX, cmd.facialW > 0 ? cmd.facialW : 1f);
+                        if (!string.IsNullOrEmpty(cmd.targetsJson))
+                        {
+                            var temp = BuildPresetFromJson(cmd.facialX, cmd.targetsJson);
+                            emotionPlayer?.facialEngine?.ApplyPresetDirect(temp, cmd.facialW > 0 ? cmd.facialW : 1f);
+                        }
+                        else
+                            previewController.PreviewFacial(cmd.facialX, cmd.facialW > 0 ? cmd.facialW : 1f);
                     }
                     break;
                 case "preview_expression":
@@ -701,6 +707,18 @@ public class PipeServer : MonoBehaviour
 
     [Serializable]
     private class TargetsWrapper { public BlendShapeTargetDto[] items; }
+
+    private FacialPresetConfig BuildPresetFromJson(string name, string targetsJson)
+    {
+        var preset = new FacialPresetConfig { presetName = name };
+        var dtos = JsonUtility.FromJson<TargetsWrapper>("{\"items\":" + targetsJson + "}");
+        if (dtos?.items != null)
+        {
+            foreach (var d in dtos.items)
+                preset.targets.Add(new BlendShapeTarget { index = d.index, weight = d.weight });
+        }
+        return preset;
+    }
 
     void OnDestroy() { StopServer(); }
     void OnApplicationQuit() { StopServer(); }

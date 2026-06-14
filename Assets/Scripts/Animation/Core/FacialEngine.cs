@@ -222,6 +222,29 @@ public class FacialEngine : MonoBehaviour
         _isBlending = false;
     }
 
+    public void ApplyPresetDirect(FacialPresetConfig preset, float weight = 1f)
+    {
+        if (meshRenderer == null || preset == null) return;
+        ResetInstant();
+        for (int i = 0; i < preset.targets.Count; i++)
+        {
+            var t = preset.targets[i];
+            float w = t.weight * weight;
+            meshRenderer.SetBlendShapeWeight(t.index, w);
+            _activeBlends[t.index] = new BlendState
+            {
+                currentWeight = w,
+                fromWeight = w,
+                targetWeight = w,
+                elapsed = 1f,
+                duration = 1f
+            };
+        }
+        ActivateEffects(preset.activateObjects);
+        ApplyBlush(preset.blushMode);
+        _isBlending = false;
+    }
+
     public void ResetInstant()
     {
         if (meshRenderer != null)

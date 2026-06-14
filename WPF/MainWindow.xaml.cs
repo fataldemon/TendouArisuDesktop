@@ -703,7 +703,11 @@ public partial class MainWindow : Window
         // Preview + Save buttons
         var btnRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
         var btnPreview = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 8, 0) };
-        btnPreview.Click += (_, _) => _ = _pipe.SendCommand("preview_facial", new { facialX = p.PresetName, facialW = 1f });
+        btnPreview.Click += async (_, _) =>
+        {
+            var targetsJson = System.Text.Json.JsonSerializer.Serialize(p.Targets.Select(t => new { index = t.Index, weight = t.Weight }));
+            await _pipe.SendCommand("preview_facial", new { facialX = p.PresetName, facialW = 1f, targetsJson });
+        };
         btnRow.Children.Add(btnPreview);
 
         var btnSave = new Button { Content = "保存", Width = 60, Style = (Style)FindResource("SmallButton") };
