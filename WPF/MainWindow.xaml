@@ -104,7 +104,7 @@
                 </Grid>
 
                 <Label Content="加载历史" Grid.Row="2"/>
-                <ListBox x:Name="LstModelHistory" Grid.Row="3" SelectionChanged="OnModelHistorySelect"/>
+                <ListBox x:Name="LstModelHistory" Grid.Row="3" SelectionChanged="OnModelHistorySelect" MouseDoubleClick="OnModelHistoryDoubleClick"/>
             </Grid>
         </TabItem>
 

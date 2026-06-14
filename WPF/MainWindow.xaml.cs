@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using Microsoft.Win32;
 
@@ -255,12 +256,28 @@ public partial class MainWindow : Window
     {
         if (!string.IsNullOrEmpty(TxtVrmPath.Text))
             _ = _pipe.SendCommand("load_model", new { path = TxtVrmPath.Text });
+        else
+            MessageBox.Show("请先浏览选择 VRM 文件或在历史列表中双击条目。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void OnModelRestoreClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("restore_default_model");
     private void OnModelHistorySelect(object sender, SelectionChangedEventArgs e)
     {
-        if (LstModelHistory.SelectedIndex >= 0)
-            _ = _pipe.SendCommand("load_model_from_history", new { index = LstModelHistory.SelectedIndex });
+        int idx = LstModelHistory.SelectedIndex;
+        if (idx >= 0)
+        {
+            if (_initData != null && idx < _initData.ModelHistory.Count)
+            {
+                var parts = _initData.ModelHistory[idx].Split('|');
+                if (parts.Length > 0) TxtVrmPath.Text = parts[0];
+            }
+            _ = _pipe.SendCommand("load_model_from_history", new { index = idx });
+        }
+    }
+    private void OnModelHistoryDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        int idx = LstModelHistory.SelectedIndex;
+        if (idx >= 0)
+            _ = _pipe.SendCommand("load_model_from_history", new { index = idx });
     }
     #endregion
 
