@@ -81,7 +81,12 @@ public partial class MainWindow : Window
     private void OnInit(InitData data)
     {
         _initData = data;
-        Dispatcher.Invoke(() => PopulateAll(data));
+        Dispatcher.Invoke(() =>
+        {
+            PopulateAll(data);
+            if (_facialEditing != null)
+                BuildFacialEditPanel();
+        });
     }
 
     private void OnMessage(JsonElement root)

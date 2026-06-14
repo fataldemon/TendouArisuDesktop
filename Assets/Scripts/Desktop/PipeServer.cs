@@ -339,22 +339,26 @@ public class PipeServer : MonoBehaviour
     private void AppendBlendShapeNames(StringBuilder sb)
     {
         sb.Append('[');
-        var meshRenderer = emotionPlayer?.facialEngine?.meshRenderer;
-        var mesh = meshRenderer?.sharedMesh;
-        if (mesh != null)
+        var anim = emotionPlayer?.bodyEngine?.animator;
+        var renderers = anim?.GetComponentsInChildren<SkinnedMeshRenderer>();
+        bool first = true;
+        if (renderers != null)
         {
-            int count = mesh.blendShapeCount;
-            Debug.Log("[PipeServer] AppendBlendShapeNames: mesh=" + mesh.name + " count=" + count);
-            for (int i = 0; i < count; i++)
+            foreach (var r in renderers)
             {
-                if (i > 0) sb.Append(',');
-                sb.Append('"').Append(EscapeJson(mesh.GetBlendShapeName(i))).Append('"');
+                var mesh = r.sharedMesh;
+                if (mesh == null || mesh.blendShapeCount == 0) continue;
+                Debug.Log("[PipeServer] AppendBlendShapeNames: mesh=" + mesh.name + " count=" + mesh.blendShapeCount);
+                for (int i = 0; i < mesh.blendShapeCount; i++)
+                {
+                    if (!first) sb.Append(',');
+                    first = false;
+                    sb.Append('"').Append(EscapeJson(mesh.GetBlendShapeName(i))).Append('"');
+                }
             }
         }
-        else
-        {
-            Debug.LogWarning("[PipeServer] AppendBlendShapeNames: meshRenderer=" + (meshRenderer != null) + " sharedMesh=" + (mesh != null));
-        }
+        if (first)
+            Debug.LogWarning("[PipeServer] AppendBlendShapeNames: no blend shapes found on any mesh, renderers=" + (renderers?.Length ?? 0));
         sb.Append(']');
     }
 
