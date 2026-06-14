@@ -20,7 +20,13 @@ public class BlinkController : MonoBehaviour
 
     void Update()
     {
-        if (suppressed) { blinkTimer = 0f; return; }
+        if (suppressed)
+        {
+            blinkTimer = 0f;
+            StopAllCoroutines();
+            skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, blinkWeight);
+            return;
+        }
 
         blinkTimer += Time.deltaTime;
 
