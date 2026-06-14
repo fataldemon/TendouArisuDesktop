@@ -249,7 +249,7 @@ public class TransparentWindow : MonoBehaviour
         GetCursorPos(out _dragStartCursor);
         if (gameStart != null && gameStart.targetTransform != null)
         {
-            var ms = Camera.main.WorldToScreenPoint(gameStart.targetTransform.position);
+            var ms = Camera.main.WorldToScreenPoint(gameStart.targetTransform.position + Vector3.up * 0.8f);
             Vector2 modelAbs = new Vector2(
                 currentX + ms.x,
                 currentY + (Screen.height - ms.y));
