@@ -92,6 +92,8 @@ public class GameStart : MonoBehaviour
 
     private bool skinReady;
     private bool _ctrlDown;
+    private Vector3 _defaultModelPos;
+    private Quaternion _defaultModelRot;
 
     private bool _isTouching;
     private bool _isDragging;
@@ -219,14 +221,14 @@ public class GameStart : MonoBehaviour
 
     void Start()
     {
+        _defaultModelPos = targetTransform.position;
+        _defaultModelRot = targetTransform.rotation;
+
         SettingsData settings = SettingsData.Load();
         if (settings != null)
         {
-            if (settings.posX != 0f || settings.posY != 0f || settings.posZ != 0f)
-            {
-                targetTransform.position = new Vector3(settings.posX, settings.posY, settings.posZ);
-                targetTransform.rotation = Quaternion.Euler(settings.rotX, settings.rotY, settings.rotZ);
-            }
+            targetTransform.position = _defaultModelPos;
+            targetTransform.rotation = _defaultModelRot;
             if (!string.IsNullOrEmpty(settings.websocketUrl))
                 websocket_url = settings.websocketUrl;
             if (settings.msgMaxWidth > 0)
