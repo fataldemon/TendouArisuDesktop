@@ -702,18 +702,39 @@ public partial class MainWindow : Window
         for (int i = 0; i < p.Targets.Count; i++)
         {
             var t = p.Targets[i];
-            string bsName = (_initData?.BlendShapeNames != null && t.Index < _initData.BlendShapeNames.Count)
-                ? _initData.BlendShapeNames[t.Index] : "?";
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-            row.Children.Add(new TextBlock { Text = $"Index [{t.Index}] ({bsName}):", Width = 180, VerticalAlignment = VerticalAlignment.Center });
-            var slider = new Slider { Width = 150, Minimum = 0, Maximum = 100, Value = t.Weight };
-            var lbl = new TextBlock { Text = t.Weight.ToString("F0"), Width = 40, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
             int idx = i;
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
+
+            var combo = new ComboBox { Width = 160, VerticalAlignment = VerticalAlignment.Center };
+            if (_initData?.BlendShapeNames != null)
+            {
+                foreach (var name in _initData.BlendShapeNames)
+                    combo.Items.Add(name);
+            }
+            if (t.Index >= 0 && t.Index < combo.Items.Count)
+                combo.SelectedIndex = t.Index;
+            combo.SelectionChanged += (_, _) =>
+            {
+                if (combo.SelectedIndex >= 0) p.Targets[idx].Index = combo.SelectedIndex;
+            };
+            row.Children.Add(combo);
+
+            var slider = new Slider { Width = 120, Minimum = 0, Maximum = 100, Value = t.Weight, Margin = new Thickness(8, 0, 0, 0) };
+            var lbl = new TextBlock { Text = t.Weight.ToString("F0"), Width = 36, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0) };
             slider.ValueChanged += (_, ev) => { p.Targets[idx].Weight = (float)ev.NewValue; lbl.Text = ev.NewValue.ToString("F0"); };
             row.Children.Add(slider);
             row.Children.Add(lbl);
+
+            var btnDel = new Button { Content = "✕", Width = 28, Height = 24, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(6, 0, 0, 0) };
+            btnDel.Click += (_, _) => { p.Targets.RemoveAt(idx); BuildFacialEditPanel(); };
+            row.Children.Add(btnDel);
+
             sp.Children.Add(row);
         }
+
+        var btnAdd = new Button { Content = "＋ 添加 BlendShape", Margin = new Thickness(0, 6, 0, 0) };
+        btnAdd.Click += (_, _) => { p.Targets.Add(new BlendShapeTargetEntry()); BuildFacialEditPanel(); };
+        sp.Children.Add(btnAdd);
 
         // Effect objects
         if (p.ActivateObjects.Count > 0)
