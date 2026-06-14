@@ -17,6 +17,7 @@ public class ActionGroupInstance
     public bool ttsStarted;
     public bool ttsEnded;
     public bool clipFinished;
+    public bool suppressAutoEnd;
     public List<ResolvedClip> resolvedClips = new List<ResolvedClip>();
 
     public ActionGroupInstance(ActionGroupConfig config, List<ResolvedClip> clips)
@@ -36,6 +37,7 @@ public class ActionGroupInstance
     public bool ShouldEnd()
     {
         if (config.isIdle) return false;
+        if (suppressAutoEnd) return false;
 
         if (!config.loop)
             return clipFinished;

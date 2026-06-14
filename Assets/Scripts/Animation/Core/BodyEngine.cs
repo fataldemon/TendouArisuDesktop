@@ -307,6 +307,8 @@ public class BodyEngine : MonoBehaviour
         Debug.Log("[BodyEngine] FadeOutLayer DONE: layer=" + layer + "(" + BodyPartNames[layer] + ") frame=" + Time.frameCount);
     }
 
+    private int _debugFrameCounter;
+
     private void Update()
     {
         if (!_graphActive || _layers == null) return;
@@ -342,6 +344,16 @@ public class BodyEngine : MonoBehaviour
                 active.SetTime(0f);
                 Debug.Log("[BodyEngine] Loop reset: layer=" + i + "(" + BodyPartNames[i] + ") clip=" + _layers[i].currentClip.name + " frame=" + Time.frameCount);
             }
+        }
+
+        _debugFrameCounter++;
+        bool dragging = FindObjectOfType<TransparentWindow>()?.IsDraggingWindow ?? false;
+        if ((_debugFrameCounter % 60 == 0) && _layers[0].isPlaying && _layers[0].currentClip != null)
+        {
+            var active = _layers[0].activeSlotIsA ? _layers[0].clipA : _layers[0].clipB;
+            float clipTime = (float)active.GetTime();
+            float clipLen = _layers[0].currentClip.length;
+            Debug.Log($"[BodyEngine-DEBUG] f={Time.frameCount} dt={Time.deltaTime:F4} clipTime={clipTime:F2}/{clipLen:F2} draggingWindow={dragging} isLoop={_layers[0].isLoop}");
         }
     }
 

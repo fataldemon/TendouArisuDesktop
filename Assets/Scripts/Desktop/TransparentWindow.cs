@@ -100,6 +100,7 @@ public class TransparentWindow : MonoBehaviour
 
     public int currentX = 0;
     public int currentY = 0;
+    public bool IsDraggingWindow => _isDraggingWindow;
 
     public SystemTrayManager trayManager;
     public GameStart gameStart;

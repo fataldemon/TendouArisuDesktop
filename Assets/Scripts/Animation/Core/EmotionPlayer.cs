@@ -22,6 +22,7 @@ public class EmotionPlayer : MonoBehaviour
     public bool IsPlaying => _current != null && !_current.config.isIdle;
     public bool IsTTSPlaying { get; set; }
     public ActionGroupConfig CurrentConfig => _current?.config;
+    public ActionGroupInstance CurrentInstance => _current;
 
     public event Action OnActionGroupStart;
     public event Action OnActionGroupEnd;

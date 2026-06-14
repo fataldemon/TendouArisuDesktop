@@ -281,6 +281,8 @@ public class GameStart : MonoBehaviour
                 if (!emotionPlayer.IsPlaying && !_isTouching)
                 {
                     emotionPlayer.PlayEmotion("拖拽");
+                    if (emotionPlayer.CurrentConfig != null && emotionPlayer.CurrentConfig.loop)
+                        emotionPlayer.CurrentInstance.suppressAutoEnd = true;
                     _isDragging = true;
                 }
             };
@@ -288,8 +290,10 @@ public class GameStart : MonoBehaviour
             {
                 if (_isDragging)
                 {
-                    emotionPlayer.RestoreToIdle();
+                    if (emotionPlayer.CurrentConfig != null && emotionPlayer.CurrentConfig.loop)
+                        emotionPlayer.RestoreToIdle();
                     _isDragging = false;
+                    _isTouching = true;
                 }
             };
         }
@@ -640,13 +644,15 @@ public class GameStart : MonoBehaviour
                     if (_touchConfig != null && !_touchConfig.loop)
                         emotionPlayer.RestoreToIdle();
                     emotionPlayer.PlayEmotion("触摸");
+                    if (emotionPlayer.CurrentConfig != null && emotionPlayer.CurrentConfig.loop)
+                        emotionPlayer.CurrentInstance.suppressAutoEnd = true;
                     _touchConfig = emotionPlayer.CurrentConfig;
                     _isTouching = true;
                 }
             }
             else if (!touching && _isTouching)
             {
-                if (_touchConfig == null || _touchConfig.loop)
+                if (_touchConfig != null && _touchConfig.loop)
                     emotionPlayer.RestoreToIdle();
                 _isTouching = false;
                 _touchConfig = null;
