@@ -73,28 +73,16 @@
                 <TextBox x:Name="TxtMsgHeight" Margin="0,0,0,12"/>
                 <Label Content="最短保持时间(秒)"/>
                 <TextBox x:Name="TxtDialogHold" Margin="0,0,0,12"/>
-                <Label Content="气泡颜色 (R/G/B/A)"/>
-                <Grid Margin="0,0,0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="40"/><ColumnDefinition Width="50"/><ColumnDefinition Width="50"/><ColumnDefinition Width="50"/><ColumnDefinition Width="50"/>
-                    </Grid.ColumnDefinitions>
-                    <Rectangle Grid.Column="0" x:Name="RectBubbleColor" Width="30" Height="30" RadiusX="4" RadiusY="4" Stroke="Gray" StrokeThickness="1"/>
-                    <TextBox Grid.Column="1" x:Name="TxtBubbleR" Text="0.298" Margin="2,0"/>
-                    <TextBox Grid.Column="2" x:Name="TxtBubbleG" Text="0.788" Margin="2,0"/>
-                    <TextBox Grid.Column="3" x:Name="TxtBubbleB" Text="0.941" Margin="2,0"/>
-                    <TextBox Grid.Column="4" x:Name="TxtBubbleA" Text="0.88" Margin="2,0"/>
-                </Grid>
-                <Label Content="文字颜色 (R/G/B/A)"/>
-                <Grid Margin="0,0,0,12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="40"/><ColumnDefinition Width="50"/><ColumnDefinition Width="50"/><ColumnDefinition Width="50"/><ColumnDefinition Width="50"/>
-                    </Grid.ColumnDefinitions>
-                    <Rectangle Grid.Column="0" x:Name="RectTextColor" Width="30" Height="30" RadiusX="4" RadiusY="4" Stroke="Gray" StrokeThickness="1"/>
-                    <TextBox Grid.Column="1" x:Name="TxtTextR" Text="1" Margin="2,0"/>
-                    <TextBox Grid.Column="2" x:Name="TxtTextG" Text="1" Margin="2,0"/>
-                    <TextBox Grid.Column="3" x:Name="TxtTextB" Text="1" Margin="2,0"/>
-                    <TextBox Grid.Column="4" x:Name="TxtTextA" Text="1" Margin="2,0"/>
-                </Grid>
+                <Label Content="气泡背景颜色"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Rectangle x:Name="RectBubbleColor" Width="32" Height="32" RadiusX="4" RadiusY="4" Stroke="Gray" StrokeThickness="1" Margin="0,0,8,0"/>
+                    <Button Content="选择颜色..." Width="80" Click="OnBubbleColorPickClick"/>
+                </StackPanel>
+                <Label Content="气泡文字颜色"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <Rectangle x:Name="RectTextColor" Width="32" Height="32" RadiusX="4" RadiusY="4" Stroke="Gray" StrokeThickness="1" Margin="0,0,8,0"/>
+                    <Button Content="选择颜色..." Width="80" Click="OnBubbleTextColorPickClick"/>
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                     <Button Content="保存" Width="80" Click="OnDialogSettingsSave"/>
                 </StackPanel>

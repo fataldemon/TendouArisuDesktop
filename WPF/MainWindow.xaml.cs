@@ -31,6 +31,8 @@ public partial class MainWindow : Window
     private ExpressionMappingEntry? _exprEditing;
     private ActionGroupFullEntry? _groupEditing;
     private FacialPresetEntry? _facialEditing;
+    private System.Drawing.Color _bubbleBgColor = System.Drawing.Color.FromArgb(224, 76, 201, 240);
+    private System.Drawing.Color _bubbleTextColor = System.Drawing.Color.White;
 
     public MainWindow()
     {
@@ -128,15 +130,17 @@ public partial class MainWindow : Window
         TxtDialogHold.Text = d.DialogMinHoldTime.ToString("F0");
         if (d.BubbleColor != null && d.BubbleColor.Count >= 4)
         {
-            TxtBubbleR.Text = d.BubbleColor[0].ToString("F3"); TxtBubbleG.Text = d.BubbleColor[1].ToString("F3");
-            TxtBubbleB.Text = d.BubbleColor[2].ToString("F3"); TxtBubbleA.Text = d.BubbleColor[3].ToString("F2");
-            RectBubbleColor.Fill = new SolidColorBrush(Color.FromScRgb(d.BubbleColor[3], d.BubbleColor[0], d.BubbleColor[1], d.BubbleColor[2]));
+            _bubbleBgColor = System.Drawing.Color.FromArgb(
+                (int)(d.BubbleColor[3] * 255), (int)(d.BubbleColor[0] * 255),
+                (int)(d.BubbleColor[1] * 255), (int)(d.BubbleColor[2] * 255));
+            RectBubbleColor.Fill = ToMediaBrush(_bubbleBgColor);
         }
         if (d.BubbleTextColor != null && d.BubbleTextColor.Count >= 4)
         {
-            TxtTextR.Text = d.BubbleTextColor[0].ToString("F2"); TxtTextG.Text = d.BubbleTextColor[1].ToString("F2");
-            TxtTextB.Text = d.BubbleTextColor[2].ToString("F2"); TxtTextA.Text = d.BubbleTextColor[3].ToString("F2");
-            RectTextColor.Fill = new SolidColorBrush(Color.FromScRgb(d.BubbleTextColor[3], d.BubbleTextColor[0], d.BubbleTextColor[1], d.BubbleTextColor[2]));
+            _bubbleTextColor = System.Drawing.Color.FromArgb(
+                (int)(d.BubbleTextColor[3] * 255), (int)(d.BubbleTextColor[0] * 255),
+                (int)(d.BubbleTextColor[1] * 255), (int)(d.BubbleTextColor[2] * 255));
+            RectTextColor.Fill = ToMediaBrush(_bubbleTextColor);
         }
         UpdateConnectionStatus(d.Connected);
         PopulateModelHistory(d.ModelHistory);
@@ -250,6 +254,27 @@ public partial class MainWindow : Window
     #endregion
 
 #region Dialog Settings Tab Events
+private void OnBubbleColorPickClick(object sender, RoutedEventArgs e)
+{
+    using var dlg = new System.Windows.Forms.ColorDialog { Color = _bubbleBgColor, FullOpen = true };
+    if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+    {
+        _bubbleBgColor = dlg.Color;
+        RectBubbleColor.Fill = ToMediaBrush(_bubbleBgColor);
+    }
+}
+private void OnBubbleTextColorPickClick(object sender, RoutedEventArgs e)
+{
+    using var dlg = new System.Windows.Forms.ColorDialog { Color = _bubbleTextColor, FullOpen = true };
+    if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+    {
+        _bubbleTextColor = dlg.Color;
+        RectTextColor.Fill = ToMediaBrush(_bubbleTextColor);
+    }
+}
+private static SolidColorBrush ToMediaBrush(System.Drawing.Color c)
+    => new SolidColorBrush(Color.FromArgb(c.A, c.R, c.G, c.B));
+
 private void OnDialogSettingsSave(object sender, RoutedEventArgs e)
 {
     float hold = 10f;
@@ -257,12 +282,11 @@ private void OnDialogSettingsSave(object sender, RoutedEventArgs e)
     _ = _pipe.SendCommand("update_dialog", new { msgWidth = GetInt(TxtMsgWidth), msgHeight = GetInt(TxtMsgHeight), dialogHold = hold });
     _ = _pipe.SendCommand("update_bubble_color", new
     {
-        bubbleR = GetFloat(TxtBubbleR, 0.3f), bubbleG = GetFloat(TxtBubbleG, 0.79f), bubbleB = GetFloat(TxtBubbleB, 0.94f), bubbleA = GetFloat(TxtBubbleA, 0.88f),
-        bubbleTextR = GetFloat(TxtTextR, 1f), bubbleTextG = GetFloat(TxtTextG, 1f), bubbleTextB = GetFloat(TxtTextB, 1f), bubbleTextA = GetFloat(TxtTextA, 1f)
+        bubbleR = _bubbleBgColor.R / 255f, bubbleG = _bubbleBgColor.G / 255f, bubbleB = _bubbleBgColor.B / 255f, bubbleA = _bubbleBgColor.A / 255f,
+        bubbleTextR = _bubbleTextColor.R / 255f, bubbleTextG = _bubbleTextColor.G / 255f, bubbleTextB = _bubbleTextColor.B / 255f, bubbleTextA = _bubbleTextColor.A / 255f
     });
 }
 private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
-private float GetFloat(TextBox tb, float def) => float.TryParse(tb.Text, out float v) ? v : def;
 #endregion
 
     #region Model Tab Events
