@@ -311,14 +311,10 @@ private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
     private void OnModelHistorySelect(object sender, SelectionChangedEventArgs e)
     {
         int idx = LstModelHistory.SelectedIndex;
-        if (idx >= 0)
+        if (idx >= 0 && _initData != null && idx < _initData.ModelHistory.Count)
         {
-            if (_initData != null && idx < _initData.ModelHistory.Count)
-            {
-                var parts = _initData.ModelHistory[idx].Split('|');
-                if (parts.Length > 0) TxtVrmPath.Text = parts[0];
-            }
-            _ = _pipe.SendCommand("load_model_from_history", new { index = idx });
+            var parts = _initData.ModelHistory[idx].Split('|');
+            if (parts.Length > 0) TxtVrmPath.Text = parts[0];
         }
     }
     private void OnModelHistoryDoubleClick(object sender, MouseButtonEventArgs e)
