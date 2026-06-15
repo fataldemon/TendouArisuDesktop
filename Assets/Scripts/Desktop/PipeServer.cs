@@ -174,6 +174,8 @@ public class PipeServer : MonoBehaviour
         sb.Append("\"msgMaxWidth\":").Append(gameStart.msg_max_length).Append(',');
         sb.Append("\"msgHeight\":").Append(gameStart.msg_height).Append(',');
         sb.Append("\"dialogMinHoldTime\":").Append(gameStart.DialogMinHoldTime.ToString("F1")).Append(',');
+        sb.Append("\"bubbleColor\":[").Append(gameStart.BubbleBgColor.r.ToString("F3")).Append(',').Append(gameStart.BubbleBgColor.g.ToString("F3")).Append(',').Append(gameStart.BubbleBgColor.b.ToString("F3")).Append(',').Append(gameStart.BubbleBgColor.a.ToString("F2")).Append("],");
+        sb.Append("\"bubbleTextColor\":[").Append(gameStart.BubbleTextColor.r.ToString("F2")).Append(',').Append(gameStart.BubbleTextColor.g.ToString("F2")).Append(',').Append(gameStart.BubbleTextColor.b.ToString("F2")).Append(',').Append(gameStart.BubbleTextColor.a.ToString("F2")).Append("],");
         sb.Append("\"allowRootMotion\":").Append(
             (emotionPlayer != null && emotionPlayer.bodyEngine != null && emotionPlayer.bodyEngine.allowRootMotion) ? "true" : "false");
         sb.Append("}}");
@@ -427,6 +429,13 @@ public class PipeServer : MonoBehaviour
                     break;
                 case "update_dialog":
                     ApplyDialogSettings(cmd);
+                    break;
+                case "update_bubble_color":
+                    gameStart.SetBubbleColor(
+                        new Color(cmd.bubbleR, cmd.bubbleG, cmd.bubbleB, cmd.bubbleA),
+                        new Color(cmd.bubbleTextR, cmd.bubbleTextG, cmd.bubbleTextB, cmd.bubbleTextA));
+                    gameStart.SaveSettings();
+                    RefreshInitData();
                     break;
                 case "load_model":
                     if (!string.IsNullOrEmpty(cmd.path))
@@ -762,4 +771,6 @@ public class PipeCommand
     public int msgHeight;
     public float dialogHold;
     public string bodyPart = "fullBody";
+    public float bubbleR, bubbleG, bubbleB, bubbleA = 0.88f;
+    public float bubbleTextR = 1f, bubbleTextG = 1f, bubbleTextB = 1f, bubbleTextA = 1f;
 }

@@ -94,6 +94,8 @@ public class GameStart : MonoBehaviour
     private bool _ctrlDown;
     private Vector3 _defaultModelPos;
     private Quaternion _defaultModelRot;
+    private Color _bubbleBgColor = new Color(0.298f, 0.788f, 0.941f, 0.88f);
+    private Color _bubbleTextColor = Color.white;
 
     private bool _isTouching;
     private bool _isDragging;
@@ -115,7 +117,7 @@ public class GameStart : MonoBehaviour
         fontSize = 30;
 
         roundedBoxStyle = new GUIStyle(GUI.skin.box);
-        roundedBoxStyle.normal.background = CreateRoundedBg(600, 1600, 24, new Color(0.298f, 0.788f, 0.941f, 0.88f));
+        roundedBoxStyle.normal.background = CreateRoundedBg(600, 1600, 24, _bubbleBgColor);
 
         skinReady = true;
     }
@@ -245,6 +247,10 @@ public class GameStart : MonoBehaviour
                 guiOffset = new Vector2(settings.guiOffsetX, settings.guiOffsetY);
             if (settings.dialogMinHoldTime > 0f)
                 _dialogueHoldDuration = settings.dialogMinHoldTime;
+            if (settings.bubbleR > 0f || settings.bubbleG > 0f || settings.bubbleB > 0f)
+                _bubbleBgColor = new Color(settings.bubbleR, settings.bubbleG, settings.bubbleB, settings.bubbleA);
+            if (settings.bubbleTextR > 0f || settings.bubbleTextG > 0f || settings.bubbleTextB > 0f)
+                _bubbleTextColor = new Color(settings.bubbleTextR, settings.bubbleTextG, settings.bubbleTextB, settings.bubbleTextA);
         }
 
         int ttsMode = config.tts;
@@ -346,6 +352,17 @@ public class GameStart : MonoBehaviour
     private bool _windowVisible = true;
 
     public float DialogMinHoldTime => _dialogueHoldDuration;
+    public Color BubbleBgColor => _bubbleBgColor;
+    public Color BubbleTextColor => _bubbleTextColor;
+
+    public void SetBubbleColor(Color bg, Color text)
+    {
+        _bubbleBgColor = bg;
+        _bubbleTextColor = text;
+        if (cachedRoundedBg != null) { Destroy(cachedRoundedBg); cachedRoundedBg = null; }
+        skinReady = false;
+        SetupSkin();
+    }
 
     private void ToggleWindow()
     {
@@ -723,7 +740,7 @@ public class GameStart : MonoBehaviour
     {
         SetupSkin();
         GUI.skin.textArea.fontSize = fontSize;
-        GUI.skin.textArea.normal.textColor = Color.white;
+        GUI.skin.textArea.normal.textColor = _bubbleTextColor;
         GUI.skin.textArea.normal.background = null;
         GUI.skin.textArea.hover.background = null;
         GUI.skin.textArea.focused.background = null;
@@ -753,7 +770,7 @@ public class GameStart : MonoBehaviour
             TextAreaStyle = new GUIStyle(GUI.skin.textArea);
             TextAreaStyle.fontSize = fontSize;
             TextAreaStyle.wordWrap = true;
-            TextAreaStyle.normal.textColor = Color.white;
+            TextAreaStyle.normal.textColor = _bubbleTextColor;
             TextAreaStyle.normal.background = null;
             TextAreaStyle.hover.background = null;
             TextAreaStyle.focused.background = null;
@@ -776,7 +793,7 @@ public class GameStart : MonoBehaviour
             if (cachedRoundedBg == null || cachedBgWidth != bw || cachedBgHeight != bh)
             {
                 if (cachedRoundedBg != null) Destroy(cachedRoundedBg);
-                cachedRoundedBg = CreateRoundedBg(bw, bh, 28, new Color(0.298f, 0.788f, 0.941f, 0.88f));
+                cachedRoundedBg = CreateRoundedBg(bw, bh, 28, _bubbleBgColor);
                 cachedBgWidth = bw; cachedBgHeight = bh;
                 roundedBoxStyle.normal.background = cachedRoundedBg;
             }
@@ -864,6 +881,10 @@ public class GameStart : MonoBehaviour
         settings.guiOffsetX = guiOffset.x;
         settings.guiOffsetY = guiOffset.y;
         settings.dialogMinHoldTime = _dialogueHoldDuration > 0 ? _dialogueHoldDuration : 10f;
+        settings.bubbleR = _bubbleBgColor.r; settings.bubbleG = _bubbleBgColor.g;
+        settings.bubbleB = _bubbleBgColor.b; settings.bubbleA = _bubbleBgColor.a;
+        settings.bubbleTextR = _bubbleTextColor.r; settings.bubbleTextG = _bubbleTextColor.g;
+        settings.bubbleTextB = _bubbleTextColor.b; settings.bubbleTextA = _bubbleTextColor.a;
         config.PopulateTo(settings);
         settings.Save();
     }

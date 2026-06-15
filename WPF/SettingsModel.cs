@@ -49,6 +49,8 @@ public class InitData
     public int MsgHeight { get; set; }
     public float DialogMinHoldTime { get; set; } = 10f;
     public bool AllowRootMotion { get; set; }
+    public List<float> BubbleColor { get; set; } = new();
+    public List<float> BubbleTextColor { get; set; } = new();
 
     // Legacy compatibility
     public List<ActionPresetEntry> ActionPresets { get; set; } = new();

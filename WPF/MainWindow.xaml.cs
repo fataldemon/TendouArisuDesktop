@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using Microsoft.Win32;
 
 namespace AliceBotSettings;
@@ -125,6 +126,18 @@ public partial class MainWindow : Window
         TxtMsgWidth.Text = d.MsgMaxWidth.ToString();
         TxtMsgHeight.Text = d.MsgHeight.ToString();
         TxtDialogHold.Text = d.DialogMinHoldTime.ToString("F0");
+        if (d.BubbleColor != null && d.BubbleColor.Count >= 4)
+        {
+            TxtBubbleR.Text = d.BubbleColor[0].ToString("F3"); TxtBubbleG.Text = d.BubbleColor[1].ToString("F3");
+            TxtBubbleB.Text = d.BubbleColor[2].ToString("F3"); TxtBubbleA.Text = d.BubbleColor[3].ToString("F2");
+            RectBubbleColor.Fill = new SolidColorBrush(Color.FromScRgb(d.BubbleColor[3], d.BubbleColor[0], d.BubbleColor[1], d.BubbleColor[2]));
+        }
+        if (d.BubbleTextColor != null && d.BubbleTextColor.Count >= 4)
+        {
+            TxtTextR.Text = d.BubbleTextColor[0].ToString("F2"); TxtTextG.Text = d.BubbleTextColor[1].ToString("F2");
+            TxtTextB.Text = d.BubbleTextColor[2].ToString("F2"); TxtTextA.Text = d.BubbleTextColor[3].ToString("F2");
+            RectTextColor.Fill = new SolidColorBrush(Color.FromScRgb(d.BubbleTextColor[3], d.BubbleTextColor[0], d.BubbleTextColor[1], d.BubbleTextColor[2]));
+        }
         UpdateConnectionStatus(d.Connected);
         PopulateModelHistory(d.ModelHistory);
         PopulateAnimationList(d.AnimationList);
@@ -236,15 +249,21 @@ public partial class MainWindow : Window
 
     #endregion
 
-    #region Dialog Settings Tab Events
-    private void OnDialogSettingsSave(object sender, RoutedEventArgs e)
+#region Dialog Settings Tab Events
+private void OnDialogSettingsSave(object sender, RoutedEventArgs e)
+{
+    float hold = 10f;
+    float.TryParse(TxtDialogHold.Text, out hold);
+    _ = _pipe.SendCommand("update_dialog", new { msgWidth = GetInt(TxtMsgWidth), msgHeight = GetInt(TxtMsgHeight), dialogHold = hold });
+    _ = _pipe.SendCommand("update_bubble_color", new
     {
-        float hold = 10f;
-        float.TryParse(TxtDialogHold.Text, out hold);
-        _ = _pipe.SendCommand("update_dialog", new { msgWidth = GetInt(TxtMsgWidth), msgHeight = GetInt(TxtMsgHeight), dialogHold = hold });
-    }
-    private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
-    #endregion
+        bubbleR = GetFloat(TxtBubbleR, 0.3f), bubbleG = GetFloat(TxtBubbleG, 0.79f), bubbleB = GetFloat(TxtBubbleB, 0.94f), bubbleA = GetFloat(TxtBubbleA, 0.88f),
+        bubbleTextR = GetFloat(TxtTextR, 1f), bubbleTextG = GetFloat(TxtTextG, 1f), bubbleTextB = GetFloat(TxtTextB, 1f), bubbleTextA = GetFloat(TxtTextA, 1f)
+    });
+}
+private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
+private float GetFloat(TextBox tb, float def) => float.TryParse(tb.Text, out float v) ? v : def;
+#endregion
 
     #region Model Tab Events
     private void OnModelBrowseClick(object sender, RoutedEventArgs e)
