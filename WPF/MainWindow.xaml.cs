@@ -47,6 +47,7 @@ public partial class MainWindow : Window
         _pipe.OnMessageReceived += OnMessage;
         _pipe.OnError += e => Dispatcher.Invoke(() => MessageBox.Show(e, "连接错误", MessageBoxButton.OK, MessageBoxImage.Warning));
         Loaded += (_, _) => _pipe.StartReconnect();
+        SldModelScale.ValueChanged += (_, _) => LblModelScale.Text = SldModelScale.Value.ToString("F2") + "x";
         Closing += async (_, _) =>
         {
             await _pipe.SendCommand("restore_expression");
@@ -142,6 +143,8 @@ public partial class MainWindow : Window
                 (int)(d.BubbleTextColor[1] * 255), (int)(d.BubbleTextColor[2] * 255));
             RectTextColor.Fill = ToMediaBrush(_bubbleTextColor);
         }
+        SldModelScale.Value = d.ModelScale;
+        LblModelScale.Text = d.ModelScale.ToString("F2") + "x";
         UpdateConnectionStatus(d.Connected);
         PopulateModelHistory(d.ModelHistory);
         PopulateAnimationList(d.AnimationList);
@@ -324,6 +327,7 @@ private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
         if (idx >= 0)
             _ = _pipe.SendCommand("load_model_from_history", new { index = idx });
     }
+    private void OnModelScaleApply(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("update_model_scale", new { modelScale = (float)SldModelScale.Value });
     #endregion
 
     #region Animation Tab Events

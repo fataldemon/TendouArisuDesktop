@@ -96,10 +96,15 @@ public class ModelManager : MonoBehaviour
     }
 
     private string _currentModelKey;
+    public string CurrentModelKey => _currentModelKey;
 
     private void ReplaceModel(GameObject newModel)
     {
         Debug.Log("[ModelManager] ReplaceModel START: new=" + newModel.name + " current=" + (currentModel != null ? currentModel.name : "NULL"));
+
+        if (!string.IsNullOrEmpty(_currentModelKey))
+            newModel.transform.localScale = Vector3.one * ModelScaleIO.GetScale(_currentModelKey);
+
         if (currentModel != null)
         {
             if (currentModel == defaultModel)

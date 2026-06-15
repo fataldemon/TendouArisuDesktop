@@ -176,6 +176,7 @@ public class PipeServer : MonoBehaviour
         sb.Append("\"dialogMinHoldTime\":").Append(gameStart.DialogMinHoldTime.ToString("F1")).Append(',');
         sb.Append("\"bubbleColor\":[").Append(gameStart.BubbleBgColor.r.ToString("F3")).Append(',').Append(gameStart.BubbleBgColor.g.ToString("F3")).Append(',').Append(gameStart.BubbleBgColor.b.ToString("F3")).Append(',').Append(gameStart.BubbleBgColor.a.ToString("F2")).Append("],");
         sb.Append("\"bubbleTextColor\":[").Append(gameStart.BubbleTextColor.r.ToString("F2")).Append(',').Append(gameStart.BubbleTextColor.g.ToString("F2")).Append(',').Append(gameStart.BubbleTextColor.b.ToString("F2")).Append(',').Append(gameStart.BubbleTextColor.a.ToString("F2")).Append("],");
+        sb.Append("\"modelScale\":").Append((modelManager != null && modelManager.currentModel != null ? modelManager.currentModel.transform.localScale.x : 1f).ToString("F2")).Append(',');
         sb.Append("\"allowRootMotion\":").Append(
             (emotionPlayer != null && emotionPlayer.bodyEngine != null && emotionPlayer.bodyEngine.allowRootMotion) ? "true" : "false");
         sb.Append("}}");
@@ -450,6 +451,15 @@ public class PipeServer : MonoBehaviour
                     break;
                 case "load_model_from_history":
                     modelManager?.LoadFromHistory(cmd.index);
+                    break;
+                case "update_model_scale":
+                    if (modelManager != null && !string.IsNullOrEmpty(modelManager.CurrentModelKey) && cmd.modelScale > 0.1f)
+                    {
+                        ModelScaleIO.SetScale(modelManager.CurrentModelKey, cmd.modelScale);
+                        if (modelManager.currentModel != null)
+                            modelManager.currentModel.transform.localScale = Vector3.one * cmd.modelScale;
+                        RefreshInitData();
+                    }
                     break;
                 case "scan_animations":
                     animLibrary?.ScanAll();
@@ -773,4 +783,5 @@ public class PipeCommand
     public string bodyPart = "fullBody";
     public float bubbleR, bubbleG, bubbleB, bubbleA = 0.88f;
     public float bubbleTextR = 1f, bubbleTextG = 1f, bubbleTextB = 1f, bubbleTextA = 1f;
+    public float modelScale = 1f;
 }

@@ -51,6 +51,7 @@ public class InitData
     public bool AllowRootMotion { get; set; }
     public List<float> BubbleColor { get; set; } = new();
     public List<float> BubbleTextColor { get; set; } = new();
+    public float ModelScale { get; set; } = 1f;
 
     // Legacy compatibility
     public List<ActionPresetEntry> ActionPresets { get; set; } = new();
