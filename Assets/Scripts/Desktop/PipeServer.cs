@@ -373,8 +373,8 @@ public class PipeServer : MonoBehaviour
         var p = modelManager?.CurrentEyeProfile;
         if (p == null)
         {
-            var etc = modelManager?.eyeTrackingController;
-            var bc = modelManager?.blinkController;
+            var etc = emotionPlayer?.eyeTrackingController;
+            var bc = emotionPlayer?.blinkController;
             p = new ModelEyeProfile();
             if (etc != null)
             {

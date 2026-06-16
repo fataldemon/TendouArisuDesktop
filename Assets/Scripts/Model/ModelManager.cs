@@ -13,8 +13,6 @@ public class ModelManager : MonoBehaviour
     public FacialEngine facialEngine;
     public Transform modelParent;
     public PipeServer pipeServer;
-    public EyeTrackingController eyeTrackingController;
-    public BlinkController blinkController;
 
     [SerializeField] private List<string> modelHistory = new List<string>();
 
@@ -386,25 +384,25 @@ public class ModelManager : MonoBehaviour
     public void ApplyEyeProfile(ModelEyeProfile profile)
     {
         CurrentEyeProfile = profile;
+        var etc = FindObjectOfType<EyeTrackingController>();
+        var bc = FindObjectOfType<BlinkController>();
         if (profile == null)
         {
-            if (eyeTrackingController != null)
-                eyeTrackingController.ApplyEyeProfile(null);
-            if (blinkController != null)
-                blinkController.ApplyEyeProfile(null);
+            etc?.ApplyEyeProfile(null);
+            bc?.ApplyEyeProfile(null);
             return;
         }
-        if (eyeTrackingController != null)
+        if (etc != null)
         {
             var renderer = FindBestBlendShapeRenderer(currentModel);
-            if (renderer != null) eyeTrackingController.meshRenderer = renderer;
-            eyeTrackingController.ApplyEyeProfile(profile);
+            if (renderer != null) etc.meshRenderer = renderer;
+            etc.ApplyEyeProfile(profile);
         }
-        if (blinkController != null)
+        if (bc != null)
         {
             var renderer = FindBestBlendShapeRenderer(currentModel);
-            if (renderer != null) blinkController.skinnedMeshRenderer = renderer;
-            blinkController.ApplyEyeProfile(profile);
+            if (renderer != null) bc.skinnedMeshRenderer = renderer;
+            bc.ApplyEyeProfile(profile);
         }
     }
 
