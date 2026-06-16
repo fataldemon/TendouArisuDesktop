@@ -371,7 +371,26 @@ public class PipeServer : MonoBehaviour
     private void AppendEyeProfile(StringBuilder sb)
     {
         var p = modelManager?.CurrentEyeProfile;
-        if (p == null) { sb.Append("null"); return; }
+        if (p == null)
+        {
+            var etc = modelManager?.eyeTrackingController;
+            var bc = modelManager?.blinkController;
+            p = new ModelEyeProfile();
+            if (etc != null)
+            {
+                p.lookLeftIndex = etc.lookLeftBlendIndex;
+                p.lookRightIndex = etc.lookRightBlendIndex;
+                p.lookUpIndex = etc.lookUpBlendIndex;
+                p.lookDownIndex = etc.lookDownBlendIndex;
+                p.lookStrength = etc.lookStrength;
+                p.headRotationAmount = etc.headRotationAmount;
+            }
+            if (bc != null)
+            {
+                p.blinkIndex = bc.blinkBlendIndex;
+                p.blinkConflictIndices = bc.blinkConflictIndices ?? new List<int>();
+            }
+        }
         sb.Append('{');
         sb.Append("\"blinkIndex\":").Append(p.blinkIndex).Append(',');
         sb.Append("\"lookLeftIndex\":").Append(p.lookLeftIndex).Append(',');
@@ -489,7 +508,7 @@ public class PipeServer : MonoBehaviour
                     }
                     break;
                 case "update_eye_profile":
-                    if (modelManager != null && !string.IsNullOrEmpty(modelManager.CurrentModelKey))
+                    if (modelManager != null)
                     {
                         var ep = new ModelEyeProfile { modelKey = modelManager.CurrentModelKey };
                         ep.blinkIndex = cmd.eyeBlinkIdx;
@@ -505,18 +524,26 @@ public class PipeServer : MonoBehaviour
                             if (dtos?.items != null)
                                 foreach (var d in dtos.items) ep.blinkConflictIndices.Add(d.index);
                         }
-                        ModelEyeIO.Save(ep);
+                        if (!string.IsNullOrEmpty(modelManager.CurrentModelKey))
+                            ModelEyeIO.Save(ep);
                         modelManager.ApplyEyeProfile(ep);
                         RefreshInitData();
                     }
                     break;
                 case "auto_detect_eyes":
-                    if (modelManager != null && !string.IsNullOrEmpty(modelManager.CurrentModelKey) && modelManager.currentModel != null)
+                    if (modelManager != null)
                     {
-                        ModelEyeIO.Delete(modelManager.CurrentModelKey);
-                        var ep = modelManager.BuildEyeProfileFromVrm(modelManager.CurrentModelKey, modelManager.currentModel);
-                        ModelEyeIO.Save(ep);
-                        modelManager.ApplyEyeProfile(ep);
+                        if (!string.IsNullOrEmpty(modelManager.CurrentModelKey) && modelManager.currentModel != null)
+                        {
+                            ModelEyeIO.Delete(modelManager.CurrentModelKey);
+                            var ep = modelManager.BuildEyeProfileFromVrm(modelManager.CurrentModelKey, modelManager.currentModel);
+                            ModelEyeIO.Save(ep);
+                            modelManager.ApplyEyeProfile(ep);
+                        }
+                        else
+                        {
+                            modelManager.ApplyEyeProfile(null);
+                        }
                         RefreshInitData();
                     }
                     break;

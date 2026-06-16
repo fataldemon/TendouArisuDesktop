@@ -386,6 +386,14 @@ public class ModelManager : MonoBehaviour
     public void ApplyEyeProfile(ModelEyeProfile profile)
     {
         CurrentEyeProfile = profile;
+        if (profile == null)
+        {
+            if (eyeTrackingController != null)
+                eyeTrackingController.ApplyEyeProfile(null);
+            if (blinkController != null)
+                blinkController.ApplyEyeProfile(null);
+            return;
+        }
         if (eyeTrackingController != null)
         {
             var renderer = FindBestBlendShapeRenderer(currentModel);
