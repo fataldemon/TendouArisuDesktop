@@ -875,24 +875,34 @@ private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
         var ep = _initData?.EyeProfile;
         if (ep != null)
         {
-            SelectEyeIndex(CmbEyeBlink, ep.BlinkIndex);
-            SelectEyeIndex(CmbEyeLookL, ep.LookLeftIndex);
-            SelectEyeIndex(CmbEyeLookR, ep.LookRightIndex);
-            SelectEyeIndex(CmbEyeLookU, ep.LookUpIndex);
-            SelectEyeIndex(CmbEyeLookD, ep.LookDownIndex);
             SldEyeStrength.Value = ep.LookStrength;
             LblEyeStrength.Text = ep.LookStrength.ToString("F0");
             SldEyeHeadRot.Value = ep.HeadRotationAmount;
             LblEyeHeadRot.Text = ep.HeadRotationAmount.ToString("F0");
         }
+        SelectEyeIndex(CmbEyeBlink, ep?.BlinkIndex ?? -1);
+        SelectEyeIndex(CmbEyeLookL, ep?.LookLeftIndex ?? -1);
+        SelectEyeIndex(CmbEyeLookR, ep?.LookRightIndex ?? -1);
+        SelectEyeIndex(CmbEyeLookU, ep?.LookUpIndex ?? -1);
+        SelectEyeIndex(CmbEyeLookD, ep?.LookDownIndex ?? -1);
     }
 
     private static void SelectEyeIndex(ComboBox cmb, int idx)
     {
-        cmb.SelectedIndex = idx >= 0 && idx < cmb.Items.Count - 1 ? idx + 1 : 0;
+        cmb.SelectedIndex = idx >= 0 && idx + 1 < cmb.Items.Count ? idx + 1 : 0;
     }
 
     private static int GetEyeIndex(ComboBox cmb) => cmb.SelectedIndex > 0 ? cmb.SelectedIndex - 1 : -1;
+
+    private void OnEyePreview(object sender, RoutedEventArgs e)
+    {
+        _ = _pipe.SendCommand("preview_eye", new
+        {
+            eyeBlinkIdx = GetEyeIndex(CmbEyeBlink), eyeLookL = GetEyeIndex(CmbEyeLookL),
+            eyeLookR = GetEyeIndex(CmbEyeLookR), eyeLookU = GetEyeIndex(CmbEyeLookU),
+            eyeLookD = GetEyeIndex(CmbEyeLookD), eyeStrength = (float)SldEyeStrength.Value, eyeHeadRot = (float)SldEyeHeadRot.Value
+        });
+    }
 
     private void OnEyeProfileSave(object sender, RoutedEventArgs e)
     {

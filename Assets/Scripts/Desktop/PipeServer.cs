@@ -507,6 +507,24 @@ public class PipeServer : MonoBehaviour
                         RefreshInitData();
                     }
                     break;
+                case "preview_eye":
+                    gameStart.ZoomToHeadPublic();
+                    {
+                        var etc = emotionPlayer?.eyeTrackingController;
+                        var bc = emotionPlayer?.blinkController;
+                        if (etc != null)
+                        {
+                            if (cmd.eyeLookL >= 0) etc.lookLeftBlendIndex = cmd.eyeLookL;
+                            if (cmd.eyeLookR >= 0) etc.lookRightBlendIndex = cmd.eyeLookR;
+                            if (cmd.eyeLookU >= 0) etc.lookUpBlendIndex = cmd.eyeLookU;
+                            if (cmd.eyeLookD >= 0) etc.lookDownBlendIndex = cmd.eyeLookD;
+                            if (cmd.eyeStrength > 0) etc.lookStrength = cmd.eyeStrength;
+                            if (cmd.eyeHeadRot >= 0) etc.headRotationAmount = cmd.eyeHeadRot;
+                        }
+                        if (bc != null && cmd.eyeBlinkIdx >= 0)
+                            bc.blinkBlendIndex = cmd.eyeBlinkIdx;
+                    }
+                    break;
                 case "update_eye_profile":
                     if (modelManager != null)
                     {

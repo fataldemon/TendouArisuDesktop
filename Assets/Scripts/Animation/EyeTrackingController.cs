@@ -93,6 +93,7 @@ public class EyeTrackingController : MonoBehaviour
 
     void LateUpdate()
     {
+        if (headRotationAmount <= 0) return;
         if (meshRenderer == null || bodyEngine == null || bodyEngine.animator == null) return;
 
         bool headIdle = !expressionActive;
