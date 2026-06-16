@@ -879,6 +879,18 @@ public class PipeServer : MonoBehaviour
     {
         var etc = emotionPlayer?.eyeTrackingController;
         var bc = emotionPlayer?.blinkController;
+        var renderer = etc?.meshRenderer ?? bc?.skinnedMeshRenderer;
+        if (renderer != null)
+        {
+            if (etc != null)
+            {
+                renderer.SetBlendShapeWeight(etc.lookLeftBlendIndex, 0);
+                renderer.SetBlendShapeWeight(etc.lookRightBlendIndex, 0);
+                renderer.SetBlendShapeWeight(etc.lookUpBlendIndex, 0);
+                renderer.SetBlendShapeWeight(etc.lookDownBlendIndex, 0);
+            }
+            if (bc != null) renderer.SetBlendShapeWeight(bc.blinkBlendIndex, 0);
+        }
         if (etc != null) { etc.enabled = true; etc.expressionActive = false; }
         if (bc != null) { bc.enabled = true; bc.suppressed = false; }
     }

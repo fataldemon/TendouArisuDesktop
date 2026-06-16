@@ -362,31 +362,31 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="180"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="眨眼:" VerticalAlignment="Center"/>
                             <ComboBox x:Name="CmbEyeBlink" Grid.Column="1"/>
-                            <Button Grid.Column="2" Content="👁" Width="30" Height="24" Style="{StaticResource SmallButton}" Click="OnEyePreview" Margin="4,0,0,0"/>
+                            <Button Grid.Column="2" Content="👁" Width="30" Height="24" Style="{StaticResource SmallButton}" Click="OnEyePreview" Tag="blink" Margin="4,0,0,0"/>
                         </Grid>
                         <Grid Grid.Row="2" Margin="0,0,0,4">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="180"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="看左:" VerticalAlignment="Center"/>
                             <ComboBox x:Name="CmbEyeLookL" Grid.Column="1"/>
-                            <Button Grid.Column="2" Content="👁" Width="30" Height="24" Style="{StaticResource SmallButton}" Click="OnEyePreview" Margin="4,0,0,0"/>
+                            <Button Grid.Column="2" Content="👁" Width="30" Height="24" Style="{StaticResource SmallButton}" Click="OnEyePreview" Tag="left" Margin="4,0,0,0"/>
                         </Grid>
                         <Grid Grid.Row="3" Margin="0,0,0,4">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="180"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="看右:" VerticalAlignment="Center"/>
                             <ComboBox x:Name="CmbEyeLookR" Grid.Column="1"/>
-                            <Button Grid.Column="2" Content="👁" Width="30" Height="24" Style="{StaticResource SmallButton}" Click="OnEyePreview" Margin="4,0,0,0"/>
+                            <Button Grid.Column="2" Content="👁" Width="30" Height="24" Style="{StaticResource SmallButton}" Click="OnEyePreview" Tag="right" Margin="4,0,0,0"/>
                         </Grid>
                         <Grid Grid.Row="4" Margin="0,0,0,4">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="180"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="看上:" VerticalAlignment="Center"/>
                             <ComboBox x:Name="CmbEyeLookU" Grid.Column="1"/>
-                            <Button Grid.Column="2" Content="👁" Width="30" Height="24" Style="{StaticResource SmallButton}" Click="OnEyePreview" Margin="4,0,0,0"/>
+                            <Button Grid.Column="2" Content="👁" Width="30" Height="24" Style="{StaticResource SmallButton}" Click="OnEyePreview" Tag="up" Margin="4,0,0,0"/>
                         </Grid>
                         <Grid Grid.Row="5" Margin="0,0,0,8">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="180"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="看下:" VerticalAlignment="Center"/>
                             <ComboBox x:Name="CmbEyeLookD" Grid.Column="1"/>
-                            <Button Grid.Column="2" Content="👁" Width="30" Height="24" Style="{StaticResource SmallButton}" Click="OnEyePreview" Margin="4,0,0,0"/>
+                            <Button Grid.Column="2" Content="👁" Width="30" Height="24" Style="{StaticResource SmallButton}" Click="OnEyePreview" Tag="down" Margin="4,0,0,0"/>
                         </Grid>
 
                         <TextBlock Grid.Row="6" Text="眼部追踪" FontWeight="Bold" Margin="0,12,0,4"/>

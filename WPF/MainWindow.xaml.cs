@@ -896,11 +896,16 @@ private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
 
     private void OnEyePreview(object sender, RoutedEventArgs e)
     {
+        var tag = (sender as FrameworkElement)?.Tag as string ?? "";
+        int snd(int v, string dir) => tag == dir ? v : -1;
         _ = _pipe.SendCommand("preview_eye", new
         {
-            eyeBlinkIdx = GetEyeIndex(CmbEyeBlink), eyeLookL = GetEyeIndex(CmbEyeLookL),
-            eyeLookR = GetEyeIndex(CmbEyeLookR), eyeLookU = GetEyeIndex(CmbEyeLookU),
-            eyeLookD = GetEyeIndex(CmbEyeLookD), eyeStrength = (float)SldEyeStrength.Value, eyeHeadRot = (float)SldEyeHeadRot.Value
+            eyeBlinkIdx = snd(GetEyeIndex(CmbEyeBlink), "blink"),
+            eyeLookL = snd(GetEyeIndex(CmbEyeLookL), "left"),
+            eyeLookR = snd(GetEyeIndex(CmbEyeLookR), "right"),
+            eyeLookU = snd(GetEyeIndex(CmbEyeLookU), "up"),
+            eyeLookD = snd(GetEyeIndex(CmbEyeLookD), "down"),
+            eyeStrength = (float)SldEyeStrength.Value, eyeHeadRot = (float)SldEyeHeadRot.Value
         });
     }
 
