@@ -327,12 +327,21 @@ public class FacialEngine : MonoBehaviour
     {
         if (blushRenderers == null || blushRenderers.Length == 0) return;
         _currentBlushMode = mode;
+        if (string.IsNullOrEmpty(mode))
+        {
+            for (int i = 0; i < blushRenderers.Length; i++)
+                if (blushRenderers[i] != null) blushRenderers[i].enabled = false;
+            return;
+        }
         Material mat = (mode == "shy") ? shyBlushMaterial : normalBlushMaterial;
         if (mat == null) return;
         for (int i = 0; i < blushRenderers.Length; i++)
         {
             if (blushRenderers[i] != null)
+            {
+                blushRenderers[i].enabled = true;
                 blushRenderers[i].material = mat;
+            }
         }
     }
 
