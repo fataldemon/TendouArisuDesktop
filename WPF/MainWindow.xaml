@@ -345,6 +345,15 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <TextBlock Text="眼部 BlendShape 映射" FontWeight="Bold" Margin="0,0,0,8"/>
@@ -375,7 +384,21 @@
                             <ComboBox x:Name="CmbEyeLookD" Grid.Column="1"/>
                         </Grid>
 
-                        <StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Grid.Row="6" Text="眼部追踪" FontWeight="Bold" Margin="0,12,0,4"/>
+                        <Grid Grid.Row="7" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/><ColumnDefinition Width="50"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="眼球移动:" VerticalAlignment="Center"/>
+                            <Slider x:Name="SldEyeStrength" Grid.Column="1" Minimum="10" Maximum="300" Value="120"/>
+                            <TextBlock x:Name="LblEyeStrength" Grid.Column="2" Text="120" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        </Grid>
+                        <Grid Grid.Row="8" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/><ColumnDefinition Width="50"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="头部转动:" VerticalAlignment="Center"/>
+                            <Slider x:Name="SldEyeHeadRot" Grid.Column="1" Minimum="0" Maximum="30" Value="10"/>
+                            <TextBlock x:Name="LblEyeHeadRot" Grid.Column="2" Text="10" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        </Grid>
+
+                        <StackPanel Grid.Row="12" Orientation="Horizontal" Margin="0,8,0,0">
                             <Button Content="应用" Width="80" Click="OnEyeProfileSave"/>
                             <Button Content="恢复自动检测" Width="110" Click="OnEyeAutoDetect" Margin="8,0,0,0"/>
                         </StackPanel>

@@ -48,6 +48,8 @@ public partial class MainWindow : Window
         _pipe.OnError += e => Dispatcher.Invoke(() => MessageBox.Show(e, "连接错误", MessageBoxButton.OK, MessageBoxImage.Warning));
         Loaded += (_, _) => _pipe.StartReconnect();
         SldModelScale.ValueChanged += (_, _) => LblModelScale.Text = SldModelScale.Value.ToString("F2") + "x";
+        SldEyeStrength.ValueChanged += (_, _) => LblEyeStrength.Text = SldEyeStrength.Value.ToString("F0");
+        SldEyeHeadRot.ValueChanged += (_, _) => LblEyeHeadRot.Text = SldEyeHeadRot.Value.ToString("F0");
         Closing += async (_, _) =>
         {
             await _pipe.SendCommand("restore_expression");
@@ -878,6 +880,10 @@ private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
             SelectEyeIndex(CmbEyeLookR, ep.LookRightIndex);
             SelectEyeIndex(CmbEyeLookU, ep.LookUpIndex);
             SelectEyeIndex(CmbEyeLookD, ep.LookDownIndex);
+            SldEyeStrength.Value = ep.LookStrength;
+            LblEyeStrength.Text = ep.LookStrength.ToString("F0");
+            SldEyeHeadRot.Value = ep.HeadRotationAmount;
+            LblEyeHeadRot.Text = ep.HeadRotationAmount.ToString("F0");
         }
     }
 
@@ -894,7 +900,7 @@ private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
         {
             eyeBlinkIdx = GetEyeIndex(CmbEyeBlink), eyeLookL = GetEyeIndex(CmbEyeLookL),
             eyeLookR = GetEyeIndex(CmbEyeLookR), eyeLookU = GetEyeIndex(CmbEyeLookU),
-            eyeLookD = GetEyeIndex(CmbEyeLookD), eyeStrength = 120f, eyeHeadRot = 10f
+            eyeLookD = GetEyeIndex(CmbEyeLookD), eyeStrength = (float)SldEyeStrength.Value, eyeHeadRot = (float)SldEyeHeadRot.Value
         });
     }
 
