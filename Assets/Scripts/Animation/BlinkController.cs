@@ -57,9 +57,10 @@ public class BlinkController : MonoBehaviour
                 }
             }
             if (!eyeBusy)
-        {
-            StartCoroutine(BlinkCoroutine());
-            blinkTimer = 0.0f;
+            {
+                StartCoroutine(BlinkCoroutine());
+                blinkTimer = 0.0f;
+            }
         }
     }
 

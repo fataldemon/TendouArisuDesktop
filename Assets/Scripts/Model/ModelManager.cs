@@ -292,56 +292,7 @@ public class ModelManager : MonoBehaviour
                     {
                         foreach (var b in bindings)
                             config.targets.Add(new BlendShapeTarget { index = b.Index, weight = b.Weight * 100f });
-    public ModelEyeProfile BuildEyeProfileFromVrm(string modelKey, GameObject model)
-    {
-        var profile = new ModelEyeProfile { modelKey = modelKey, blinkIndex = -1, lookLeftIndex = -1, lookRightIndex = -1, lookUpIndex = -1, lookDownIndex = -1 };
-        var vrm = model.GetComponent<Vrm10Instance>();
-        if (vrm == null || vrm.Vrm == null) return profile;
-
-        var clips = vrm.Vrm.Expression?.Clips;
-        if (clips != null)
-        {
-            foreach (var (preset, clip) in clips)
-            {
-                if (clip == null || clip.MorphTargetBindings == null || clip.MorphTargetBindings.Length == 0) continue;
-                int idx = clip.MorphTargetBindings[0].Index;
-
-                switch (preset)
-                {
-                    case ExpressionPreset.blink: profile.blinkIndex = idx; break;
-                    case ExpressionPreset.lookLeft: profile.lookLeftIndex = idx; break;
-                    case ExpressionPreset.lookRight: profile.lookRightIndex = idx; break;
-                    case ExpressionPreset.lookUp: profile.lookUpIndex = idx; break;
-                    case ExpressionPreset.lookDown: profile.lookDownIndex = idx; break;
-                }
-
-                if (clip.OverrideBlink != ExpressionOverrideType.None)
-                    foreach (var b in clip.MorphTargetBindings)
-                        if (!profile.blinkConflictIndices.Contains(b.Index))
-                            profile.blinkConflictIndices.Add(b.Index);
-            }
-        }
-        Debug.Log("[ModelManager] BuildEyeProfileFromVrm: blink=" + profile.blinkIndex + " L=" + profile.lookLeftIndex + " R=" + profile.lookRightIndex + " U=" + profile.lookUpIndex + " D=" + profile.lookDownIndex);
-        return profile;
-    }
-
-    private void ApplyEyeProfile(ModelEyeProfile profile)
-    {
-        CurrentEyeProfile = profile;
-        if (eyeTrackingController != null)
-        {
-            var renderer = FindBestBlendShapeRenderer(currentModel);
-            if (renderer != null) eyeTrackingController.meshRenderer = renderer;
-            eyeTrackingController.ApplyEyeProfile(profile);
-        }
-        if (blinkController != null)
-        {
-            var renderer = FindBestBlendShapeRenderer(currentModel);
-            if (renderer != null) blinkController.skinnedMeshRenderer = renderer;
-            blinkController.ApplyEyeProfile(profile);
-        }
-    }
-}
+                    }
                     profile.presets.Add(config);
                     Debug.Log("[ModelManager]   " + presetName + " ← VRM " + preset + " (" + config.targets.Count + " blends)");
                 }
@@ -397,6 +348,56 @@ public class ModelManager : MonoBehaviour
             best = model.GetComponentInChildren<SkinnedMeshRenderer>();
         Debug.Log("[ModelManager] FindBestBlendShapeRenderer: " + (best != null ? best.name + " (" + maxBlends + " blends)" : "none"));
         return best;
+    }
+
+    public ModelEyeProfile BuildEyeProfileFromVrm(string modelKey, GameObject model)
+    {
+        var profile = new ModelEyeProfile { modelKey = modelKey, blinkIndex = -1, lookLeftIndex = -1, lookRightIndex = -1, lookUpIndex = -1, lookDownIndex = -1 };
+        var vrm = model.GetComponent<Vrm10Instance>();
+        if (vrm == null || vrm.Vrm == null) return profile;
+
+        var clips = vrm.Vrm.Expression?.Clips;
+        if (clips != null)
+        {
+            foreach (var (preset, clip) in clips)
+            {
+                if (clip == null || clip.MorphTargetBindings == null || clip.MorphTargetBindings.Length == 0) continue;
+                int idx = clip.MorphTargetBindings[0].Index;
+
+                switch (preset)
+                {
+                    case ExpressionPreset.blink: profile.blinkIndex = idx; break;
+                    case ExpressionPreset.lookLeft: profile.lookLeftIndex = idx; break;
+                    case ExpressionPreset.lookRight: profile.lookRightIndex = idx; break;
+                    case ExpressionPreset.lookUp: profile.lookUpIndex = idx; break;
+                    case ExpressionPreset.lookDown: profile.lookDownIndex = idx; break;
+                }
+
+                if ((int)clip.OverrideBlink != 0)
+                    foreach (var b in clip.MorphTargetBindings)
+                        if (!profile.blinkConflictIndices.Contains(b.Index))
+                            profile.blinkConflictIndices.Add(b.Index);
+            }
+        }
+        Debug.Log("[ModelManager] BuildEyeProfileFromVrm: blink=" + profile.blinkIndex + " L=" + profile.lookLeftIndex + " R=" + profile.lookRightIndex + " U=" + profile.lookUpIndex + " D=" + profile.lookDownIndex);
+        return profile;
+    }
+
+    public void ApplyEyeProfile(ModelEyeProfile profile)
+    {
+        CurrentEyeProfile = profile;
+        if (eyeTrackingController != null)
+        {
+            var renderer = FindBestBlendShapeRenderer(currentModel);
+            if (renderer != null) eyeTrackingController.meshRenderer = renderer;
+            eyeTrackingController.ApplyEyeProfile(profile);
+        }
+        if (blinkController != null)
+        {
+            var renderer = FindBestBlendShapeRenderer(currentModel);
+            if (renderer != null) blinkController.skinnedMeshRenderer = renderer;
+            blinkController.ApplyEyeProfile(profile);
+        }
     }
 
     private static string MapVrmPreset(ExpressionPreset preset)
