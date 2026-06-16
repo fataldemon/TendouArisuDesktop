@@ -512,13 +512,37 @@ public class PipeServer : MonoBehaviour
                     {
                         var etc = emotionPlayer?.eyeTrackingController;
                         var bc = emotionPlayer?.blinkController;
+                        // Pause tracking & blink
+                        if (etc != null) etc.expressionActive = true;
+                        if (bc != null) bc.suppressed = true;
+
+                        var renderer = etc?.meshRenderer ?? bc?.skinnedMeshRenderer;
+                        if (renderer != null)
+                        {
+                            // Reset all eye BlendShapes to 0
+                            if (etc != null)
+                            {
+                                renderer.SetBlendShapeWeight(etc.lookLeftBlendIndex, 0);
+                                renderer.SetBlendShapeWeight(etc.lookRightBlendIndex, 0);
+                                renderer.SetBlendShapeWeight(etc.lookUpBlendIndex, 0);
+                                renderer.SetBlendShapeWeight(etc.lookDownBlendIndex, 0);
+                            }
+                            if (bc != null) renderer.SetBlendShapeWeight(bc.blinkBlendIndex, 0);
+
+                            // Apply selected BlendShapes at full weight
+                            ApplyPreviewEyeWeight(renderer, cmd.eyeLookL, 100f);
+                            ApplyPreviewEyeWeight(renderer, cmd.eyeLookR, 100f);
+                            ApplyPreviewEyeWeight(renderer, cmd.eyeLookU, 100f);
+                            ApplyPreviewEyeWeight(renderer, cmd.eyeLookD, 100f);
+                            ApplyPreviewEyeWeight(renderer, cmd.eyeBlinkIdx, 100f);
+                        }
                         if (etc != null)
                         {
                             if (cmd.eyeLookL >= 0) etc.lookLeftBlendIndex = cmd.eyeLookL;
                             if (cmd.eyeLookR >= 0) etc.lookRightBlendIndex = cmd.eyeLookR;
                             if (cmd.eyeLookU >= 0) etc.lookUpBlendIndex = cmd.eyeLookU;
                             if (cmd.eyeLookD >= 0) etc.lookDownBlendIndex = cmd.eyeLookD;
-                            if (cmd.eyeStrength > 0) etc.lookStrength = cmd.eyeStrength;
+                            if (cmd.eyeStrength >= 0) etc.lookStrength = cmd.eyeStrength;
                             if (cmd.eyeHeadRot >= 0) etc.headRotationAmount = cmd.eyeHeadRot;
                         }
                         if (bc != null && cmd.eyeBlinkIdx >= 0)
@@ -841,6 +865,12 @@ public class PipeServer : MonoBehaviour
                 preset.targets.Add(new BlendShapeTarget { index = d.index, weight = d.weight });
         }
         return preset;
+    }
+
+    private static void ApplyPreviewEyeWeight(SkinnedMeshRenderer renderer, int index, float weight)
+    {
+        if (index >= 0 && index < renderer.sharedMesh.blendShapeCount)
+            renderer.SetBlendShapeWeight(index, weight);
     }
 
     void OnDestroy() { StopServer(); }

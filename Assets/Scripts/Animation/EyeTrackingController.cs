@@ -28,8 +28,8 @@ public class EyeTrackingController : MonoBehaviour
         lookRightBlendIndex = eyeProfile.lookRightIndex;
         lookUpBlendIndex = eyeProfile.lookUpIndex;
         lookDownBlendIndex = eyeProfile.lookDownIndex;
-        if (eyeProfile.lookStrength > 0) lookStrength = eyeProfile.lookStrength;
-        if (eyeProfile.headRotationAmount > 0) headRotationAmount = eyeProfile.headRotationAmount;
+        if (eyeProfile.lookStrength >= 0) lookStrength = eyeProfile.lookStrength;
+        if (eyeProfile.headRotationAmount >= 0) headRotationAmount = eyeProfile.headRotationAmount;
     }
 
     void Start()

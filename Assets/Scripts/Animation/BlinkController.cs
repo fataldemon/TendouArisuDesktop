@@ -19,9 +19,9 @@ public class BlinkController : MonoBehaviour
         if (eyeProfile == null) return;
         blinkBlendIndex = eyeProfile.blinkIndex;
         blinkConflictIndices = eyeProfile.blinkConflictIndices ?? new List<int>();
-        if (eyeProfile.lookStrength > 0)
+        if (eyeProfile.lookStrength >= 0)
             LookStrength = eyeProfile.lookStrength;
-        if (eyeProfile.headRotationAmount > 0)
+        if (eyeProfile.headRotationAmount >= 0)
             HeadRotationAmount = eyeProfile.headRotationAmount;
     }
 
