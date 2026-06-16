@@ -96,6 +96,7 @@ public class GameStart : MonoBehaviour
     private Quaternion _defaultModelRot;
     private Color _bubbleBgColor = new Color(0.298f, 0.788f, 0.941f, 0.88f);
     private Color _bubbleTextColor = Color.white;
+    private string _pendingModelPath;
 
     private bool _isTouching;
     private bool _isDragging;
@@ -251,6 +252,8 @@ public class GameStart : MonoBehaviour
                 _bubbleBgColor = new Color(settings.bubbleR, settings.bubbleG, settings.bubbleB, settings.bubbleA);
             if (settings.bubbleTextR > 0f || settings.bubbleTextG > 0f || settings.bubbleTextB > 0f)
                 _bubbleTextColor = new Color(settings.bubbleTextR, settings.bubbleTextG, settings.bubbleTextB, settings.bubbleTextA);
+            if (!string.IsNullOrEmpty(settings.currentModelPath) && System.IO.File.Exists(settings.currentModelPath))
+                _pendingModelPath = settings.currentModelPath;
         }
 
         int ttsMode = config.tts;
@@ -267,6 +270,13 @@ public class GameStart : MonoBehaviour
 
         if (modelManager != null)
             modelManager.pipeServer = pipeServer;
+
+        if (!string.IsNullOrEmpty(_pendingModelPath))
+        {
+            _currentPersistedModelPath = _pendingModelPath;
+            modelManager?.LoadModel(_pendingModelPath);
+            _pendingModelPath = null;
+        }
 
         if (trayManager != null)
         {
@@ -885,8 +895,23 @@ public class GameStart : MonoBehaviour
         settings.bubbleB = _bubbleBgColor.b; settings.bubbleA = _bubbleBgColor.a;
         settings.bubbleTextR = _bubbleTextColor.r; settings.bubbleTextG = _bubbleTextColor.g;
         settings.bubbleTextB = _bubbleTextColor.b; settings.bubbleTextA = _bubbleTextColor.a;
+        settings.currentModelPath = _currentPersistedModelPath ?? "";
         config.PopulateTo(settings);
         settings.Save();
+    }
+
+    private string _currentPersistedModelPath;
+
+    public void SetCurrentModelPath(string path)
+    {
+        _currentPersistedModelPath = path;
+        SaveSettings();
+    }
+
+    public void ClearCurrentModelPath()
+    {
+        _currentPersistedModelPath = "";
+        SaveSettings();
     }
 
     private void GenerateVoice(string _text)

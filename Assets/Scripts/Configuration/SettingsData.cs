@@ -42,6 +42,7 @@ public class SettingsData
     public float guiOffsetX;
     public float guiOffsetY;
     public float dialogMinHoldTime = 10f;
+    public string currentModelPath = "";
 
     public float bubbleR = 0.298f, bubbleG = 0.788f, bubbleB = 0.941f, bubbleA = 0.88f;
     public float bubbleTextR = 1f, bubbleTextG = 1f, bubbleTextB = 1f, bubbleTextA = 1f;

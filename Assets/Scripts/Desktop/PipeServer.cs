@@ -489,14 +489,21 @@ public class PipeServer : MonoBehaviour
                     {
                         Debug.Log("[PipeServer] load_model: path=" + cmd.path + " modelManager=" + (modelManager != null));
                         modelManager?.LoadModel(cmd.path);
+                        gameStart?.SetCurrentModelPath(cmd.path);
                     }
                     break;
                 case "restore_default_model":
                     Debug.Log("[PipeServer] restore_default_model: modelManager=" + (modelManager != null));
                     modelManager?.RestoreDefault();
+                    gameStart?.ClearCurrentModelPath();
                     break;
                 case "load_model_from_history":
                     modelManager?.LoadFromHistory(cmd.index);
+                    if (modelManager != null)
+                    {
+                        var path = modelManager.GetHistoryPath(cmd.index);
+                        if (!string.IsNullOrEmpty(path)) gameStart?.SetCurrentModelPath(path);
+                    }
                     break;
                 case "update_model_scale":
                     if (modelManager != null && !string.IsNullOrEmpty(modelManager.CurrentModelKey) && cmd.modelScale > 0.1f)

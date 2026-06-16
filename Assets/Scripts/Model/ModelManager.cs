@@ -18,6 +18,7 @@ public class ModelManager : MonoBehaviour
 
     private GameObject defaultModel;
     private Quaternion defaultRotation;
+    private ModelEyeProfile _defaultEyeProfile;
 
     private void Awake()
     {
@@ -25,6 +26,28 @@ public class ModelManager : MonoBehaviour
         defaultRotation = defaultModel.transform.localRotation;
         modelParent = defaultModel.transform.parent;
         LoadHistory();
+        SaveDefaultEyeProfile();
+    }
+
+    private void SaveDefaultEyeProfile()
+    {
+        var etc = FindObjectOfType<EyeTrackingController>();
+        var bc = FindObjectOfType<BlinkController>();
+        _defaultEyeProfile = new ModelEyeProfile();
+        if (etc != null)
+        {
+            _defaultEyeProfile.lookLeftIndex = etc.lookLeftBlendIndex;
+            _defaultEyeProfile.lookRightIndex = etc.lookRightBlendIndex;
+            _defaultEyeProfile.lookUpIndex = etc.lookUpBlendIndex;
+            _defaultEyeProfile.lookDownIndex = etc.lookDownBlendIndex;
+            _defaultEyeProfile.lookStrength = etc.lookStrength;
+            _defaultEyeProfile.headRotationAmount = etc.headRotationAmount;
+        }
+        if (bc != null)
+        {
+            _defaultEyeProfile.blinkIndex = bc.blinkBlendIndex;
+            _defaultEyeProfile.blinkConflictIndices = bc.blinkConflictIndices ?? new List<int>();
+        }
     }
 
     public void LoadModel(string vrmPath)
@@ -202,6 +225,14 @@ public class ModelManager : MonoBehaviour
             facialEngine.ResetInstant();
         }
 
+        // Restore eye controllers to Inspector defaults
+        ApplyEyeProfile(_defaultEyeProfile);
+        var etc = FindObjectOfType<EyeTrackingController>();
+        var bc = FindObjectOfType<BlinkController>();
+        var eyeRenderer = FindBestBlendShapeRenderer(defaultModel);
+        if (etc != null && eyeRenderer != null) etc.meshRenderer = eyeRenderer;
+        if (bc != null && eyeRenderer != null) bc.skinnedMeshRenderer = eyeRenderer;
+
         var ep = bodyEngine != null ? bodyEngine.GetComponent<EmotionPlayer>() : null;
         if (ep == null) ep = FindObjectOfType<EmotionPlayer>();
         if (ep != null)
@@ -227,6 +258,13 @@ public class ModelManager : MonoBehaviour
             var parts = h.Split('|');
             return parts.Length > 1 ? parts[1] : h;
         }).ToList();
+    }
+
+    public string GetHistoryPath(int index)
+    {
+        if (index < 0 || index >= modelHistory.Count) return "";
+        var parts = modelHistory[index].Split('|');
+        return parts.Length > 0 ? parts[0] : "";
     }
 
     public void LoadFromHistory(int index)
