@@ -52,6 +52,7 @@ public class InitData
     public List<float> BubbleColor { get; set; } = new();
     public List<float> BubbleTextColor { get; set; } = new();
     public float ModelScale { get; set; } = 1f;
+    public EyeProfileEntry? EyeProfile { get; set; }
 
     // Legacy compatibility
     public List<ActionPresetEntry> ActionPresets { get; set; } = new();
@@ -145,6 +146,18 @@ public class ActionPresetEntry
 public static class FacialPresetNames
 {
     public static readonly string[] All = { "angry", "serious", "happy", "fun", "panic", "curious", "thinking", "disappointed", "sweating", "confident", "cry", "plain", "shy", "touching", "wink" };
+}
+
+public class EyeProfileEntry
+{
+    public int BlinkIndex { get; set; } = -1;
+    public int LookLeftIndex { get; set; } = -1;
+    public int LookRightIndex { get; set; } = -1;
+    public int LookUpIndex { get; set; } = -1;
+    public int LookDownIndex { get; set; } = -1;
+    public float LookStrength { get; set; } = 120f;
+    public float HeadRotationAmount { get; set; } = 10f;
+    public List<int> BlinkConflictIndices { get; set; } = new();
 }
 
 public static class BodyPartNames

@@ -177,6 +177,9 @@ public class PipeServer : MonoBehaviour
         sb.Append("\"bubbleColor\":[").Append(gameStart.BubbleBgColor.r.ToString("F3")).Append(',').Append(gameStart.BubbleBgColor.g.ToString("F3")).Append(',').Append(gameStart.BubbleBgColor.b.ToString("F3")).Append(',').Append(gameStart.BubbleBgColor.a.ToString("F2")).Append("],");
         sb.Append("\"bubbleTextColor\":[").Append(gameStart.BubbleTextColor.r.ToString("F2")).Append(',').Append(gameStart.BubbleTextColor.g.ToString("F2")).Append(',').Append(gameStart.BubbleTextColor.b.ToString("F2")).Append(',').Append(gameStart.BubbleTextColor.a.ToString("F2")).Append("],");
         sb.Append("\"modelScale\":").Append((modelManager != null && modelManager.currentModel != null ? modelManager.currentModel.transform.localScale.x : 1f).ToString("F2")).Append(',');
+        sb.Append("\"eyeProfile\":");
+        AppendEyeProfile(sb);
+        sb.Append(',');
         sb.Append("\"allowRootMotion\":").Append(
             (emotionPlayer != null && emotionPlayer.bodyEngine != null && emotionPlayer.bodyEngine.allowRootMotion) ? "true" : "false");
         sb.Append("}}");
@@ -365,6 +368,30 @@ public class PipeServer : MonoBehaviour
         sb.Append(']');
     }
 
+    private void AppendEyeProfile(StringBuilder sb)
+    {
+        var p = modelManager?.CurrentEyeProfile;
+        if (p == null) { sb.Append("null"); return; }
+        sb.Append('{');
+        sb.Append("\"blinkIndex\":").Append(p.blinkIndex).Append(',');
+        sb.Append("\"lookLeftIndex\":").Append(p.lookLeftIndex).Append(',');
+        sb.Append("\"lookRightIndex\":").Append(p.lookRightIndex).Append(',');
+        sb.Append("\"lookUpIndex\":").Append(p.lookUpIndex).Append(',');
+        sb.Append("\"lookDownIndex\":").Append(p.lookDownIndex).Append(',');
+        sb.Append("\"lookStrength\":").Append(p.lookStrength.ToString("F1")).Append(',');
+        sb.Append("\"headRotationAmount\":").Append(p.headRotationAmount.ToString("F1")).Append(',');
+        sb.Append("\"blinkConflictIndices\":[");
+        if (p.blinkConflictIndices != null)
+        {
+            for (int i = 0; i < p.blinkConflictIndices.Count; i++)
+            {
+                if (i > 0) sb.Append(',');
+                sb.Append(p.blinkConflictIndices[i]);
+            }
+        }
+        sb.Append("]}");
+    }
+
     private void AppendActionPresets(StringBuilder sb)
     {
         sb.Append('[');
@@ -458,6 +485,38 @@ public class PipeServer : MonoBehaviour
                         ModelScaleIO.SetScale(modelManager.CurrentModelKey, cmd.modelScale);
                         if (modelManager.currentModel != null)
                             modelManager.currentModel.transform.localScale = Vector3.one * cmd.modelScale;
+                        RefreshInitData();
+                    }
+                    break;
+                case "update_eye_profile":
+                    if (modelManager != null && !string.IsNullOrEmpty(modelManager.CurrentModelKey))
+                    {
+                        var ep = new ModelEyeProfile { modelKey = modelManager.CurrentModelKey };
+                        ep.blinkIndex = cmd.eyeBlinkIdx;
+                        ep.lookLeftIndex = cmd.eyeLookL;
+                        ep.lookRightIndex = cmd.eyeLookR;
+                        ep.lookUpIndex = cmd.eyeLookU;
+                        ep.lookDownIndex = cmd.eyeLookD;
+                        ep.lookStrength = cmd.eyeStrength;
+                        ep.headRotationAmount = cmd.eyeHeadRot;
+                        if (!string.IsNullOrEmpty(cmd.targetsJson))
+                        {
+                            var dtos = JsonUtility.FromJson<TargetsWrapper>("{\"items\":" + cmd.targetsJson + "}");
+                            if (dtos?.items != null)
+                                foreach (var d in dtos.items) ep.blinkConflictIndices.Add(d.index);
+                        }
+                        ModelEyeIO.Save(ep);
+                        modelManager.ApplyEyeProfile(ep);
+                        RefreshInitData();
+                    }
+                    break;
+                case "auto_detect_eyes":
+                    if (modelManager != null && !string.IsNullOrEmpty(modelManager.CurrentModelKey) && modelManager.currentModel != null)
+                    {
+                        ModelEyeIO.Delete(modelManager.CurrentModelKey);
+                        var ep = modelManager.BuildEyeProfileFromVrm(modelManager.CurrentModelKey, modelManager.currentModel);
+                        ModelEyeIO.Save(ep);
+                        modelManager.ApplyEyeProfile(ep);
                         RefreshInitData();
                     }
                     break;
@@ -784,4 +843,6 @@ public class PipeCommand
     public float bubbleR, bubbleG, bubbleB, bubbleA = 0.88f;
     public float bubbleTextR = 1f, bubbleTextG = 1f, bubbleTextB = 1f, bubbleTextA = 1f;
     public float modelScale = 1f;
+    public int eyeBlinkIdx = -1, eyeLookL = -1, eyeLookR = -1, eyeLookU = -1, eyeLookD = -1;
+    public float eyeStrength = 120f, eyeHeadRot = 10f;
 }

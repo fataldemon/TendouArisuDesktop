@@ -151,6 +151,7 @@ public partial class MainWindow : Window
         PopulateExpressionList(d.ExpressionMappings);
         PopulateActionGroupList(d.ActionGroups);
         PopulateFacialPresetList(d.FacialPresets);
+        PopulateEyeTab();
         TxtHistory.Text = d.DialogueHistory;
     }
 
@@ -856,4 +857,47 @@ private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
         }
         return IntPtr.Zero;
     }
+
+    #region Eye Tab Events
+    private void PopulateEyeTab()
+    {
+        var names = _initData?.BlendShapeNames ?? new();
+        var combos = new[] { CmbEyeBlink, CmbEyeLookL, CmbEyeLookR, CmbEyeLookU, CmbEyeLookD };
+        foreach (var cmb in combos)
+        {
+            cmb.Items.Clear();
+            cmb.Items.Add("-- 无 --");
+            foreach (var n in names) cmb.Items.Add(n);
+        }
+
+        var ep = _initData?.EyeProfile;
+        if (ep != null)
+        {
+            SelectEyeIndex(CmbEyeBlink, ep.BlinkIndex);
+            SelectEyeIndex(CmbEyeLookL, ep.LookLeftIndex);
+            SelectEyeIndex(CmbEyeLookR, ep.LookRightIndex);
+            SelectEyeIndex(CmbEyeLookU, ep.LookUpIndex);
+            SelectEyeIndex(CmbEyeLookD, ep.LookDownIndex);
+        }
+    }
+
+    private static void SelectEyeIndex(ComboBox cmb, int idx)
+    {
+        cmb.SelectedIndex = idx >= 0 && idx < cmb.Items.Count - 1 ? idx + 1 : 0;
+    }
+
+    private static int GetEyeIndex(ComboBox cmb) => cmb.SelectedIndex > 0 ? cmb.SelectedIndex - 1 : -1;
+
+    private void OnEyeProfileSave(object sender, RoutedEventArgs e)
+    {
+        _ = _pipe.SendCommand("update_eye_profile", new
+        {
+            eyeBlinkIdx = GetEyeIndex(CmbEyeBlink), eyeLookL = GetEyeIndex(CmbEyeLookL),
+            eyeLookR = GetEyeIndex(CmbEyeLookR), eyeLookU = GetEyeIndex(CmbEyeLookU),
+            eyeLookD = GetEyeIndex(CmbEyeLookD), eyeStrength = 120f, eyeHeadRot = 10f
+        });
+    }
+
+    private void OnEyeAutoDetect(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("auto_detect_eyes");
+    #endregion
 }

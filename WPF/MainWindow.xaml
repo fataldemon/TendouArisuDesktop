@@ -336,6 +336,51 @@
                         </Border>
                     </Grid>
                 </TabItem>
+                <!-- 子TAB 4: 眼部动作 -->
+                <TabItem Header="眼部动作">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="眼部 BlendShape 映射" FontWeight="Bold" Margin="0,0,0,8"/>
+
+                        <Grid Grid.Row="1" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="180"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="眨眼:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="CmbEyeBlink" Grid.Column="1"/>
+                        </Grid>
+                        <Grid Grid.Row="2" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="180"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="看左:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="CmbEyeLookL" Grid.Column="1"/>
+                        </Grid>
+                        <Grid Grid.Row="3" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="180"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="看右:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="CmbEyeLookR" Grid.Column="1"/>
+                        </Grid>
+                        <Grid Grid.Row="4" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="180"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="看上:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="CmbEyeLookU" Grid.Column="1"/>
+                        </Grid>
+                        <Grid Grid.Row="5" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="180"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="看下:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="CmbEyeLookD" Grid.Column="1"/>
+                        </Grid>
+
+                        <StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Content="应用" Width="80" Click="OnEyeProfileSave"/>
+                            <Button Content="恢复自动检测" Width="110" Click="OnEyeAutoDetect" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
             </TabControl>
         </TabItem>
 

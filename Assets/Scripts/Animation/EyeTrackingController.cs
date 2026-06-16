@@ -9,10 +9,10 @@ public class EyeTrackingController : MonoBehaviour
     public float lookStrength = 120f;
     public float headRotationAmount = 10f;
 
-    public int lookLeftBlendIndex = 30;
-    public int lookRightBlendIndex = 31;
-    public int lookUpBlendIndex = 28;
-    public int lookDownBlendIndex = 29;
+    public int lookLeftBlendIndex = -1;
+    public int lookRightBlendIndex = -1;
+    public int lookUpBlendIndex = -1;
+    public int lookDownBlendIndex = -1;
 
     private float _currentX;
     private float _currentY;
@@ -20,6 +20,17 @@ public class EyeTrackingController : MonoBehaviour
     private bool _wasInAction;
     private float _headBlendOut = 1f;
     public bool expressionActive;
+
+    public void ApplyEyeProfile(ModelEyeProfile eyeProfile)
+    {
+        if (eyeProfile == null) return;
+        lookLeftBlendIndex = eyeProfile.lookLeftIndex;
+        lookRightBlendIndex = eyeProfile.lookRightIndex;
+        lookUpBlendIndex = eyeProfile.lookUpIndex;
+        lookDownBlendIndex = eyeProfile.lookDownIndex;
+        if (eyeProfile.lookStrength > 0) lookStrength = eyeProfile.lookStrength;
+        if (eyeProfile.headRotationAmount > 0) headRotationAmount = eyeProfile.headRotationAmount;
+    }
 
     void Start()
     {

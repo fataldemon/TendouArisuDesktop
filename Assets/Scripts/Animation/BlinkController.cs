@@ -10,8 +10,23 @@ public class BlinkController : MonoBehaviour
     public float blinkDuration = 0.2f;
     public float blinkInterval = 3.0f;
     [HideInInspector] public bool suppressed;
+    public List<int> blinkConflictIndices = new List<int>();
 
     private float blinkTimer = 0.0f;
+
+    public void ApplyEyeProfile(ModelEyeProfile eyeProfile)
+    {
+        if (eyeProfile == null) return;
+        blinkBlendIndex = eyeProfile.blinkIndex;
+        blinkConflictIndices = eyeProfile.blinkConflictIndices ?? new List<int>();
+        if (eyeProfile.lookStrength > 0)
+            LookStrength = eyeProfile.lookStrength;
+        if (eyeProfile.headRotationAmount > 0)
+            HeadRotationAmount = eyeProfile.headRotationAmount;
+    }
+
+    public float LookStrength = 120f;
+    public float HeadRotationAmount = 10f;
 
     void Start()
     {
@@ -30,10 +45,18 @@ public class BlinkController : MonoBehaviour
 
         blinkTimer += Time.deltaTime;
 
-        if (blinkTimer >= blinkInterval && skinnedMeshRenderer.GetBlendShapeWeight(11) == 0 
-            && skinnedMeshRenderer.GetBlendShapeWeight(35) == 0 && skinnedMeshRenderer.GetBlendShapeWeight(16) == 0
-            && skinnedMeshRenderer.GetBlendShapeWeight(12) == 0 && skinnedMeshRenderer.GetBlendShapeWeight(17) == 0
-            && skinnedMeshRenderer.GetBlendShapeWeight(13) == 0 && skinnedMeshRenderer.GetBlendShapeWeight(18) == 0)
+        if (blinkTimer >= blinkInterval)
+        {
+            bool eyeBusy = false;
+            if (blinkConflictIndices != null)
+            {
+                for (int i = 0; i < blinkConflictIndices.Count; i++)
+                {
+                    if (skinnedMeshRenderer.GetBlendShapeWeight(blinkConflictIndices[i]) > 0.1f)
+                        { eyeBusy = true; break; }
+                }
+            }
+            if (!eyeBusy)
         {
             StartCoroutine(BlinkCoroutine());
             blinkTimer = 0.0f;
