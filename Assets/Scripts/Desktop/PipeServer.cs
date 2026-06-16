@@ -624,8 +624,11 @@ public class PipeServer : MonoBehaviour
                         if (!cmd.noZoom) gameStart.ZoomToHeadPublic();
                         if (!string.IsNullOrEmpty(cmd.targetsJson))
                         {
-                            var temp = BuildPresetFromJson(cmd.facialX, cmd.targetsJson);
-                            emotionPlayer?.facialEngine?.ApplyPresetDirect(temp, cmd.facialW > 0 ? cmd.facialW : 1f);
+                            var stored = emotionPlayer?.facialEngine?.GetPreset(cmd.facialX);
+                            if (stored == null) stored = new FacialPresetConfig { presetName = cmd.facialX };
+                            var overrides = BuildPresetFromJson(cmd.facialX, cmd.targetsJson);
+                            stored.targets = overrides.targets;
+                            emotionPlayer?.facialEngine?.ApplyPresetDirect(stored, cmd.facialW > 0 ? cmd.facialW : 1f);
                         }
                         else
                             previewController.PreviewFacial(cmd.facialX, cmd.facialW > 0 ? cmd.facialW : 1f);
