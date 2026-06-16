@@ -86,8 +86,8 @@ public class EyeTrackingController : MonoBehaviour
 
         float left = Mathf.Max(0f, _currentX);
         float right = Mathf.Max(0f, -_currentX);
-        float up = Mathf.Max(0f, _currentY);
-        float down = Mathf.Max(0f, -_currentY);
+        float up = Mathf.Max(0f, -_currentY);
+        float down = Mathf.Max(0f, _currentY);
         ApplyEyeWeights(left, right, up, down);
     }
 
