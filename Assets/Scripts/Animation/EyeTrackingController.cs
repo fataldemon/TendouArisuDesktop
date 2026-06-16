@@ -9,10 +9,10 @@ public class EyeTrackingController : MonoBehaviour
     public float lookStrength = 120f;
     public float headRotationAmount = 10f;
 
-    public int lookLeftBlendIndex = -1;
-    public int lookRightBlendIndex = -1;
-    public int lookUpBlendIndex = -1;
-    public int lookDownBlendIndex = -1;
+    public int lookLeftBlendIndex = 30;
+    public int lookRightBlendIndex = 31;
+    public int lookUpBlendIndex = 28;
+    public int lookDownBlendIndex = 29;
 
     private float _currentX;
     private float _currentY;
