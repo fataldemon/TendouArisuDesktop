@@ -512,9 +512,8 @@ public class PipeServer : MonoBehaviour
                     {
                         var etc = emotionPlayer?.eyeTrackingController;
                         var bc = emotionPlayer?.blinkController;
-                        // Pause tracking & blink
-                        if (etc != null) etc.expressionActive = true;
-                        if (bc != null) bc.suppressed = true;
+                        if (etc != null) etc.enabled = false;
+                        if (bc != null) bc.enabled = false;
 
                         var renderer = etc?.meshRenderer ?? bc?.skinnedMeshRenderer;
                         if (renderer != null)
@@ -610,6 +609,7 @@ public class PipeServer : MonoBehaviour
                 case "stop_preview":
                     previewController?.ExitPreview();
                     gameStart.RestoreCharacterPublic();
+                    RestoreEyeControllers();
                     break;
                 case "preview_facial":
                     if (!string.IsNullOrEmpty(cmd.facialX) && previewController != null)
@@ -667,10 +667,12 @@ public class PipeServer : MonoBehaviour
                 case "reset_blendshapes":
                     previewController?.ExitPreview();
                     gameStart.RestoreCharacterPublic();
+                    RestoreEyeControllers();
                     break;
                 case "restore_expression":
                     previewController?.ExitPreview();
                     gameStart.RestoreCharacterPublic();
+                    RestoreEyeControllers();
                     break;
                 case "test_tts":
                     if (!string.IsNullOrEmpty(cmd.text))
@@ -871,6 +873,14 @@ public class PipeServer : MonoBehaviour
     {
         if (index >= 0 && index < renderer.sharedMesh.blendShapeCount)
             renderer.SetBlendShapeWeight(index, weight);
+    }
+
+    private void RestoreEyeControllers()
+    {
+        var etc = emotionPlayer?.eyeTrackingController;
+        var bc = emotionPlayer?.blinkController;
+        if (etc != null) { etc.enabled = true; etc.expressionActive = false; }
+        if (bc != null) { bc.enabled = true; bc.suppressed = false; }
     }
 
     void OnDestroy() { StopServer(); }
