@@ -563,7 +563,6 @@ public class GameStart : MonoBehaviour
         if (onVoice && !m_AudioSource.isPlaying)
         {
             onVoice = false;
-            emotionPlayer.NotifyTTSEnd();
         }
 
         if (!emotionPlayer.IsPlaying && !m_AudioSource.isPlaying && !onVoice
@@ -724,7 +723,6 @@ public class GameStart : MonoBehaviour
         if (_answer != null && _answer.Trim() == "[SILENCE]")
             return;
 
-        onDialogue = true;
         finish_reason = _finish_reason;
         Debug.Log("回答：" + _answer + "；终止原因：" + finish_reason);
 
@@ -1033,6 +1031,8 @@ public class GameStart : MonoBehaviour
         if (emotionPlayer != null && emotionPlayer.eyeTrackingController != null)
             emotionPlayer.eyeTrackingController.suppressForTts = true;
 
+        onDialogue = true;
+
         var sentences = SplitForTts(text);
         Debug.Log("[Split] " + sentences.Count + " segments");
         _playQueue.Clear();
@@ -1132,12 +1132,19 @@ public class GameStart : MonoBehaviour
 
     private IEnumerator PlayQueueLoop()
     {
+        bool firstClip = true;
         while (true)
         {
             if (_playQueue.Count > 0)
             {
                 AudioClip clip = _playQueue.Dequeue();
                 Debug.Log("[Play] dequeue clip " + clip.length.ToString("F1") + "s, remain=" + _playQueue.Count);
+                if (firstClip)
+                {
+                    firstClip = false;
+                    onDialogue = true;
+                    dialogueClearTimer = 0f;
+                }
                 PlayVoice(clip, "");
                 yield return new WaitWhile(() => m_AudioSource.isPlaying);
             }
