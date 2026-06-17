@@ -632,7 +632,6 @@ public class GameStart : MonoBehaviour
                             if (!string.IsNullOrEmpty(displayText))
                             {
                                 text_answer = "爱丽丝：" + LLMFormatter.RemoveEmotion(displayText);
-                                onDialogue = true;
                             }
                         }
                     }
@@ -1030,8 +1029,6 @@ public class GameStart : MonoBehaviour
     {
         if (emotionPlayer != null && emotionPlayer.eyeTrackingController != null)
             emotionPlayer.eyeTrackingController.suppressForTts = true;
-
-        onDialogue = true;
 
         var sentences = SplitForTts(text);
         Debug.Log("[Split] " + sentences.Count + " segments");
