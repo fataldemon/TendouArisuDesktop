@@ -580,7 +580,10 @@ public class GameStart : MonoBehaviour
                 if (choice.delta != null)
                 {
                     if (!string.IsNullOrEmpty(choice.delta.content))
+                    {
                         streamBuffer += choice.delta.content;
+                        Debug.Log("[LLM] chunk: \"" + choice.delta.content + "\"");
+                    }
 
                     if (!expressionApplied)
                     {
@@ -606,6 +609,7 @@ public class GameStart : MonoBehaviour
 
                     if (!string.IsNullOrEmpty(choice.finish_reason))
                     {
+                        Debug.Log("[LLM] done finish=" + choice.finish_reason + " total=" + streamBuffer.Length);
                         if (choice.finish_reason == "abort" || choice.finish_reason == "overthink")
                         {
                             streamBuffer = "";
