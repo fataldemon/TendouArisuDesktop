@@ -768,6 +768,8 @@ public class GameStart : MonoBehaviour
         if (!string.IsNullOrEmpty(emotion))
             emotionPlayer.PlayEmotion(emotion);
 
+        Debug.Log("[Pipeline] start text=\"" + (text.Length > 30 ? text.Substring(0, 30) + "..." : text) + "\" trans=" + config.translationEnabled);
+
         if (config.translationEnabled)
         {
             Debug.Log("[Pipeline] text_len=" + text.Length + " trans=1");
@@ -1024,6 +1026,9 @@ public class GameStart : MonoBehaviour
 
     private IEnumerator ProcessSentencesStreaming(string text, string emotion)
     {
+        if (emotionPlayer != null && emotionPlayer.eyeTrackingController != null)
+            emotionPlayer.eyeTrackingController.suppressForTts = true;
+
         var sentences = SplitForTts(text);
         Debug.Log("[Split] " + sentences.Count + " segments");
         _playQueue.Clear();
@@ -1070,6 +1075,8 @@ public class GameStart : MonoBehaviour
 
         _ttsAllDispatched = true;
         yield return new WaitUntil(() => _playQueue.Count == 0 && !m_AudioSource.isPlaying);
+        if (emotionPlayer != null && emotionPlayer.eyeTrackingController != null)
+            emotionPlayer.eyeTrackingController.suppressForTts = false;
         llmFormatter.pending = false;
     }
 
