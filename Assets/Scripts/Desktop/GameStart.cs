@@ -1081,6 +1081,7 @@ public class GameStart : MonoBehaviour
         yield return new WaitUntil(() => _playQueue.Count == 0 && !m_AudioSource.isPlaying);
         if (emotionPlayer != null && emotionPlayer.eyeTrackingController != null)
             emotionPlayer.eyeTrackingController.suppressForTts = false;
+        emotionPlayer?.RestoreToIdle();
         llmFormatter.pending = false;
     }
 

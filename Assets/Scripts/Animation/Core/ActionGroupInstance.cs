@@ -43,7 +43,7 @@ public class ActionGroupInstance
             return clipFinished;
 
         if (ttsEnded)
-            return true;
+            return holdTimer >= config.holdAfterTTS;
 
         if (!ttsStarted && stateTimer > 1f)
             return holdTimer >= config.holdNoTTS;
