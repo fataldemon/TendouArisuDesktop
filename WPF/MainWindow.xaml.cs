@@ -27,12 +27,16 @@ public partial class MainWindow : Window
     private readonly PipeClient _pipe = new();
     private InitData? _initData;
     private int _ttsMode;
+    private string _gptSovitsUrl = "";
+    private string _gradioUrl = "";
+    private string _simpleVitsUrl = "";
     private string _animCatFilter = "All";
     private ExpressionMappingEntry? _exprEditing;
     private ActionGroupFullEntry? _groupEditing;
     private FacialPresetEntry? _facialEditing;
     private System.Drawing.Color _bubbleBgColor = System.Drawing.Color.FromArgb(224, 76, 201, 240);
     private System.Drawing.Color _bubbleTextColor = System.Drawing.Color.White;
+    private bool _translationEnabled;
 
     public MainWindow()
     {
@@ -106,6 +110,30 @@ public partial class MainWindow : Window
                 if (root.TryGetProperty("connected", out var c))
                     UpdateConnectionStatus(c.GetBoolean());
             }
+            else if (type == "tts_test_start")
+            {
+                LblTtsStatus.Content = "正在测试...";
+                LblTtsStatus.Foreground = (System.Windows.Media.Brush)FindResource("TextSecondary");
+            }
+            else if (type == "tts_test_result")
+            {
+                bool success = false;
+                if (root.TryGetProperty("success", out var s))
+                    success = s.GetBoolean();
+                if (success)
+                {
+                    LblTtsStatus.Content = "✓ 测试成功";
+                    LblTtsStatus.Foreground = (System.Windows.Media.Brush)FindResource("Accent");
+                }
+                else
+                {
+                    string err = "";
+                    if (root.TryGetProperty("error", out var e))
+                        err = e.GetString();
+                    LblTtsStatus.Content = $"✗ 测试失败{(string.IsNullOrEmpty(err) ? "" : ": " + err)}";
+                    LblTtsStatus.Foreground = (System.Windows.Media.Brush)FindResource("TextError");
+                }
+            }
         });
     }
 
@@ -122,8 +150,15 @@ public partial class MainWindow : Window
     private void PopulateAll(InitData d)
     {
         TxtWebsocketUrl.Text = d.WebsocketUrl;
+        _gptSovitsUrl = d.GptSovitsUrl ?? "";
+        _gradioUrl = d.GradioUrl ?? "";
+        _simpleVitsUrl = d.SimpleVitsUrl ?? "";
         SetTtsModeButtons(d.TtsMode);
-        TxtTtsUrl.Text = d.TtsMode == 0 ? d.GradioUrl : d.SimpleVitsUrl;
+        TxtBangWavPath.Text = d.BangbangkabangWavPath ?? "";
+        TxtRefAudioBaseDir.Text = d.RefAudioBaseDir ?? "";
+        PopulateRefAudioList(d.RefAudioConfigs);
+        _translationEnabled = d.TranslationEnabled;
+        UpdateTranslationToggleUI();
         TxtTranslationUrl.Text = d.TranslationUrl;
         TxtTranslationAppId.Text = d.TranslationAppId;
         TxtTranslationKey.Password = d.TranslationKey;
@@ -235,65 +270,217 @@ public partial class MainWindow : Window
     private void OnConnectClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("connect");
     private void OnDisconnectClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("disconnect");
 
+    #endregion
+
+    #region Voice Settings Tab Events
+
     private void OnTtsModeClick(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && int.TryParse(btn.Tag?.ToString(), out int mode))
         {
-            _ttsMode = mode;
+            SaveUrlForMode(_ttsMode, TxtTtsUrl.Text);
             SetTtsModeButtons(mode);
-            _ = _pipe.SendCommand("update_config", new { ttsMode = mode, ttsUrl = TxtTtsUrl.Text });
+            _ = _pipe.SendCommand("update_config", new { ttsMode = mode });
         }
     }
 
     private void SetTtsModeButtons(int mode)
     {
         _ttsMode = mode;
-        BtnTtsGradio.IsEnabled = mode != 0;
-        BtnTtsSimpleVits.IsEnabled = mode != 1;
-        BtnTtsNone.IsEnabled = mode != 2;
-        LblTtsUrl.Content = mode switch { 0 => "Gradio API 地址", 1 => "Simple-Vits API 地址", _ => "API 地址" };
+        BtnTtsGptSovits.IsEnabled = mode != 0;
+        BtnTtsGradio.IsEnabled = mode != 1;
+        BtnTtsSimpleVits.IsEnabled = mode != 2;
+        BtnTtsNone.IsEnabled = mode != 3;
+        LblTtsUrl.Content = mode switch { 0 => "GPT-SoVITS API 地址", 1 => "Gradio API 地址", 2 => "Simple-Vits API 地址", _ => "API 地址" };
+        TabRefAudio.IsEnabled = (mode == 0);
+        TxtTtsUrl.Text = GetUrlForMode(mode);
     }
 
-    private void OnTtsTestClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("test_tts", new { text = TxtTtsTestLine.Text });
-    private void OnTtsSendClick(object sender, RoutedEventArgs e) => _ = _pipe.SendCommand("test_tts", new { text = TxtTtsTestLine.Text });
+    private string GetUrlForMode(int mode) => mode switch
+    {
+        0 => _gptSovitsUrl,
+        1 => _gradioUrl,
+        2 => _simpleVitsUrl,
+        _ => ""
+    };
+
+    private void SaveUrlForMode(int mode, string url)
+    {
+        if (string.IsNullOrEmpty(url)) return;
+        switch (mode)
+        {
+            case 0: _gptSovitsUrl = url; break;
+            case 1: _gradioUrl = url; break;
+            case 2: _simpleVitsUrl = url; break;
+        }
+    }
+
+    private void OnSaveVoiceClick(object sender, RoutedEventArgs e)
+    {
+        SaveUrlForMode(_ttsMode, TxtTtsUrl.Text);
+        _ = _pipe.SendCommand("update_config", new { ttsMode = _ttsMode, ttsUrl = TxtTtsUrl.Text, gptSovitsUrl = _gptSovitsUrl, gradioUrl = _gradioUrl, simpleVitsUrl = _simpleVitsUrl });
+    }
+
+    private void OnTtsSendClick(object sender, RoutedEventArgs e)
+    {
+        SaveUrlForMode(_ttsMode, TxtTtsUrl.Text);
+        _ = _pipe.SendCommand("update_config", new { ttsMode = _ttsMode, ttsUrl = TxtTtsUrl.Text, gptSovitsUrl = _gptSovitsUrl, gradioUrl = _gradioUrl, simpleVitsUrl = _simpleVitsUrl });
+        _ = _pipe.SendCommand("test_tts", new { text = TxtTtsTestLine.Text });
+    }
+
+    private void OnBangWavBrowseClick(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFileDialog { Filter = "WAV Files|*.wav", Title = "选择邦邦咔邦 WAV 文件" };
+        if (dlg.ShowDialog() == true)
+        {
+            TxtBangWavPath.Text = dlg.FileName;
+            _ = _pipe.SendCommand("update_bangbangkabang_wav", new { bangbangkabangWavPath = dlg.FileName });
+        }
+    }
+
+    private void OnVoiceSubTabChanged(object sender, SelectionChangedEventArgs e) { }
+
+    private void OnRefAudioDirBrowseClick(object sender, RoutedEventArgs e)
+    {
+        var dlg = new System.Windows.Forms.FolderBrowserDialog { Description = "选择参考音频基础目录" };
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            TxtRefAudioBaseDir.Text = dlg.SelectedPath;
+            _ = _pipe.SendCommand("update_ref_audio_base_dir", new { refAudioBaseDir = dlg.SelectedPath });
+        }
+    }
+
+    private void PopulateRefAudioList(List<RefAudioEntryDto> entries)
+    {
+        IcRefAudioList.Items.Clear();
+        if (entries == null || entries.Count == 0) return;
+
+        foreach (var entry in entries)
+        {
+            var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 3) };
+
+            var lblEmotion = new TextBlock
+            {
+                Text = entry.EmotionKey, Width = 55, VerticalAlignment = VerticalAlignment.Center,
+                FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 6, 0)
+            };
+            panel.Children.Add(lblEmotion);
+
+            var txtFile = new TextBox { Text = entry.AudioFileName, Width = 120, Margin = new Thickness(0, 0, 4, 0), FontSize = 11 };
+            txtFile.TextChanged += (_, _) =>
+            {
+                entry.AudioFileName = txtFile.Text;
+                _ = _pipe.SendCommand("update_ref_audio_entry", new
+                {
+                    refAudioEmotion = entry.EmotionKey,
+                    refAudioPath = entry.AudioFileName,
+                    refAudioPrompt = entry.PromptText,
+                    refAudioLang = entry.PromptLang
+                });
+            };
+            panel.Children.Add(txtFile);
+
+            var btnBrowse = new Button { Content = "...", Width = 28, Height = 22, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 6, 0), FontSize = 10 };
+            btnBrowse.Click += (_, _) =>
+            {
+                var dlg = new OpenFileDialog { Filter = "WAV Files|*.wav", Title = $"选择 {entry.EmotionKey} 的参考音频" };
+                if (dlg.ShowDialog() == true)
+                {
+                    txtFile.Text = System.IO.Path.GetFileName(dlg.FileName);
+                }
+            };
+            panel.Children.Add(btnBrowse);
+
+            var txtPrompt = new TextBox { Text = entry.PromptText, Width = 300, FontSize = 11 };
+            txtPrompt.TextChanged += (_, _) =>
+            {
+                entry.PromptText = txtPrompt.Text;
+                _ = _pipe.SendCommand("update_ref_audio_entry", new
+                {
+                    refAudioEmotion = entry.EmotionKey,
+                    refAudioPath = entry.AudioFileName,
+                    refAudioPrompt = entry.PromptText,
+                    refAudioLang = entry.PromptLang
+                });
+            };
+            panel.Children.Add(txtPrompt);
+
+            IcRefAudioList.Items.Add(panel);
+        }
+    }
 
     #endregion
 
-#region Dialog Settings Tab Events
-private void OnBubbleColorPickClick(object sender, RoutedEventArgs e)
-{
-    using var dlg = new System.Windows.Forms.ColorDialog { Color = _bubbleBgColor, FullOpen = true };
-    if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-    {
-        _bubbleBgColor = dlg.Color;
-        RectBubbleColor.Fill = ToMediaBrush(_bubbleBgColor);
-    }
-}
-private void OnBubbleTextColorPickClick(object sender, RoutedEventArgs e)
-{
-    using var dlg = new System.Windows.Forms.ColorDialog { Color = _bubbleTextColor, FullOpen = true };
-    if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-    {
-        _bubbleTextColor = dlg.Color;
-        RectTextColor.Fill = ToMediaBrush(_bubbleTextColor);
-    }
-}
-private static SolidColorBrush ToMediaBrush(System.Drawing.Color c)
-    => new SolidColorBrush(Color.FromArgb(c.A, c.R, c.G, c.B));
+    #region Translation Settings Tab Events
 
-private void OnDialogSettingsSave(object sender, RoutedEventArgs e)
-{
-    float hold = 10f;
-    float.TryParse(TxtDialogHold.Text, out hold);
-    _ = _pipe.SendCommand("update_dialog", new { msgWidth = GetInt(TxtMsgWidth), msgHeight = GetInt(TxtMsgHeight), dialogHold = hold });
-    _ = _pipe.SendCommand("update_bubble_color", new
+    private void OnTranslationToggleClick(object sender, RoutedEventArgs e)
     {
-        bubbleR = _bubbleBgColor.R / 255f, bubbleG = _bubbleBgColor.G / 255f, bubbleB = _bubbleBgColor.B / 255f, bubbleA = _bubbleBgColor.A / 255f,
-        bubbleTextR = _bubbleTextColor.R / 255f, bubbleTextG = _bubbleTextColor.G / 255f, bubbleTextB = _bubbleTextColor.B / 255f, bubbleTextA = _bubbleTextColor.A / 255f
-    });
-}
-private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
-#endregion
+        _translationEnabled = !_translationEnabled;
+        UpdateTranslationToggleUI();
+        _ = _pipe.SendCommand("update_translation_toggle", new { translationEnabled = _translationEnabled });
+    }
+
+    private void UpdateTranslationToggleUI()
+    {
+        BtnTranslationToggle.Content = _translationEnabled ? "关闭" : "开启";
+        BtnTranslationToggle.Style = _translationEnabled
+            ? (Style)FindResource("DangerButton")
+            : (Style)FindResource("PrimaryButton");
+        LblTranslationStatus.Content = _translationEnabled ? "翻译已开启" : "翻译已关闭";
+        LblTranslationStatus.Foreground = _translationEnabled
+            ? (System.Windows.Media.Brush)FindResource("Accent")
+            : (System.Windows.Media.Brush)FindResource("TextError");
+    }
+
+    private void OnTranslationSaveClick(object sender, RoutedEventArgs e)
+    {
+        _ = _pipe.SendCommand("update_translation_config", new
+        {
+            translationUrl = TxtTranslationUrl.Text,
+            translationAppId = TxtTranslationAppId.Text,
+            translationKey = TxtTranslationKey.Password,
+            translationSalt = TxtTranslationSalt.Text
+        });
+        _ = _pipe.SendCommand("update_translation_toggle", new { translationEnabled = _translationEnabled });
+    }
+
+    #endregion
+
+    #region Dialog Settings Tab Events
+    private void OnBubbleColorPickClick(object sender, RoutedEventArgs e)
+    {
+        using var dlg = new System.Windows.Forms.ColorDialog { Color = _bubbleBgColor, FullOpen = true };
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            _bubbleBgColor = dlg.Color;
+            RectBubbleColor.Fill = ToMediaBrush(_bubbleBgColor);
+        }
+    }
+    private void OnBubbleTextColorPickClick(object sender, RoutedEventArgs e)
+    {
+        using var dlg = new System.Windows.Forms.ColorDialog { Color = _bubbleTextColor, FullOpen = true };
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            _bubbleTextColor = dlg.Color;
+            RectTextColor.Fill = ToMediaBrush(_bubbleTextColor);
+        }
+    }
+    private static SolidColorBrush ToMediaBrush(System.Drawing.Color c)
+        => new SolidColorBrush(Color.FromArgb(c.A, c.R, c.G, c.B));
+
+    private void OnDialogSettingsSave(object sender, RoutedEventArgs e)
+    {
+        float hold = 10f;
+        float.TryParse(TxtDialogHold.Text, out hold);
+        _ = _pipe.SendCommand("update_dialog", new { msgWidth = GetInt(TxtMsgWidth), msgHeight = GetInt(TxtMsgHeight), dialogHold = hold });
+        _ = _pipe.SendCommand("update_bubble_color", new
+        {
+            bubbleR = _bubbleBgColor.R / 255f, bubbleG = _bubbleBgColor.G / 255f, bubbleB = _bubbleBgColor.B / 255f, bubbleA = _bubbleBgColor.A / 255f,
+            bubbleTextR = _bubbleTextColor.R / 255f, bubbleTextG = _bubbleTextColor.G / 255f, bubbleTextB = _bubbleTextColor.B / 255f, bubbleTextA = _bubbleTextColor.A / 255f
+        });
+    }
+    private int GetInt(TextBox tb) => int.TryParse(tb.Text, out int v) ? v : 0;
+    #endregion
 
     #region Model Tab Events
     private void OnModelBrowseClick(object sender, RoutedEventArgs e)

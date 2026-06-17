@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
@@ -13,14 +14,20 @@ public class SettingsData
 
     public string websocketUrl;
     public int ttsMode;
+    public string gptSovitsUrl;
     public string gradioUrl;
     public string simpleVitsUrl;
+    public string gptSovitsRefAudioBaseDir;
+    public bool translationEnabled;
     public string translationUrl;
     public string translationAppId;
     public string translationKey;
     public string translationSalt;
     public string identity;
     public string preset;
+    public string bangbangkabangWavPath;
+
+    public List<RefAudioDataEntry> refAudioConfigs;
 
     public int msgMaxWidth;
     public int msgHeight;
@@ -84,4 +91,14 @@ public class SettingsData
             Debug.LogError("Failed to save settings: " + e.Message);
         }
     }
+}
+
+[Serializable]
+public class RefAudioDataEntry
+{
+    public string emotionKey;
+    public string audioFileName;
+    public string promptText;
+    public string promptLang;
+    public string audioFullPath;
 }

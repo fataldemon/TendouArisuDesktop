@@ -103,7 +103,10 @@ public class EmotionPlayer : MonoBehaviour
     {
         IsTTSPlaying = true;
         if (_current != null)
+        {
             _current.ttsStarted = true;
+            _current.ttsEnded = false;
+        }
     }
 
     public void NotifyTTSEnd()

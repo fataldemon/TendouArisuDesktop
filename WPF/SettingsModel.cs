@@ -29,8 +29,10 @@ public class InitData
 {
     public string WebsocketUrl { get; set; } = "";
     public int TtsMode { get; set; }
+    public string GptSovitsUrl { get; set; } = "";
     public string GradioUrl { get; set; } = "";
     public string SimpleVitsUrl { get; set; } = "";
+    public bool TranslationEnabled { get; set; }
     public string TranslationUrl { get; set; } = "";
     public string TranslationAppId { get; set; } = "";
     public string TranslationKey { get; set; } = "";
@@ -38,6 +40,9 @@ public class InitData
     public string Identity { get; set; } = "";
     public string Preset { get; set; } = "";
     public bool Connected { get; set; }
+    public string RefAudioBaseDir { get; set; } = "";
+    public string BangbangkabangWavPath { get; set; } = "";
+    public List<RefAudioEntryDto> RefAudioConfigs { get; set; } = new();
     public List<string> ModelHistory { get; set; } = new();
     public List<AnimationEntry> AnimationList { get; set; } = new();
     public List<ExpressionMappingEntry> ExpressionMappings { get; set; } = new();
@@ -163,4 +168,13 @@ public class EyeProfileEntry
 public static class BodyPartNames
 {
     public static readonly string[] All = { "fullBody", "upperBody", "head", "leftArm", "rightArm", "lowerBody" };
+}
+
+public class RefAudioEntryDto
+{
+    public string EmotionKey { get; set; } = "";
+    public string AudioFileName { get; set; } = "";
+    public string PromptText { get; set; } = "";
+    public string PromptLang { get; set; } = "ja";
+    public string AudioFullPath { get; set; } = "";
 }

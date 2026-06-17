@@ -30,6 +30,8 @@ public class GameStart : MonoBehaviour
     [SerializeField] private string websocket_url;
     [SerializeField] private bool onVoice;
     [SerializeField] private AudioSource m_AudioSource;
+    private Queue<AudioClip> _playQueue = new Queue<AudioClip>();
+    private bool _ttsAllDispatched;
     [SerializeField] public int msg_position_x = 300;
     [SerializeField] public int msg_position_y = 150;
     [SerializeField] public int msg_max_length = 580;
@@ -239,6 +241,18 @@ public class GameStart : MonoBehaviour
             if (settings.fontSize > 0)
                 fontSize = settings.fontSize;
             config.ApplyFrom(settings);
+
+            if (string.IsNullOrEmpty(config.gptSovitsUrl))
+            {
+                config.gptSovitsUrl = "http://127.0.0.1:9880/tts";
+                Debug.Log("[GameStart] Set default GPT-SoVITS URL: " + config.gptSovitsUrl);
+            }
+            if (string.IsNullOrEmpty(config.gptSovitsRefAudioBaseDir))
+            {
+                config.gptSovitsRefAudioBaseDir = System.IO.Path.Combine(Application.streamingAssetsPath, "RefAudio");
+                Debug.Log("[GameStart] Set default RefAudio base dir: " + config.gptSovitsRefAudioBaseDir);
+            }
+
             if (settings.camZ != 0f || settings.camX != 0f || settings.camY != 0f)
             {
                 Camera.main.transform.position = new Vector3(settings.camX, settings.camY, settings.camZ);
@@ -267,6 +281,14 @@ public class GameStart : MonoBehaviour
             pipeServer.StartServer();
             Debug.Log("[GameStart] PipeServer started");
         }
+
+        NetManager.M_Instance.OnConnectionChanged += (connected) =>
+        {
+            UnityMainThreadDispatcher.Enqueue(() =>
+            {
+                pipeServer?.SendStatus(connected);
+            });
+        };
 
         if (modelManager != null)
             modelManager.pipeServer = pipeServer;
@@ -407,8 +429,10 @@ public class GameStart : MonoBehaviour
         if (TTS_module != null)
         {
             if (config.tts == 0)
-                TTS_module.PostURL = config.gradio_url;
+                TTS_module.PostURL = config.gptSovitsUrl;
             else if (config.tts == 1)
+                TTS_module.PostURL = config.gradio_url;
+            else if (config.tts == 2)
                 TTS_module.PostURL = config.simpleVitsApi_url;
         }
     }
@@ -721,6 +745,8 @@ public class GameStart : MonoBehaviour
         }
 
         string text = EmotionParser.RemoveActionTag(EmotionParser.RemoveEmotionTag(answerPure));
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[（(][^)）]*[)）]", "").Trim();
+        text = text.Replace("邦邦咔邦", "パンパカパーン");
         text_answer = "爱丽丝：" + text;
         if (string.IsNullOrEmpty(text))
             text_answer += "唔...";
@@ -742,8 +768,16 @@ public class GameStart : MonoBehaviour
         if (!string.IsNullOrEmpty(emotion))
             emotionPlayer.PlayEmotion(emotion);
 
-        translator.translate(text, "jp", GenerateVoice, SetExceptionRestorePublic);
-        llmFormatter.pending = false;
+        if (config.translationEnabled)
+        {
+            Debug.Log("[Pipeline] text_len=" + text.Length + " trans=1");
+            StartCoroutine(ProcessSentencesStreaming(text, emotion));
+        }
+        else
+        {
+            Debug.Log("[Pipeline] text_len=" + text.Length + " trans=0");
+            StartCoroutine(ProcessSentencesStreaming(text, emotion));
+        }
     }
 
     void OnGUI()
@@ -914,19 +948,196 @@ public class GameStart : MonoBehaviour
         SaveSettings();
     }
 
-    private void GenerateVoice(string _text)
+    private void GenerateVoice(string _text, string emotion = "", Action onComplete = null, string textLang = "auto")
     {
-        text_answer = text_answer + "\n" + _text;
-        if (TTS_module != null)
+
+        string ttsText = System.Text.RegularExpressions.Regex.Replace(_text, @"[（(][^)）]*[)）]", "").Trim();
+        if (string.IsNullOrEmpty(ttsText))
+            ttsText = _text;
+
+        if (config.tts == 0 && config.ttsCoordinator != null)
+        {
+            Debug.Log("[TTS] 使用GPT-SoVITS进行语音合成...");
+            emotionPlayer.NotifyTTSStart();
+            config.ttsCoordinator.Generate(ttsText, emotion, (clip, txt) =>
+            {
+                PlayVoice(clip, txt);
+                if (onComplete != null) StartCoroutine(WaitForAudioEnd(onComplete));
+            }, SetExceptionRestorePublic, textLang);
+        }
+        else if (TTS_module != null)
         {
             Debug.Log("发送语音合成请求......");
             emotionPlayer.NotifyTTSStart();
-            TTS_module.Speak(_text, PlayVoice, SetExceptionRestorePublic);
+            TTS_module.Speak(ttsText, (clip, txt) =>
+            {
+                PlayVoice(clip, txt);
+                if (onComplete != null) StartCoroutine(WaitForAudioEnd(onComplete));
+            }, SetExceptionRestorePublic);
         }
         else
         {
             Debug.Log("未配置语音模块");
             emotionPlayer.NotifyTTSError();
+            onComplete?.Invoke();
+        }
+    }
+
+    private IEnumerator WaitForAudioEnd(Action done)
+    {
+        yield return new WaitWhile(() => m_AudioSource.isPlaying);
+        done();
+    }
+
+    private System.Collections.Generic.List<string> SplitForTts(string text)
+    {
+        var result = new System.Collections.Generic.List<string>();
+        string[] bangParts = text.Split(new[] { "パンパカパーン" }, System.StringSplitOptions.None);
+
+        for (int i = 0; i < bangParts.Length; i++)
+        {
+            string piece = bangParts[i];
+            if (!string.IsNullOrEmpty(piece))
+            {
+                string[] raw = System.Text.RegularExpressions.Regex.Split(piece, @"(?<=[。！？!?\n])");
+                string buffer = "";
+                foreach (string s in raw)
+                {
+                    string t = s.Trim();
+                    if (string.IsNullOrEmpty(t)) continue;
+                    buffer += t;
+                    if (buffer.Length >= 15 || System.Text.RegularExpressions.Regex.IsMatch(buffer, @"[。！？!?]$"))
+                    {
+                        result.Add(buffer);
+                        buffer = "";
+                    }
+                }
+                if (buffer.Length > 0) result.Add(buffer);
+            }
+
+            if (i < bangParts.Length - 1)
+                result.Add("パンパカパーン");
+        }
+
+        return result;
+    }
+
+    private IEnumerator ProcessSentencesStreaming(string text, string emotion)
+    {
+        var sentences = SplitForTts(text);
+        Debug.Log("[Split] " + sentences.Count + " segments");
+        _playQueue.Clear();
+        _ttsAllDispatched = false;
+        StartCoroutine(PlayQueueLoop());
+
+        for (int i = 0; i < sentences.Count; i++)
+        {
+            string sent = sentences[i];
+            string sentPreview = sent.Length > 20 ? sent.Substring(0, 20) + "..." : sent;
+            Debug.Log("[Stream] seg " + (i + 1) + "/" + sentences.Count + ": " + sentPreview);
+
+            if (sent == "パンパカパーン")
+            {
+                Debug.Log("[Stream] seg " + (i + 1) + " is BANG");
+                if (config.translationEnabled)
+                    text_answer = text_answer + "\nパンパカパーン";
+                var bang = config.ttsCoordinator != null ? config.ttsCoordinator.bangbangkabangClip : null;
+                if (bang != null) { _playQueue.Enqueue(bang); Debug.Log("[Stream] bang enqueued"); }
+                else Debug.Log("[Stream] bang clip is NULL");
+                continue;
+            }
+
+            if (config.translationEnabled)
+            {
+                bool done = false;
+                string translated = null;
+                Debug.Log("[Trans] seg " + (i + 1) + " translating val=\"" + (sent.Length > 20 ? sent.Substring(0, 20) + "..." : sent) + "\"");
+                translator.translate(sent, "jp",
+                    (r) => { translated = r; done = true; },
+                    (e) => { done = true; });
+                yield return new WaitUntil(() => done);
+                if (translated == null) { Debug.Log("[Trans] seg " + (i + 1) + " FAILED val=\"" + (sent.Length > 20 ? sent.Substring(0, 20) + "..." : sent) + "\""); continue; }
+                Debug.Log("[Trans] seg " + (i + 1) + " OK val=\"" + (translated.Length > 20 ? translated.Substring(0, 20) + "..." : translated) + "\"");
+                text_answer = text_answer + "\n" + translated;
+                sent = translated;
+            }
+
+            string lang = config.translationEnabled ? "all_ja" : "zh";
+            bool synthDone = false;
+            GenerateVoiceToQueue(sent, emotion, lang, () => synthDone = true);
+            yield return new WaitUntil(() => synthDone);
+        }
+
+        _ttsAllDispatched = true;
+        yield return new WaitUntil(() => _playQueue.Count == 0 && !m_AudioSource.isPlaying);
+        llmFormatter.pending = false;
+    }
+
+    private void GenerateVoiceToQueue(string _text, string emotion, string textLang, Action onSynthesized)
+    {
+        if (string.IsNullOrEmpty(_text))
+        {
+            Debug.Log("[TTS] SKIP empty text");
+            onSynthesized();
+            return;
+        }
+
+        Debug.Log("[TTS] sending val=\"" + (_text.Length > 20 ? _text.Substring(0, 20) + "..." : _text) + "\" lang=" + textLang);
+
+        if (config.tts == 0 && config.ttsCoordinator != null)
+        {
+            Debug.Log("[TTS] 使用GPT-SoVITS进行语音合成...");
+            emotionPlayer.NotifyTTSStart();
+            config.ttsCoordinator.Generate(_text, emotion, (clip, txt) =>
+            {
+                if (clip != null) _playQueue.Enqueue(clip);
+                onSynthesized();
+            }, (err) =>
+            {
+                SetExceptionRestorePublic(err);
+                onSynthesized();
+            }, textLang);
+        }
+        else if (TTS_module != null)
+        {
+            emotionPlayer.NotifyTTSStart();
+            TTS_module.Speak(_text, (clip, txt) =>
+            {
+                if (clip != null) _playQueue.Enqueue(clip);
+                onSynthesized();
+            }, (err) =>
+            {
+                SetExceptionRestorePublic(err);
+                onSynthesized();
+            });
+        }
+        else
+        {
+            emotionPlayer.NotifyTTSError();
+            onSynthesized();
+        }
+    }
+
+    private IEnumerator PlayQueueLoop()
+    {
+        while (true)
+        {
+            if (_playQueue.Count > 0)
+            {
+                AudioClip clip = _playQueue.Dequeue();
+                Debug.Log("[Play] dequeue clip " + clip.length.ToString("F1") + "s, remain=" + _playQueue.Count);
+                PlayVoice(clip, "");
+                yield return new WaitWhile(() => m_AudioSource.isPlaying);
+            }
+            else if (_ttsAllDispatched)
+            {
+                Debug.Log("[Play] all dispatched, queue empty, done");
+                yield break;
+            }
+            else
+            {
+                yield return null;
+            }
         }
     }
 

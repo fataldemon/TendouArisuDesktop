@@ -174,6 +174,8 @@ public class SystemTrayManager : MonoBehaviour
     private static readonly IntPtr IDI_APPLICATION = new IntPtr(32512);
 
     private const int IDM_SETTINGS = 1;
+    private const int IDM_VOICE = 8;
+    private const int IDM_TRANSLATION = 9;
     private const int IDM_MODEL = 2;
     private const int IDM_ANIMATION = 3;
     private const int IDM_EXPRESSION = 4;
@@ -375,7 +377,9 @@ public class SystemTrayManager : MonoBehaviour
         IntPtr hMenu = CreatePopupMenu();
         if (hMenu == IntPtr.Zero) return;
 
-        AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_SETTINGS), "设置");
+        AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_SETTINGS), "连接设置");
+        AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_VOICE), "语音设置");
+        AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_TRANSLATION), "翻译设置");
         AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_MODEL), "模型管理");
         AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_ANIMATION), "动画库");
         AppendMenuW(hMenu, MF_STRING, new IntPtr(IDM_EXPRESSION), "动作系统");
@@ -399,10 +403,12 @@ public class SystemTrayManager : MonoBehaviour
                 switch (id)
                 {
                     case IDM_SETTINGS: OnOpenPanel?.Invoke(0); break;
-                    case IDM_MODEL: OnOpenPanel?.Invoke(2); break;
-                    case IDM_ANIMATION: OnOpenPanel?.Invoke(3); break;
-                    case IDM_EXPRESSION: OnOpenPanel?.Invoke(4); break;
-                    case IDM_HISTORY: OnOpenPanel?.Invoke(5); break;
+                    case IDM_VOICE: OnOpenPanel?.Invoke(1); break;
+                    case IDM_TRANSLATION: OnOpenPanel?.Invoke(2); break;
+                    case IDM_MODEL: OnOpenPanel?.Invoke(4); break;
+                    case IDM_ANIMATION: OnOpenPanel?.Invoke(5); break;
+                    case IDM_EXPRESSION: OnOpenPanel?.Invoke(6); break;
+                    case IDM_HISTORY: OnOpenPanel?.Invoke(7); break;
                     case IDM_EXIT: OnExit?.Invoke(); break;
                 }
             });

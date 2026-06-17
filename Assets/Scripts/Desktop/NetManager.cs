@@ -40,6 +40,8 @@ public class NetManager
         return m_isDoThread;
     }
 
+    public event Action<bool> OnConnectionChanged;
+
     public ConcurrentQueue<string> response_queue = new ConcurrentQueue<string>();
 
     public void Connect(string uriStr)
@@ -160,5 +162,6 @@ public class NetManager
             m_dataReceiveThread.Join(1000);
             m_dataReceiveThread = null;
         }
+        OnConnectionChanged?.Invoke(false);
     }
 }

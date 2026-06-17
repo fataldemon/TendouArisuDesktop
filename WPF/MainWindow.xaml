@@ -24,34 +24,92 @@
                         <Button x:Name="BtnDisconnect" Grid.Column="2" Content="断开" Width="80" Click="OnDisconnectClick" Margin="8,0,0,0"/>
                         <Label x:Name="LblConnStatus" Grid.Column="3" Content="○ 未连接" Foreground="{StaticResource TextError}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
 
-                    <!-- TTS -->
-                    <Label Content="语音模块" Margin="0,16,0,4"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                        <Button x:Name="BtnTtsGradio"    Content="Gradio" Width="70" Style="{StaticResource SmallButton}" Click="OnTtsModeClick" Tag="0"/>
-                        <Button x:Name="BtnTtsSimpleVits" Content="Simple-Vits" Width="90" Style="{StaticResource SmallButton}" Click="OnTtsModeClick" Tag="1" Margin="4,0,0,0"/>
-                        <Button x:Name="BtnTtsNone"       Content="None" Width="70" Style="{StaticResource SmallButton}" Click="OnTtsModeClick" Tag="2" Margin="4,0,0,0"/>
+        <!-- ===== 语音设置 ===== -->
+        <TabItem Header="语音设置">
+            <TabControl x:Name="VoiceSubTabs" Margin="-2,-5,-2,0" SelectionChanged="OnVoiceSubTabChanged">
+                <!-- 子TAB 1: 语音连接 -->
+                <TabItem Header="语音连接">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
+                        <StackPanel Margin="12">
+                            <Label Content="TTS 引擎" Margin="0,0,0,4"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <Button x:Name="BtnTtsGptSovits" Content="GPT-SoVITS" Width="90" Style="{StaticResource SmallButton}" Click="OnTtsModeClick" Tag="0"/>
+                                <Button x:Name="BtnTtsGradio"    Content="Gradio" Width="70" Style="{StaticResource SmallButton}" Click="OnTtsModeClick" Tag="1" Margin="4,0,0,0"/>
+                                <Button x:Name="BtnTtsSimpleVits" Content="Simple-Vits" Width="90" Style="{StaticResource SmallButton}" Click="OnTtsModeClick" Tag="2" Margin="4,0,0,0"/>
+                                <Button x:Name="BtnTtsNone"       Content="None" Width="70" Style="{StaticResource SmallButton}" Click="OnTtsModeClick" Tag="3" Margin="4,0,0,0"/>
+                            </StackPanel>
+                            <Label x:Name="LblTtsUrl" Content="API 地址"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="TxtTtsUrl" Grid.Column="0" Margin="0,0,8,0"/>
+                                <Button Content="保存" Grid.Column="1" Width="60" Click="OnSaveVoiceClick"/>
+                                <Button Content="发送测试" Grid.Column="2" Width="80" Click="OnTtsSendClick" Margin="8,0,0,0"/>
+                            </Grid>
+                            <Label x:Name="LblTtsStatus" Content="" Margin="0,4,0,0" Foreground="{StaticResource TextSecondary}"/>
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="TxtTtsTestLine" Grid.Column="0" Margin="0,0,0,0" Text="こんにちは、テストです。"/>
+                            </Grid>
+                            <!-- 邦邦咔邦 WAV -->
+                            <Label Content="邦邦咔邦 WAV 路径" Margin="0,12,0,4"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="TxtBangWavPath" Grid.Column="0" Margin="0,0,8,0"/>
+                                <Button Content="浏览" Grid.Column="1" Width="60" Click="OnBangWavBrowseClick"/>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <!-- 子TAB 2: 参考音频 (only enabled when GPT-SoVITS selected) -->
+                <TabItem x:Name="TabRefAudio" Header="参考音频" IsEnabled="False">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Label Content="参考音频基础目录" Grid.Row="0"/>
+                        <Grid Grid.Row="1" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="TxtRefAudioBaseDir" Grid.Column="0" Margin="0,0,8,0"/>
+                            <Button Content="浏览" Grid.Column="1" Width="60" Click="OnRefAudioDirBrowseClick"/>
+                        </Grid>
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="IcRefAudioList"/>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </TabItem>
+
+        <!-- ===== 翻译设置 ===== -->
+        <TabItem Header="翻译设置">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
+                <StackPanel Margin="12">
+                    <!-- 翻译开关 -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Label Content="翻译状态:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Button x:Name="BtnTranslationToggle" Content="关闭" Width="80" Click="OnTranslationToggleClick"
+                                Style="{StaticResource PrimaryButton}"/>
+                        <Label x:Name="LblTranslationStatus" Content="翻译已关闭" VerticalAlignment="Center"
+                               Margin="8,0,0,0" Foreground="{StaticResource TextError}"/>
                     </StackPanel>
-                    <Label x:Name="LblTtsUrl" Content="API 地址"/>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="TxtTtsUrl" Grid.Column="0" Margin="0,0,8,0"/>
-                        <Button Content="TTS 测试" Grid.Column="1" Width="80" Click="OnTtsTestClick"/>
-                    </Grid>
-                    <Grid Margin="0,6,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="TxtTtsTestLine" Grid.Column="0" Margin="0,0,8,0" Text="こんにちは、テストです。"/>
-                        <Button Content="发送测试" Grid.Column="1" Width="80" Click="OnTtsSendClick"/>
-                    </Grid>
-
-                    <!-- Translation -->
-                    <Label Content="翻译模块" Margin="0,16,0,4"/>
                     <Label Content="API 地址"/>
                     <TextBox x:Name="TxtTranslationUrl" Margin="0,0,0,6"/>
                     <Label Content="APP ID"/>
@@ -60,6 +118,9 @@
                     <PasswordBox x:Name="TxtTranslationKey" Margin="0,0,0,6"/>
                     <Label Content="Salt"/>
                     <TextBox x:Name="TxtTranslationSalt" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button Content="保存" Width="80" Style="{StaticResource PrimaryButton}" Click="OnTranslationSaveClick"/>
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>

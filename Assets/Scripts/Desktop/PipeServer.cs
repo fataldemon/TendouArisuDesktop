@@ -131,10 +131,13 @@ public class PipeServer : MonoBehaviour
         AppendJsonProperty(sb, "websocketUrl", config.websocket_url);
         sb.Append(',');
         sb.Append("\"ttsMode\":").Append(config.tts).Append(',');
+        AppendJsonProperty(sb, "gptSovitsUrl", config.gptSovitsUrl);
+        sb.Append(',');
         AppendJsonProperty(sb, "gradioUrl", config.gradio_url);
         sb.Append(',');
         AppendJsonProperty(sb, "simpleVitsUrl", config.simpleVitsApi_url);
         sb.Append(',');
+        sb.Append("\"translationEnabled\":").Append(config.translationEnabled ? "true" : "false").Append(',');
         AppendJsonProperty(sb, "translationUrl", config.translation_url ?? translator.Baidu_fanyi_url);
         sb.Append(',');
         AppendJsonProperty(sb, "translationAppId", config.translation_app_id ?? translator.App_id);
@@ -182,6 +185,13 @@ public class PipeServer : MonoBehaviour
         sb.Append(',');
         sb.Append("\"allowRootMotion\":").Append(
             (emotionPlayer != null && emotionPlayer.bodyEngine != null && emotionPlayer.bodyEngine.allowRootMotion) ? "true" : "false");
+        sb.Append(',');
+        AppendJsonProperty(sb, "refAudioBaseDir", config.gptSovitsRefAudioBaseDir);
+        sb.Append(',');
+        AppendJsonProperty(sb, "bangbangkabangWavPath", SettingsData.Load()?.bangbangkabangWavPath ?? "");
+        sb.Append(',');
+        sb.Append("\"refAudioConfigs\":");
+        AppendRefAudioConfigs(sb);
         sb.Append("}}");
         return sb.ToString();
     }
@@ -426,6 +436,59 @@ public class PipeServer : MonoBehaviour
         sb.Append(']');
     }
 
+    private void AppendRefAudioConfigs(StringBuilder sb)
+    {
+        ActionSystemRuntime.EnsureInit();
+        var emotionKeys = new System.Collections.Generic.List<string>();
+        foreach (var m in ActionSystemRuntime.EmotionMappings)
+        {
+            if (m.emotion == "触摸" || m.emotion == "拖拽" || m.emotion.StartsWith("随机-"))
+                continue;
+            if (!emotionKeys.Contains(m.emotion))
+                emotionKeys.Add(m.emotion);
+        }
+
+        var settings = SettingsData.Load();
+        var saved = settings?.refAudioConfigs;
+        var savedDict = new System.Collections.Generic.Dictionary<string, RefAudioDataEntry>();
+        if (saved != null)
+            foreach (var se in saved)
+                if (!string.IsNullOrEmpty(se.emotionKey))
+                    savedDict[se.emotionKey] = se;
+
+        string baseDir = config.gptSovitsRefAudioBaseDir;
+        if (string.IsNullOrEmpty(baseDir))
+            baseDir = System.IO.Path.Combine(Application.streamingAssetsPath, "RefAudio");
+
+        var items = new System.Collections.Generic.List<string>();
+        foreach (var key in emotionKeys)
+        {
+            if (savedDict.TryGetValue(key, out var savedEntry))
+            {
+                items.Add("{\"emotionKey\":\"" + EscapeJson(savedEntry.emotionKey) + '"' +
+                    ",\"audioFileName\":\"" + EscapeJson(savedEntry.audioFileName) + '"' +
+                    ",\"promptText\":\"" + EscapeJson(savedEntry.promptText) + '"' +
+                    ",\"promptLang\":\"" + EscapeJson(savedEntry.promptLang) + '"' +
+                    ",\"audioFullPath\":\"" + EscapeJson(savedEntry.audioFullPath) + "\"}");
+            }
+            else
+            {
+                var defaultEntry = RefAudioConfig.GetDefaultEntry(key, baseDir);
+                if (defaultEntry != null)
+                {
+                    items.Add("{\"emotionKey\":\"" + EscapeJson(defaultEntry.emotionKey) + '"' +
+                        ",\"audioFileName\":\"" + EscapeJson(defaultEntry.audioFileName) + '"' +
+                        ",\"promptText\":\"" + EscapeJson(defaultEntry.promptText) + '"' +
+                        ",\"promptLang\":\"" + EscapeJson(defaultEntry.promptLang) + '"' +
+                        ",\"audioFullPath\":\"" + EscapeJson(defaultEntry.audioFullPath) + "\"}");
+                }
+            }
+        }
+        sb.Append('[');
+        sb.Append(string.Join(",", items));
+        sb.Append(']');
+    }
+
     public void RefreshInitData()
     {
         Stream? s;
@@ -439,6 +502,23 @@ public class PipeServer : MonoBehaviour
             s.Flush();
         }
         catch { lock (_streamLock) { _currentStream = null; } }
+    }
+
+    public void SendToWPF(string json)
+    {
+        UnityMainThreadDispatcher.Enqueue(() =>
+        {
+            Stream? s;
+            lock (_streamLock) { s = _currentStream; }
+            if (s == null) return;
+            try
+            {
+                var bytes = Encoding.UTF8.GetBytes(json + "\n");
+                s.Write(bytes, 0, bytes.Length);
+                s.Flush();
+            }
+            catch { lock (_streamLock) { _currentStream = null; } }
+        });
     }
 
     public void SendStatus(bool connected)
@@ -687,10 +767,44 @@ public class PipeServer : MonoBehaviour
                 case "test_tts":
                     if (!string.IsNullOrEmpty(cmd.text))
                     {
+                        SendToWPF("{\"type\":\"tts_test_start\"}");
                         gameStart.RefreshTtsModule();
-                        var tts = gameStart.TTS_module;
-                        if (tts != null)
-                            tts.Speak(cmd.text, gameStart.PlayVoicePublic, gameStart.SetExceptionRestorePublic);
+                        if (config.tts == 0 && config.ttsCoordinator != null)
+                        {
+                            config.ttsCoordinator.TestTts(cmd.text,
+                                () => SendToWPF("{\"type\":\"tts_test_result\",\"success\":true}"),
+                                (err) => SendToWPF("{\"type\":\"tts_test_result\",\"success\":false,\"error\":\"" + EscapeJson(err) + "\"}"));
+                        }
+                        else
+                        {
+                            var tts = gameStart.TTS_module;
+                            if (tts != null)
+                            {
+                                try
+                                {
+                                    tts.Speak(cmd.text, (clip, txt) =>
+                                    {
+                                        UnityMainThreadDispatcher.Enqueue(() =>
+                                        {
+                                            gameStart.PlayVoicePublic(clip, txt);
+                                            SendToWPF("{\"type\":\"tts_test_result\",\"success\":true}");
+                                        });
+                                    }, (err) =>
+                                    {
+                                        gameStart.SetExceptionRestorePublic(err);
+                                        SendToWPF("{\"type\":\"tts_test_result\",\"success\":false,\"error\":\"TTS engine error\"}");
+                                    });
+                                }
+                                catch (System.Exception ex)
+                                {
+                                    SendToWPF("{\"type\":\"tts_test_result\",\"success\":false,\"error\":\"" + EscapeJson(ex.Message) + "\"}");
+                                }
+                            }
+                            else
+                            {
+                                SendToWPF("{\"type\":\"tts_test_result\",\"success\":false,\"error\":\"No TTS module configured\"}");
+                            }
+                        }
                     }
                     break;
                 case "set_root_motion":
@@ -744,6 +858,52 @@ public class PipeServer : MonoBehaviour
                     llmFormatter.formatted_history = "";
                     RefreshInitData();
                     break;
+                case "update_translation_toggle":
+                    config.translationEnabled = cmd.translationEnabled;
+                    gameStart.SaveSettings();
+                    RefreshInitData();
+                    break;
+                case "update_ref_audio_base_dir":
+                    if (!string.IsNullOrEmpty(cmd.refAudioBaseDir))
+                    {
+                        config.gptSovitsRefAudioBaseDir = cmd.refAudioBaseDir;
+                        var settings = SettingsData.Load();
+                        settings.gptSovitsRefAudioBaseDir = cmd.refAudioBaseDir;
+                        settings.Save();
+                        if (config.ttsCoordinator != null)
+                            config.ttsCoordinator.ReloadRefAudio();
+                    }
+                    break;
+                case "update_ref_audio_entry":
+                    if (!string.IsNullOrEmpty(cmd.refAudioEmotion))
+                    {
+                        var settings = SettingsData.Load();
+                        if (settings.refAudioConfigs == null)
+                            settings.refAudioConfigs = new System.Collections.Generic.List<RefAudioDataEntry>();
+                        var existing = settings.refAudioConfigs.Find(e => e.emotionKey == cmd.refAudioEmotion);
+                        if (existing != null)
+                        {
+                            existing.audioFileName = cmd.refAudioPath ?? existing.audioFileName;
+                            existing.promptText = cmd.refAudioPrompt ?? existing.promptText;
+                            existing.promptLang = cmd.refAudioLang ?? existing.promptLang;
+                            existing.audioFullPath = System.IO.Path.Combine(settings.gptSovitsRefAudioBaseDir ?? config.gptSovitsRefAudioBaseDir, existing.audioFileName);
+                        }
+                        settings.Save();
+                        if (config.ttsCoordinator != null)
+                            config.ttsCoordinator.ReloadRefAudio();
+                        RefreshInitData();
+                    }
+                    break;
+                case "update_bangbangkabang_wav":
+                    if (!string.IsNullOrEmpty(cmd.bangbangkabangWavPath))
+                    {
+                        var settings = SettingsData.Load();
+                        settings.bangbangkabangWavPath = cmd.bangbangkabangWavPath;
+                        settings.Save();
+                        if (config.ttsCoordinator != null)
+                            config.ttsCoordinator.ReloadRefAudio();
+                    }
+                    break;
             }
         }
         catch (Exception ex)
@@ -766,10 +926,17 @@ public class PipeServer : MonoBehaviour
             config.websocket_url = cmd.websocketUrl;
         if (cmd.ttsMode >= 0)
             config.tts = cmd.ttsMode;
+        if (!string.IsNullOrEmpty(cmd.gptSovitsUrl))
+            config.gptSovitsUrl = cmd.gptSovitsUrl;
+        if (!string.IsNullOrEmpty(cmd.gradioUrl))
+            config.gradio_url = cmd.gradioUrl;
+        if (!string.IsNullOrEmpty(cmd.simpleVitsUrl))
+            config.simpleVitsApi_url = cmd.simpleVitsUrl;
         if (!string.IsNullOrEmpty(cmd.ttsUrl))
         {
-            if (config.tts == 0) config.gradio_url = cmd.ttsUrl;
-            else if (config.tts == 1) config.simpleVitsApi_url = cmd.ttsUrl;
+            if (config.tts == 0) config.gptSovitsUrl = cmd.ttsUrl;
+            else if (config.tts == 1) config.gradio_url = cmd.ttsUrl;
+            else if (config.tts == 2) config.simpleVitsApi_url = cmd.ttsUrl;
         }
         if (!string.IsNullOrEmpty(cmd.translationUrl))
             translator.Baidu_fanyi_url = cmd.translationUrl;
@@ -917,6 +1084,9 @@ public class PipeCommand
     public string websocketUrl = "";
     public int ttsMode = -1;
     public string ttsUrl = "";
+    public string gptSovitsUrl = "";
+    public string gradioUrl = "";
+    public string simpleVitsUrl = "";
     public string translationUrl = "";
     public string translationAppId = "";
     public string translationKey = "";
@@ -952,4 +1122,11 @@ public class PipeCommand
     public float modelScale = 1f;
     public int eyeBlinkIdx = -1, eyeLookL = -1, eyeLookR = -1, eyeLookU = -1, eyeLookD = -1;
     public float eyeStrength = 120f, eyeHeadRot = 10f;
+    public string refAudioBaseDir = "";
+    public string refAudioEmotion = "";
+    public string refAudioPath = "";
+    public string refAudioPrompt = "";
+    public string refAudioLang = "";
+    public string bangbangkabangWavPath = "";
+    public bool translationEnabled = false;
 }

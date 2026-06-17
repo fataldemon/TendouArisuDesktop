@@ -14,20 +14,28 @@ public class Configuration : MonoBehaviour
     public string translation_salt;
     public string identity;
     public string preset;
+    public bool translationEnabled;
 
+    [SerializeField]
+    public GptSovits gptSovits_TTS;
     [SerializeField]
     public BertVits2 bertVits2_TTS;
     [SerializeField]
     public SimpleVitsApi simpleVitsApi_TTS;
+    [SerializeField]
+    public TtsCoordinator ttsCoordinator;
 
+    public string gptSovitsUrl;
     public string gradio_url;
     public string simpleVitsApi_url;
+    public string gptSovitsRefAudioBaseDir;
 
     public void initConfiguration(string _websocket_url, int _tts, string _translation_url, 
         string _translation_app_id, string _translation_key, string _translation_salt, string _identity, string _preset)
     { 
         websocket_url = _websocket_url;
         tts = _tts;
+        gptSovitsUrl = gptSovits_TTS != null ? gptSovits_TTS.PostURL : "";
         gradio_url = bertVits2_TTS.PostURL;
         simpleVitsApi_url = simpleVitsApi_TTS.PostURL;
         translation_url = _translation_url;
@@ -42,9 +50,13 @@ public class Configuration : MonoBehaviour
     {
         if (index == 0)
         {
-            return bertVits2_TTS;
+            return gptSovits_TTS;
         }
         else if (index == 1)
+        {
+            return bertVits2_TTS;
+        }
+        else if (index == 2)
         {
             return simpleVitsApi_TTS;
         }
@@ -55,9 +67,13 @@ public class Configuration : MonoBehaviour
     {
         if (index == 0)
         {
-            bertVits2_TTS.PostURL = gradio_url;
+            if (gptSovits_TTS != null) gptSovits_TTS.PostURL = gptSovitsUrl;
         }
         else if (index == 1)
+        {
+            bertVits2_TTS.PostURL = gradio_url;
+        }
+        else if (index == 2)
         {
             simpleVitsApi_TTS.PostURL = simpleVitsApi_url;
         }
@@ -72,11 +88,24 @@ public class Configuration : MonoBehaviour
 
         tts = settings.ttsMode;
 
+        if (tts == 0 && string.IsNullOrEmpty(settings.gptSovitsUrl) && !string.IsNullOrEmpty(settings.gradioUrl))
+        {
+            tts = 1;
+        }
+
+        if (!string.IsNullOrEmpty(settings.gptSovitsUrl))
+            gptSovitsUrl = settings.gptSovitsUrl;
+
         if (!string.IsNullOrEmpty(settings.gradioUrl))
             gradio_url = settings.gradioUrl;
 
         if (!string.IsNullOrEmpty(settings.simpleVitsUrl))
             simpleVitsApi_url = settings.simpleVitsUrl;
+
+        if (!string.IsNullOrEmpty(settings.gptSovitsRefAudioBaseDir))
+            gptSovitsRefAudioBaseDir = settings.gptSovitsRefAudioBaseDir;
+
+        translationEnabled = settings.translationEnabled;
 
         if (!string.IsNullOrEmpty(settings.translationUrl))
             translation_url = settings.translationUrl;
@@ -103,8 +132,11 @@ public class Configuration : MonoBehaviour
 
         settings.websocketUrl = websocket_url;
         settings.ttsMode = tts;
+        settings.gptSovitsUrl = gptSovitsUrl;
         settings.gradioUrl = gradio_url;
         settings.simpleVitsUrl = simpleVitsApi_url;
+        settings.gptSovitsRefAudioBaseDir = gptSovitsRefAudioBaseDir;
+        settings.translationEnabled = translationEnabled;
         settings.translationUrl = translation_url;
         settings.translationAppId = translation_app_id;
         settings.translationKey = translation_key;

@@ -35,18 +35,19 @@ public class BaiduTranslator : MonoBehaviour
         string signRaw = $"{app_id}{_line}{salt}{private_key}";
         string sign = CalculateMD5(signRaw);
         string url = $"{Baidu_fanyi_url}?q={_line}&from=auto&to={_lang}&appid={app_id}&salt={salt}&sign={sign}";
-        //����Get����
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
-        {
-            // �������󲢵ȴ���Ӧ
-            yield return webRequest.SendWebRequest();
-
-            // �������Ľ��
-            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+            Debug.Log("[Translator] Sending request, text length=" + _line.Length + " to=" + _lang);
+            //����Get����
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
             {
-                Debug.LogError("Error: " + webRequest.error);
-                _getException(true);
-            }
+                // �������󲢵ȴ���Ӧ
+                yield return webRequest.SendWebRequest();
+
+                // �������Ľ��
+                if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+                {
+                    Debug.LogError("[Translator] Network Error: " + webRequest.error + ", code=" + webRequest.responseCode);
+                    _getException(true);
+                }
             else
             {
                 // 成功接收到响应
@@ -55,7 +56,7 @@ public class BaiduTranslator : MonoBehaviour
                 Response response = JsonConvert.DeserializeObject<Response>(_text);
                 if (response == null || response.trans_result == null || response.trans_result.Count == 0)
                 {
-                    Debug.LogError("翻译API返回异常: " + _text);
+                    Debug.LogError("[Translator] API response invalid: " + _text);
                     _getException(true);
                     yield break;
                 }
