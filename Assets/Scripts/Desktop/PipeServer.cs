@@ -585,6 +585,9 @@ public class PipeServer : MonoBehaviour
                         if (!string.IsNullOrEmpty(path)) gameStart?.SetCurrentModelPath(path);
                     }
                     break;
+                case "remove_model_from_history":
+                    modelManager?.RemoveFromHistory(cmd.index);
+                    break;
                 case "update_model_scale":
                     if (modelManager != null && !string.IsNullOrEmpty(modelManager.CurrentModelKey) && cmd.modelScale > 0.1f)
                     {

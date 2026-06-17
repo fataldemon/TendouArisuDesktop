@@ -275,6 +275,14 @@ public class ModelManager : MonoBehaviour
             LoadModel(parts[0]);
     }
 
+    public void RemoveFromHistory(int index)
+    {
+        if (index < 0 || index >= modelHistory.Count) return;
+        modelHistory.RemoveAt(index);
+        SaveHistory();
+        pipeServer?.RefreshInitData();
+    }
+
     private void SaveHistory()
     {
         string json = JsonUtility.ToJson(new HistoryWrapper { entries = modelHistory });

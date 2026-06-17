@@ -194,11 +194,17 @@ public partial class MainWindow : Window
 
     private void PopulateModelHistory(List<string> history)
     {
-        LstModelHistory.ItemsSource = history.Select(h =>
+        LstModelHistory.ItemsSource = history.Select((h, idx) =>
         {
             var parts = h.Split('|');
-            return parts.Length > 1 ? parts[1] : h;
+            return new { Name = parts.Length > 1 ? parts[1] : h, Index = idx };
         }).ToList();
+    }
+
+    private void OnModelHistoryDeleteClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is int idx)
+            _ = _pipe.SendCommand("remove_model_from_history", new { index = idx });
     }
 
     private void PopulateAnimationList(List<AnimationEntry> list)
