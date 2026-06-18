@@ -332,7 +332,8 @@ public class GameStart : MonoBehaviour
             {
                 if (_isDragging)
                 {
-                    if (emotionPlayer.CurrentConfig != null && emotionPlayer.CurrentConfig.loop)
+                    if (emotionPlayer.IsSequencePlaying ||
+                        (emotionPlayer.CurrentConfig != null && emotionPlayer.CurrentConfig.loop))
                         emotionPlayer.RestoreToIdle();
                     _isDragging = false;
                     _isTouching = true;
