@@ -134,6 +134,29 @@ public partial class MainWindow : Window
                     LblTtsStatus.Foreground = (System.Windows.Media.Brush)FindResource("TextError");
                 }
             }
+            else if (type == "ref_audio_imported")
+            {
+                string emotionKey = "";
+                if (root.TryGetProperty("emotionKey", out var ek))
+                    emotionKey = ek.GetString();
+                string fileName = "";
+                if (root.TryGetProperty("fileName", out var fn))
+                    fileName = fn.GetString();
+                string promptLang = "ja";
+                if (root.TryGetProperty("promptLang", out var pl))
+                    promptLang = pl.GetString();
+                if (_initData?.RefAudioConfigs != null)
+                {
+                    var entry = _initData.RefAudioConfigs.FirstOrDefault(e => e.EmotionKey == emotionKey && e.PromptLang == promptLang);
+                    if (entry != null)
+                    {
+                        entry.AudioFileName = fileName;
+                        entry.AudioFullPath = System.IO.Path.Combine(TxtRefAudioBaseDir.Text, fileName);
+                    }
+                    PopulateRefAudioList(_initData.RefAudioConfigs, "ja");
+                    PopulateRefAudioList(_initData.RefAudioConfigs, "zh");
+                }
+            }
         });
     }
 
@@ -395,16 +418,36 @@ public partial class MainWindow : Window
             };
             panel.Children.Add(txtFile);
 
-            var btnBrowse = new Button { Content = "...", Width = 28, Height = 22, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 6, 0), FontSize = 10 };
+            var btnBrowse = new Button { Content = "...", Width = 28, Height = 22, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 4, 0), FontSize = 10 };
             btnBrowse.Click += (_, _) =>
             {
                 var dlg = new OpenFileDialog { Filter = "WAV Files|*.wav", Title = $"选择 [{lang}] {entry.EmotionKey} 的参考音频" };
                 if (dlg.ShowDialog() == true)
                 {
-                    txtFile.Text = System.IO.Path.GetFileName(dlg.FileName);
+                    _ = _pipe.SendCommand("import_ref_audio", new
+                    {
+                        refAudioSourcePath = dlg.FileName,
+                        refAudioEmotion = entry.EmotionKey,
+                        refAudioLang = entry.PromptLang
+                    });
                 }
             };
             panel.Children.Add(btnBrowse);
+
+            if (hasFile)
+            {
+                var btnPlay = new Button { Content = "▶", Width = 28, Height = 22, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 6, 0), FontSize = 10 };
+                btnPlay.Click += (_, _) =>
+                {
+                    string fullPath = System.IO.Path.Combine(TxtRefAudioBaseDir.Text, entry.AudioFileName);
+                    if (System.IO.File.Exists(fullPath))
+                    {
+                        var player = new System.Media.SoundPlayer(fullPath);
+                        player.Play();
+                    }
+                };
+                panel.Children.Add(btnPlay);
+            }
 
             var txtPrompt = new TextBox { Text = entry.PromptText, Width = 300, FontSize = 11, Foreground = foreColor };
             txtPrompt.TextChanged += (_, _) =>

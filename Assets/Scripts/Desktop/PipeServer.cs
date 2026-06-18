@@ -906,6 +906,30 @@ public class PipeServer : MonoBehaviour
                         RefreshInitData();
                     }
                     break;
+                case "import_ref_audio":
+                    if (!string.IsNullOrEmpty(cmd.refAudioSourcePath) && System.IO.File.Exists(cmd.refAudioSourcePath))
+                    {
+                        string baseDir = config.gptSovitsRefAudioBaseDir;
+                        if (string.IsNullOrEmpty(baseDir))
+                            baseDir = System.IO.Path.Combine(Application.streamingAssetsPath, "RefAudio");
+                        if (!System.IO.Directory.Exists(baseDir))
+                            System.IO.Directory.CreateDirectory(baseDir);
+                        string fileName = System.IO.Path.GetFileName(cmd.refAudioSourcePath);
+                        string destPath = System.IO.Path.Combine(baseDir, fileName);
+                        try
+                        {
+                            System.IO.File.Copy(cmd.refAudioSourcePath, destPath, true);
+#if UNITY_EDITOR
+                            UnityEditor.AssetDatabase.Refresh();
+#endif
+                            SendToWPF("{\"type\":\"ref_audio_imported\",\"emotionKey\":\"" + EscapeJson(cmd.refAudioEmotion ?? "") + "\",\"fileName\":\"" + EscapeJson(fileName) + "\",\"promptLang\":\"" + EscapeJson(cmd.refAudioLang ?? "ja") + "\"}");
+                        }
+                        catch (System.Exception ex)
+                        {
+                            SendToWPF("{\"type\":\"ref_audio_imported\",\"error\":\"" + EscapeJson(ex.Message) + "\"}");
+                        }
+                    }
+                    break;
                 case "update_bangbangkabang_wav":
                     if (!string.IsNullOrEmpty(cmd.bangbangkabangWavPath))
                     {
@@ -1139,6 +1163,7 @@ public class PipeCommand
     public string refAudioPath = "";
     public string refAudioPrompt = "";
     public string refAudioLang = "";
+    public string refAudioSourcePath = "";
     public string bangbangkabangWavPath = "";
     public bool translationEnabled = false;
 }
