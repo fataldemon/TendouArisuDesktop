@@ -37,9 +37,19 @@ public class ModelManager : MonoBehaviour
         var profile = ModelExpressionIO.Load(_currentModelKey);
         if (profile == null)
         {
-            profile = BuildDefaultProfile(_currentModelKey, defaultModel);
+            profile = new ModelExpressionProfile { modelKey = _currentModelKey };
+            var globals = ActionSystemRuntime.FacialPresets;
+            foreach (var gp in globals)
+                profile.presets.Add(new FacialPresetConfig
+                {
+                    presetName = gp.presetName,
+                    targets = new System.Collections.Generic.List<BlendShapeTarget>(gp.targets),
+                    activateObjects = new System.Collections.Generic.List<string>(gp.activateObjects),
+                    blushMode = gp.blushMode
+                });
+            EnsureRequiredPresets(profile);
             ModelExpressionIO.Save(profile);
-            Debug.Log("[ModelManager] Created default model expression profile with " + profile.presets.Count + " presets");
+            Debug.Log("[ModelManager] Created default model profile from global defaults with " + profile.presets.Count + " presets");
         }
         facialEngine.SetModelExpressionProfile(profile);
     }
