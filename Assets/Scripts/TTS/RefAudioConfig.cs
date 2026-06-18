@@ -76,13 +76,37 @@ public static class RefAudioConfig
         };
     }
 
-    public static RefAudioEntry FindForEmotion(List<RefAudioEntry> entries, string emotion)
+    public static RefAudioEntry GetDefaultZhEntry(string emotion, string baseDir)
+    {
+        return new RefAudioEntry
+        {
+            emotionKey = emotion,
+            audioFileName = "",
+            promptText = "",
+            promptLang = "zh",
+            audioFullPath = ""
+        };
+    }
+
+    public static RefAudioEntry FindForEmotion(List<RefAudioEntry> entries, string emotion, string lang)
     {
         if (entries == null || entries.Count == 0 || string.IsNullOrEmpty(emotion))
             return null;
-        var found = entries.Find(e => e.emotionKey == emotion);
+
+        var found = entries.Find(e => e.emotionKey == emotion && e.promptLang == lang);
+        if (found != null && !string.IsNullOrEmpty(found.audioFullPath))
+            return found;
+
+        if (found == null)
+            found = entries.Find(e => e.emotionKey == emotion && !string.IsNullOrEmpty(e.audioFullPath));
+
         if (found != null) return found;
-        return entries.Count > 0 ? entries[0] : null;
+
+        string other = lang == "ja" ? "zh" : "ja";
+        var fallback = entries.Find(e => e.emotionKey == emotion && e.promptLang == other && !string.IsNullOrEmpty(e.audioFullPath));
+        if (fallback != null) return fallback;
+
+        return entries.Find(e => !string.IsNullOrEmpty(e.audioFullPath)) ?? entries[0];
     }
 
     public static RefAudioEntry GetFirst(List<RefAudioEntry> entries)

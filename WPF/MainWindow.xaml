@@ -90,9 +90,18 @@
                             <TextBox x:Name="TxtRefAudioBaseDir" Grid.Column="0" Margin="0,0,8,0"/>
                             <Button Content="浏览" Grid.Column="1" Width="60" Click="OnRefAudioDirBrowseClick"/>
                         </Grid>
-                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl x:Name="IcRefAudioList"/>
-                        </ScrollViewer>
+                        <TabControl x:Name="RefAudioLangTabs" Grid.Row="2" Margin="-2,0,-2,0">
+                            <TabItem Header="日文参考音频">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
+                                    <ItemsControl x:Name="IcRefAudioJa"/>
+                                </ScrollViewer>
+                            </TabItem>
+                            <TabItem Header="中文参考音频">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
+                                    <ItemsControl x:Name="IcRefAudioZh"/>
+                                </ScrollViewer>
+                            </TabItem>
+                        </TabControl>
                     </Grid>
                 </TabItem>
             </TabControl>

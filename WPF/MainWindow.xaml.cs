@@ -156,7 +156,8 @@ public partial class MainWindow : Window
         SetTtsModeButtons(d.TtsMode);
         TxtBangWavPath.Text = d.BangbangkabangWavPath ?? "";
         TxtRefAudioBaseDir.Text = d.RefAudioBaseDir ?? "";
-        PopulateRefAudioList(d.RefAudioConfigs);
+        PopulateRefAudioList(d.RefAudioConfigs, "ja");
+        PopulateRefAudioList(d.RefAudioConfigs, "zh");
         _translationEnabled = d.TranslationEnabled;
         UpdateTranslationToggleUI();
         TxtTranslationUrl.Text = d.TranslationUrl;
@@ -356,12 +357,15 @@ public partial class MainWindow : Window
         }
     }
 
-    private void PopulateRefAudioList(List<RefAudioEntryDto> entries)
+    private void PopulateRefAudioList(List<RefAudioEntryDto> entries, string lang)
     {
-        IcRefAudioList.Items.Clear();
+        var target = lang == "ja" ? IcRefAudioJa : IcRefAudioZh;
+        target.Items.Clear();
         if (entries == null || entries.Count == 0) return;
 
-        foreach (var entry in entries)
+        var filtered = entries.Where(e => e.PromptLang == lang).ToList();
+
+        foreach (var entry in filtered)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 3) };
 
@@ -372,7 +376,12 @@ public partial class MainWindow : Window
             };
             panel.Children.Add(lblEmotion);
 
-            var txtFile = new TextBox { Text = entry.AudioFileName, Width = 120, Margin = new Thickness(0, 0, 4, 0), FontSize = 11 };
+            bool hasFile = !string.IsNullOrEmpty(entry.AudioFileName);
+            var foreColor = hasFile
+                ? (System.Windows.Media.Brush)FindResource("TextPrimary")
+                : (System.Windows.Media.Brush)FindResource("TextSecondary");
+
+            var txtFile = new TextBox { Text = entry.AudioFileName, Width = 120, Margin = new Thickness(0, 0, 4, 0), FontSize = 11, Foreground = foreColor };
             txtFile.TextChanged += (_, _) =>
             {
                 entry.AudioFileName = txtFile.Text;
@@ -389,7 +398,7 @@ public partial class MainWindow : Window
             var btnBrowse = new Button { Content = "...", Width = 28, Height = 22, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 6, 0), FontSize = 10 };
             btnBrowse.Click += (_, _) =>
             {
-                var dlg = new OpenFileDialog { Filter = "WAV Files|*.wav", Title = $"选择 {entry.EmotionKey} 的参考音频" };
+                var dlg = new OpenFileDialog { Filter = "WAV Files|*.wav", Title = $"选择 [{lang}] {entry.EmotionKey} 的参考音频" };
                 if (dlg.ShowDialog() == true)
                 {
                     txtFile.Text = System.IO.Path.GetFileName(dlg.FileName);
@@ -397,7 +406,7 @@ public partial class MainWindow : Window
             };
             panel.Children.Add(btnBrowse);
 
-            var txtPrompt = new TextBox { Text = entry.PromptText, Width = 300, FontSize = 11 };
+            var txtPrompt = new TextBox { Text = entry.PromptText, Width = 300, FontSize = 11, Foreground = foreColor };
             txtPrompt.TextChanged += (_, _) =>
             {
                 entry.PromptText = txtPrompt.Text;
@@ -411,7 +420,7 @@ public partial class MainWindow : Window
             };
             panel.Children.Add(txtPrompt);
 
-            IcRefAudioList.Items.Add(panel);
+            target.Items.Add(panel);
         }
     }
 

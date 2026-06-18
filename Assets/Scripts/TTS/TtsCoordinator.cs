@@ -55,37 +55,49 @@ public class TtsCoordinator : MonoBehaviour
         if (saved != null)
             foreach (var se in saved)
                 if (!string.IsNullOrEmpty(se.emotionKey))
-                    savedDict[se.emotionKey] = se;
+                    savedDict[se.emotionKey + "|" + se.promptLang] = se;
 
         refAudioEntries.Clear();
         foreach (var key in emotionKeys)
         {
-            if (savedDict.TryGetValue(key, out var savedEntry))
-            {
-                string fullPath = savedEntry.audioFullPath;
-                if (string.IsNullOrEmpty(fullPath) || !System.IO.File.Exists(fullPath))
-                    fullPath = System.IO.Path.Combine(baseDir, savedEntry.audioFileName);
-
-                refAudioEntries.Add(new RefAudioEntry
-                {
-                    emotionKey = savedEntry.emotionKey,
-                    audioFileName = savedEntry.audioFileName,
-                    promptText = savedEntry.promptText,
-                    promptLang = savedEntry.promptLang,
-                    audioFullPath = fullPath
-                });
-            }
-            else
-            {
-                var defaultEntry = RefAudioConfig.GetDefaultEntry(key, baseDir);
-                if (defaultEntry != null)
-                    refAudioEntries.Add(defaultEntry);
-            }
+            AddEntry(key, "ja", baseDir, savedDict);
+            AddEntry(key, "zh", baseDir, savedDict);
         }
 
         SaveRefAudioConfig();
         refAudioLoaded = true;
         Debug.Log($"[TtsCoordinator] Loaded {refAudioEntries.Count} reference audio mappings, baseDir={baseDir}");
+    }
+
+    private void AddEntry(string key, string lang, string baseDir, System.Collections.Generic.Dictionary<string, RefAudioDataEntry> savedDict)
+    {
+        string dictKey = key + "|" + lang;
+        if (savedDict.TryGetValue(dictKey, out var savedEntry))
+        {
+            string fullPath = savedEntry.audioFullPath;
+            if (string.IsNullOrEmpty(fullPath) || !System.IO.File.Exists(fullPath))
+                fullPath = System.IO.Path.Combine(baseDir, savedEntry.audioFileName);
+
+            refAudioEntries.Add(new RefAudioEntry
+            {
+                emotionKey = savedEntry.emotionKey,
+                audioFileName = savedEntry.audioFileName,
+                promptText = savedEntry.promptText,
+                promptLang = savedEntry.promptLang,
+                audioFullPath = fullPath
+            });
+        }
+        else
+        {
+            RefAudioEntry defaultEntry;
+            if (lang == "ja")
+                defaultEntry = RefAudioConfig.GetDefaultEntry(key, baseDir);
+            else
+                defaultEntry = RefAudioConfig.GetDefaultZhEntry(key, baseDir);
+
+            if (defaultEntry != null)
+                refAudioEntries.Add(defaultEntry);
+        }
     }
 
     private void SaveRefAudioConfig()
@@ -266,7 +278,7 @@ public class TtsCoordinator : MonoBehaviour
 
     private GptSovits.TtsRequest BuildRequest(string text, string emotion, string textLang = "auto")
     {
-        var entry = RefAudioConfig.FindForEmotion(refAudioEntries, emotion);
+        var entry = RefAudioConfig.FindForEmotion(refAudioEntries, emotion, textLang);
 
         var req = new GptSovits.TtsRequest
         {

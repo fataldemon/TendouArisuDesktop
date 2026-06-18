@@ -454,7 +454,7 @@ public class PipeServer : MonoBehaviour
         if (saved != null)
             foreach (var se in saved)
                 if (!string.IsNullOrEmpty(se.emotionKey))
-                    savedDict[se.emotionKey] = se;
+                    savedDict[se.emotionKey + "|" + se.promptLang] = se;
 
         string baseDir = config.gptSovitsRefAudioBaseDir;
         if (string.IsNullOrEmpty(baseDir))
@@ -463,24 +463,33 @@ public class PipeServer : MonoBehaviour
         var items = new System.Collections.Generic.List<string>();
         foreach (var key in emotionKeys)
         {
-            if (savedDict.TryGetValue(key, out var savedEntry))
+            foreach (var lang in new[] { "ja", "zh" })
             {
-                items.Add("{\"emotionKey\":\"" + EscapeJson(savedEntry.emotionKey) + '"' +
-                    ",\"audioFileName\":\"" + EscapeJson(savedEntry.audioFileName) + '"' +
-                    ",\"promptText\":\"" + EscapeJson(savedEntry.promptText) + '"' +
-                    ",\"promptLang\":\"" + EscapeJson(savedEntry.promptLang) + '"' +
-                    ",\"audioFullPath\":\"" + EscapeJson(savedEntry.audioFullPath) + "\"}");
-            }
-            else
-            {
-                var defaultEntry = RefAudioConfig.GetDefaultEntry(key, baseDir);
-                if (defaultEntry != null)
+                string dictKey = key + "|" + lang;
+                if (savedDict.TryGetValue(dictKey, out var savedEntry))
                 {
-                    items.Add("{\"emotionKey\":\"" + EscapeJson(defaultEntry.emotionKey) + '"' +
-                        ",\"audioFileName\":\"" + EscapeJson(defaultEntry.audioFileName) + '"' +
-                        ",\"promptText\":\"" + EscapeJson(defaultEntry.promptText) + '"' +
-                        ",\"promptLang\":\"" + EscapeJson(defaultEntry.promptLang) + '"' +
-                        ",\"audioFullPath\":\"" + EscapeJson(defaultEntry.audioFullPath) + "\"}");
+                    items.Add("{\"emotionKey\":\"" + EscapeJson(savedEntry.emotionKey) + '"' +
+                        ",\"audioFileName\":\"" + EscapeJson(savedEntry.audioFileName) + '"' +
+                        ",\"promptText\":\"" + EscapeJson(savedEntry.promptText) + '"' +
+                        ",\"promptLang\":\"" + EscapeJson(savedEntry.promptLang) + '"' +
+                        ",\"audioFullPath\":\"" + EscapeJson(savedEntry.audioFullPath) + "\"}");
+                }
+                else
+                {
+                    RefAudioEntry defaultEntry;
+                    if (lang == "ja")
+                        defaultEntry = RefAudioConfig.GetDefaultEntry(key, baseDir);
+                    else
+                        defaultEntry = RefAudioConfig.GetDefaultZhEntry(key, baseDir);
+
+                    if (defaultEntry != null)
+                    {
+                        items.Add("{\"emotionKey\":\"" + EscapeJson(defaultEntry.emotionKey) + '"' +
+                            ",\"audioFileName\":\"" + EscapeJson(defaultEntry.audioFileName) + '"' +
+                            ",\"promptText\":\"" + EscapeJson(defaultEntry.promptText) + '"' +
+                            ",\"promptLang\":\"" + EscapeJson(defaultEntry.promptLang) + '"' +
+                            ",\"audioFullPath\":\"" + EscapeJson(defaultEntry.audioFullPath) + "\"}");
+                    }
                 }
             }
         }
