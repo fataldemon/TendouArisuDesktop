@@ -154,6 +154,8 @@ public class EmotionPlayer : MonoBehaviour
 
         if (instant || _current == null)
         {
+            _facialOverride = null;
+            _facialWeightOverride = -1f;
             ApplyImmediate(instance);
         }
         else
@@ -415,6 +417,8 @@ public class EmotionPlayer : MonoBehaviour
         }
         else if (_current != null && _current.config.groupName == groupName)
         {
+            _facialOverride = null;
+            _facialWeightOverride = -1f;
             var clips = ResolveAllBodyClips(group);
             _current = new ActionGroupInstance(group, clips);
             _current.state = ActionGroupState.Active;
