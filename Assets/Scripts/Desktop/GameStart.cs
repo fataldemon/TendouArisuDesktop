@@ -1001,7 +1001,7 @@ public class GameStart : MonoBehaviour
                     string t = s.Trim();
                     if (string.IsNullOrEmpty(t)) continue;
                     buffer += t;
-                    if (buffer.Length >= 15 || System.Text.RegularExpressions.Regex.IsMatch(buffer, @"[。！？!?]$"))
+                    if (buffer.Length >= 15)
                     {
                         result.Add(buffer);
                         buffer = "";
