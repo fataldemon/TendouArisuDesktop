@@ -1117,7 +1117,7 @@ public class PipeServer : MonoBehaviour
             if (bc != null) renderer.SetBlendShapeWeight(bc.blinkBlendIndex, 0);
         }
         if (etc != null) { etc.enabled = true; etc.expressionActive = false; }
-        if (bc != null) { bc.enabled = true; bc.suppressed = false; }
+        if (bc != null) { bc.enabled = true; }
     }
 
     void OnDestroy() { StopServer(); }

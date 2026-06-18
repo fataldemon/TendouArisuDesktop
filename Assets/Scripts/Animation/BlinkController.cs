@@ -6,10 +6,8 @@ public class BlinkController : MonoBehaviour
 {
     public SkinnedMeshRenderer skinnedMeshRenderer;
     public int blinkBlendIndex;
-    public float blinkWeight = 0.0f;
     public float blinkDuration = 0.2f;
     public float blinkInterval = 3.0f;
-    [HideInInspector] public bool suppressed;
     public List<int> blinkConflictIndices = new List<int>();
 
     private float blinkTimer = 0.0f;
@@ -30,19 +28,11 @@ public class BlinkController : MonoBehaviour
 
     void Start()
     {
-        skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, blinkWeight);
+        skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, 0f);
     }
 
     void Update()
     {
-        if (suppressed)
-        {
-            blinkTimer = 0f;
-            StopAllCoroutines();
-            skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, blinkWeight);
-            return;
-        }
-
         blinkTimer += Time.deltaTime;
 
         if (blinkTimer >= blinkInterval)
@@ -56,30 +46,32 @@ public class BlinkController : MonoBehaviour
                         { eyeBusy = true; break; }
                 }
             }
-            if (!eyeBusy)
+
+            float currentWeight = skinnedMeshRenderer.GetBlendShapeWeight(blinkBlendIndex);
+            if (!eyeBusy && currentWeight < 80f)
             {
-                StartCoroutine(BlinkCoroutine());
-                blinkTimer = 0.0f;
+                StartCoroutine(BlinkCoroutine(currentWeight));
             }
+            blinkTimer = 0.0f;
         }
     }
 
-    IEnumerator BlinkCoroutine()
+    IEnumerator BlinkCoroutine(float baseWeight)
     {
         for (float t = 0.0f; t < blinkDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(blinkWeight, 100.0f, t / blinkDuration);
+            float weight = Mathf.Lerp(baseWeight, 100.0f, t / blinkDuration);
             skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, weight);
             yield return null;
         }
 
         for (float t = 0.0f; t < blinkDuration; t += Time.deltaTime)
         {
-            float weight = Mathf.Lerp(100.0f, blinkWeight, t / blinkDuration);
+            float weight = Mathf.Lerp(100.0f, baseWeight, t / blinkDuration);
             skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, weight);
             yield return null;
         }
 
-        skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, blinkWeight);
+        skinnedMeshRenderer.SetBlendShapeWeight(blinkBlendIndex, baseWeight);
     }
 }

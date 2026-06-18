@@ -268,9 +268,6 @@ public class EmotionPlayer : MonoBehaviour
     private void UpdateAuxiliary(ActionGroupConfig config)
     {
         bool suppress = !config.isIdle && !config.enableEyeTracking;
-        Debug.Log("[EmotionPlayer] UpdateAuxiliary: isIdle=" + config.isIdle + " enableET=" + config.enableEyeTracking + " → suppress=" + suppress);
-        if (blinkController != null)
-            blinkController.suppressed = suppress;
         if (eyeTrackingController != null)
             eyeTrackingController.expressionActive = suppress;
     }
