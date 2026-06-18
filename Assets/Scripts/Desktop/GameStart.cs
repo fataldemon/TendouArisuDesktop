@@ -542,7 +542,7 @@ public class GameStart : MonoBehaviour
                 int num = (int)Math.Round((float)msg_max_length * Time.deltaTime / dialogueInterval);
                 msg_length_receive += num;
             }
-            if (!_ttsAllDispatched || m_AudioSource.isPlaying) { }
+            if (_playQueue.Count > 0 || m_AudioSource.isPlaying) { }
             else if (Time.time - _dialogStartTime >= _dialogueHoldDuration)
             {
                 Debug.Log("[Dialog] Closing after " + (Time.time - _dialogStartTime).ToString("F1") + "s (hold=" + _dialogueHoldDuration.ToString("F1") + ")");
