@@ -50,7 +50,7 @@ public class BlinkController : MonoBehaviour
 
         blinkConflictIndices.Clear();
         var deltas = new Vector3[mesh.vertexCount];
-        float threshold = blinkVerts.Count * 0.3f;
+        float threshold = blinkVerts.Count * 0.7f;
 
         for (int bs = 0; bs < mesh.blendShapeCount; bs++)
         {
@@ -83,7 +83,7 @@ public class BlinkController : MonoBehaviour
             {
                 for (int i = 0; i < blinkConflictIndices.Count; i++)
                 {
-                    if (skinnedMeshRenderer.GetBlendShapeWeight(blinkConflictIndices[i]) > 0.1f)
+                    if (skinnedMeshRenderer.GetBlendShapeWeight(blinkConflictIndices[i]) > 10f)
                         { eyeBusy = true; break; }
                 }
             }
