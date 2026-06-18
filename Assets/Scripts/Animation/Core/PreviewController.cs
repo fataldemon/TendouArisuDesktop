@@ -113,4 +113,12 @@ public class PreviewController : MonoBehaviour
 
         emotionPlayer.TransitionTo(config, true);
     }
+
+    public void PreviewSequence(List<EmotionStepEntry> steps)
+    {
+        if (steps == null || steps.Count == 0) return;
+        if (_isPreviewing) bodyEngine.EndPreviewLock();
+        EnterPreview();
+        emotionPlayer.PreviewSequence(steps);
+    }
 }

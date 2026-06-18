@@ -747,7 +747,19 @@ public partial class MainWindow : Window
 
     private void BuildExprStepsEditor(StackPanel sp, ExpressionMappingEntry entry)
     {
-        sp.Children.Add(new TextBlock { Text = "── 动作序列 ──", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 6, 0, 4), FontSize = 12 });
+        var seqHeaderRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+        seqHeaderRow.Children.Add(new TextBlock { Text = "── 动作序列 ──", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, FontSize = 12 });
+        var btnPreviewSeq = new Button { Content = "预览序列", Width = 80, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(8, 0, 0, 0) };
+        btnPreviewSeq.Click += (_, _) =>
+        {
+            if (entry.Steps.Count > 0)
+            {
+                string json = System.Text.Json.JsonSerializer.Serialize(entry.Steps, JsonConfig.Options);
+                _ = _pipe.SendCommand("preview_sequence", new { stepsJson = json });
+            }
+        };
+        seqHeaderRow.Children.Add(btnPreviewSeq);
+        sp.Children.Add(seqHeaderRow);
 
         for (int idx = 0; idx < entry.Steps.Count; idx++)
         {

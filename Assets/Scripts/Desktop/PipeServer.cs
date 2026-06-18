@@ -781,6 +781,21 @@ public class PipeServer : MonoBehaviour
                         previewController.PreviewMultiBody(cmd.facialX ?? "", cmd.facialW > 0 ? cmd.facialW : 1f, multiClips, cmd.actionY > 0f, cmd.actionW > 0f);
                     }
                     break;
+                case "preview_sequence":
+                    if (previewController != null && !string.IsNullOrEmpty(cmd.stepsJson))
+                    {
+                        try
+                        {
+                            var seqSteps = Newtonsoft.Json.JsonConvert.DeserializeObject<List<EmotionStepEntry>>(cmd.stepsJson);
+                            if (seqSteps != null && seqSteps.Count > 0)
+                            {
+                                gameStart.ZoomToHeadPublic();
+                                previewController.PreviewSequence(seqSteps);
+                            }
+                        }
+                        catch (System.Exception e) { Debug.LogWarning("[PipeServer] preview_sequence parse error: " + e.Message); }
+                    }
+                    break;
                 case "reset_blendshapes":
                     previewController?.ExitPreview();
                     gameStart.RestoreCharacterPublic();

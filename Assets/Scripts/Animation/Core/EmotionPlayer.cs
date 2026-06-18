@@ -408,6 +408,24 @@ public class EmotionPlayer : MonoBehaviour
         OnActionGroupStart?.Invoke();
     }
 
+    public void PreviewSequence(List<EmotionStepEntry> steps)
+    {
+        if (steps == null || steps.Count == 0) return;
+        _sequence = new EmotionSequenceInstance
+        {
+            steps = steps,
+            currentStepIndex = -1,
+            allOneShot = true
+        };
+        for (int i = 0; i < steps.Count; i++)
+        {
+            var g = ActionSystemRuntime.GetActionGroup(steps[i].actionGroupName);
+            if (g != null && g.loop) { _sequence.allOneShot = false; break; }
+        }
+        Debug.Log("[EmotionPlayer] PreviewSequence: steps=" + steps.Count + " allOneShot=" + _sequence.allOneShot);
+        PlaySequenceStep(0, steps[0].blendDuration);
+    }
+
     private void PlaySequenceStep(int index, float blendDuration)
     {
         if (_sequence == null || index >= _sequence.steps.Count) return;
@@ -470,6 +488,8 @@ public class EmotionPlayer : MonoBehaviour
             Debug.Log("[EmotionPlayer] AdvanceSequence: sequence finished");
             _sequence = null;
             OnActionGroupEnd?.Invoke();
+            if (previewController != null && previewController.IsPreviewing)
+                return;
             RestoreToIdle();
             return;
         }
