@@ -33,6 +33,7 @@ public class GameStart : MonoBehaviour
     private Queue<AudioClip> _playQueue = new Queue<AudioClip>();
     private bool _ttsAllDispatched;
     private float _dialogStartTime;
+    private string _pendingEmotion;
     [SerializeField] public int msg_position_x = 300;
     [SerializeField] public int msg_position_y = 150;
     [SerializeField] public int msg_max_length = 580;
@@ -759,7 +760,7 @@ public class GameStart : MonoBehaviour
 
         string emotion = EmotionParser.Extract(answerPure);
         if (!string.IsNullOrEmpty(emotion))
-            emotionPlayer.PlayEmotion(emotion);
+            _pendingEmotion = emotion;
 
         Debug.Log("[Pipeline] start text=\"" + (text.Length > 30 ? text.Substring(0, 30) + "..." : text) + "\" trans=" + config.translationEnabled);
 
@@ -1019,8 +1020,6 @@ public class GameStart : MonoBehaviour
 
     private IEnumerator ProcessSentencesStreaming(string text, string emotion)
     {
-        _dialogStartTime = Time.time;
-        onDialogue = true;
 
         var sentences = SplitForTts(text);
         Debug.Log("[Split] " + sentences.Count + " segments");
@@ -1068,7 +1067,6 @@ public class GameStart : MonoBehaviour
 
         _ttsAllDispatched = true;
         yield return new WaitUntil(() => _playQueue.Count == 0 && !m_AudioSource.isPlaying);
-        emotionPlayer?.RestoreToIdle();
         llmFormatter.pending = false;
     }
 
@@ -1119,19 +1117,23 @@ public class GameStart : MonoBehaviour
 
     private IEnumerator PlayQueueLoop()
     {
+        bool started = false;
         while (true)
         {
             if (_playQueue.Count > 0)
             {
                 AudioClip clip = _playQueue.Dequeue();
                 Debug.Log("[Play] dequeue clip " + clip.length.ToString("F1") + "s, remain=" + _playQueue.Count);
-                onDialogue = true;
+                if (!started) { started = true; StartSpeak(); }
                 PlayVoice(clip, "");
                 yield return new WaitWhile(() => m_AudioSource.isPlaying);
             }
             else if (_ttsAllDispatched)
             {
                 Debug.Log("[Play] all dispatched, queue empty, done");
+                if (!started) StartSpeak();
+                emotionPlayer?.RestoreToIdle();
+                _pendingEmotion = null;
                 yield break;
             }
             else
@@ -1139,6 +1141,17 @@ public class GameStart : MonoBehaviour
                 yield return null;
             }
         }
+    }
+
+    private void StartSpeak()
+    {
+        if (!string.IsNullOrEmpty(_pendingEmotion))
+        {
+            emotionPlayer?.PlayEmotion(_pendingEmotion);
+            emotionPlayer?.NotifyTTSStart();
+        }
+        _dialogStartTime = Time.time;
+        onDialogue = true;
     }
 
     private void PlayVoice(AudioClip _clip, string _response)
