@@ -27,6 +27,21 @@ public class ModelManager : MonoBehaviour
         modelParent = defaultModel.transform.parent;
         LoadHistory();
         SaveDefaultEyeProfile();
+        InitDefaultModelProfile();
+    }
+
+    private void InitDefaultModelProfile()
+    {
+        if (defaultModel == null || facialEngine == null) return;
+        _currentModelKey = ModelExpressionIO.ComputeModelKey(defaultModel.name);
+        var profile = ModelExpressionIO.Load(_currentModelKey);
+        if (profile == null)
+        {
+            profile = BuildDefaultProfile(_currentModelKey, defaultModel);
+            ModelExpressionIO.Save(profile);
+            Debug.Log("[ModelManager] Created default model expression profile with " + profile.presets.Count + " presets");
+        }
+        facialEngine.SetModelExpressionProfile(profile);
     }
 
     private void SaveDefaultEyeProfile()
