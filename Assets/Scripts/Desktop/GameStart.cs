@@ -33,6 +33,7 @@ public class GameStart : MonoBehaviour
     private Queue<AudioClip> _playQueue = new Queue<AudioClip>();
     private bool _ttsAllDispatched;
     private bool _speakingSessionActive;
+    private bool _isRandomAction;
     private float _dialogStartTime;
     private string _pendingEmotion;
     [SerializeField] public int msg_position_x = 300;
@@ -560,9 +561,15 @@ public class GameStart : MonoBehaviour
             onVoice = false;
         }
 
-        if (!emotionPlayer.IsPlaying && !m_AudioSource.isPlaying && !onVoice
+        bool canInterruptRandom = _isRandomAction && !emotionPlayer.IsSequencePlaying;
+        if ((!emotionPlayer.IsPlaying || canInterruptRandom) && !m_AudioSource.isPlaying && !onVoice
             && NetManager.M_Instance.response_queue.TryDequeue(out reply))
         {
+            if (canInterruptRandom)
+            {
+                emotionPlayer.ForceIdle();
+                _isRandomAction = false;
+            }
 
             LLMFormatter.LLMResponseWrapper wrapper = null;
             try { wrapper = JsonUtility.FromJson<LLMFormatter.LLMResponseWrapper>(reply); } catch { }
@@ -660,6 +667,7 @@ public class GameStart : MonoBehaviour
             {
                 int idx = rand.Next(randomEvents.Count);
                 emotionPlayer.PlayEmotion(randomEvents[idx].emotion);
+                _isRandomAction = true;
             }
             waitingTimer = 0f;
             waitingInterval = rand.Next(30, 50);
@@ -712,6 +720,7 @@ public class GameStart : MonoBehaviour
 
     private void ProcessResponse(string _answer, string _finish_reason, int _index)
     {
+        _isRandomAction = false;
         if (string.IsNullOrEmpty(_answer) && _finish_reason == "function_call")
             return;
         if (_answer != null && _answer.Trim() == "[SILENCE]")

@@ -788,10 +788,7 @@ public class PipeServer : MonoBehaviour
                         {
                             var seqSteps = Newtonsoft.Json.JsonConvert.DeserializeObject<List<EmotionStepEntry>>(cmd.stepsJson);
                             if (seqSteps != null && seqSteps.Count > 0)
-                            {
-                                gameStart.ZoomToHeadPublic();
                                 previewController.PreviewSequence(seqSteps);
-                            }
                         }
                         catch (System.Exception e) { Debug.LogWarning("[PipeServer] preview_sequence parse error: " + e.Message); }
                     }
