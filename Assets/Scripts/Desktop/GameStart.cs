@@ -32,6 +32,7 @@ public class GameStart : MonoBehaviour
     [SerializeField] private AudioSource m_AudioSource;
     private Queue<AudioClip> _playQueue = new Queue<AudioClip>();
     private bool _ttsAllDispatched;
+    private float _dialogStartTime;
     [SerializeField] public int msg_position_x = 300;
     [SerializeField] public int msg_position_y = 150;
     [SerializeField] public int msg_max_length = 580;
@@ -53,7 +54,6 @@ public class GameStart : MonoBehaviour
 
     public float dialogueInterval = 0.5f;
     private float dialogueTimer;
-    private float dialogueClearTimer;
     private float _dialogueHoldDuration = 10f;
     private float _audioLength;
     private bool expressionApplied;
@@ -542,21 +542,13 @@ public class GameStart : MonoBehaviour
                 int num = (int)Math.Round((float)msg_max_length * Time.deltaTime / dialogueInterval);
                 msg_length_receive += num;
             }
-            if (m_AudioSource.isPlaying)
+            if (!_ttsAllDispatched || m_AudioSource.isPlaying) { }
+            else if (Time.time - _dialogStartTime >= _dialogueHoldDuration)
             {
-                dialogueClearTimer = 0f;
-            }
-            else
-            {
-                dialogueClearTimer += Time.deltaTime;
-                if (dialogueClearTimer > _dialogueHoldDuration)
-                {
-                    Debug.Log("[Dialog] Clearing after " + dialogueClearTimer.ToString("F1") + "s (hold=" + _dialogueHoldDuration.ToString("F1") + ")");
-                    onDialogue = false;
-                    dialogueTimer = 0f;
-                    msg_length_receive = 0;
-                    dialogueClearTimer = 0f;
-                }
+                Debug.Log("[Dialog] Closing after " + (Time.time - _dialogStartTime).ToString("F1") + "s (hold=" + _dialogueHoldDuration.ToString("F1") + ")");
+                onDialogue = false;
+                dialogueTimer = 0f;
+                msg_length_receive = 0;
             }
         }
 
@@ -1027,8 +1019,8 @@ public class GameStart : MonoBehaviour
 
     private IEnumerator ProcessSentencesStreaming(string text, string emotion)
     {
-        if (emotionPlayer != null && emotionPlayer.eyeTrackingController != null)
-            emotionPlayer.eyeTrackingController.suppressForTts = true;
+        _dialogStartTime = Time.time;
+        onDialogue = true;
 
         var sentences = SplitForTts(text);
         Debug.Log("[Split] " + sentences.Count + " segments");
@@ -1076,8 +1068,6 @@ public class GameStart : MonoBehaviour
 
         _ttsAllDispatched = true;
         yield return new WaitUntil(() => _playQueue.Count == 0 && !m_AudioSource.isPlaying);
-        if (emotionPlayer != null && emotionPlayer.eyeTrackingController != null)
-            emotionPlayer.eyeTrackingController.suppressForTts = false;
         emotionPlayer?.RestoreToIdle();
         llmFormatter.pending = false;
     }
@@ -1129,19 +1119,13 @@ public class GameStart : MonoBehaviour
 
     private IEnumerator PlayQueueLoop()
     {
-        bool firstClip = true;
         while (true)
         {
             if (_playQueue.Count > 0)
             {
                 AudioClip clip = _playQueue.Dequeue();
                 Debug.Log("[Play] dequeue clip " + clip.length.ToString("F1") + "s, remain=" + _playQueue.Count);
-                if (firstClip)
-                {
-                    firstClip = false;
-                    onDialogue = true;
-                    dialogueClearTimer = 0f;
-                }
+                onDialogue = true;
                 PlayVoice(clip, "");
                 yield return new WaitWhile(() => m_AudioSource.isPlaying);
             }

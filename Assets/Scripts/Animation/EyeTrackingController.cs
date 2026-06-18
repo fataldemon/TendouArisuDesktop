@@ -20,7 +20,6 @@ public class EyeTrackingController : MonoBehaviour
     private bool _wasInAction;
     private float _headBlendOut = 1f;
     public bool expressionActive;
-    public bool suppressForTts;
 
     public void ApplyEyeProfile(ModelEyeProfile eyeProfile)
     {
@@ -53,7 +52,7 @@ public class EyeTrackingController : MonoBehaviour
         if (meshRenderer == null) return;
         if (bodyEngine == null || bodyEngine.animator == null || Camera.main == null) return;
 
-        bool inAction = expressionActive || suppressForTts;
+        bool inAction = expressionActive;
         if (Time.frameCount % 120 == 0)
             Debug.Log("[EyeTracking] inAction: preview=" + (previewController != null && previewController.IsPreviewing) + " exprActive=" + expressionActive);
 
@@ -97,7 +96,7 @@ public class EyeTrackingController : MonoBehaviour
         if (headRotationAmount <= 0) return;
         if (meshRenderer == null || bodyEngine == null || bodyEngine.animator == null) return;
 
-        bool headIdle = !expressionActive && !suppressForTts;
+        bool headIdle = !expressionActive;
 
         _headBlendOut = Mathf.Lerp(_headBlendOut, headIdle ? 1f : 0f, Time.deltaTime * 10f);
         if (_headBlendOut < 0.01f) return;
