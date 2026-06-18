@@ -565,7 +565,7 @@ public class GameStart : MonoBehaviour
             onVoice = false;
         }
 
-        if (!m_AudioSource.isPlaying && !onVoice
+        if (!emotionPlayer.IsPlaying && !m_AudioSource.isPlaying && !onVoice
             && NetManager.M_Instance.response_queue.TryDequeue(out reply))
         {
 

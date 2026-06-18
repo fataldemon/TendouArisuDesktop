@@ -85,7 +85,7 @@ public class NetManager
             {
                 Debug.Log("Received server message: " + data);
                 response_queue.Enqueue(data);
-                if (response_queue.Count > 5)
+                if (response_queue.Count > 50)
                 { 
                     response_queue.TryDequeue(out _);
                 }
