@@ -1036,17 +1036,25 @@ public class PipeServer : MonoBehaviour
         string presetName = cmd.name;
 
         var profile = emotionPlayer?.facialEngine?.GetModelExpressionProfile();
+        FacialPresetConfig preset;
+
         if (profile == null)
         {
-            Debug.LogWarning("[PipeServer] UpdateFacialPreset: no model profile loaded, skipping save");
-            return;
+            preset = ActionSystemRuntime.GetFacialPreset(presetName);
+            if (preset == null)
+            {
+                Debug.LogWarning("[PipeServer] UpdateFacialPreset: preset '" + presetName + "' not found in global defaults");
+                return;
+            }
         }
-
-        FacialPresetConfig preset = profile.Find(presetName);
-        if (preset == null)
+        else
         {
-            preset = new FacialPresetConfig { presetName = presetName };
-            profile.presets.Add(preset);
+            preset = profile.Find(presetName);
+            if (preset == null)
+            {
+                preset = new FacialPresetConfig { presetName = presetName };
+                profile.presets.Add(preset);
+            }
         }
 
         if (!string.IsNullOrEmpty(cmd.targetsJson))
@@ -1063,7 +1071,11 @@ public class PipeServer : MonoBehaviour
         if (!string.IsNullOrEmpty(cmd.blushMode))
             preset.blushMode = cmd.blushMode;
 
-        ModelExpressionIO.Save(profile);
+        if (profile != null)
+            ModelExpressionIO.Save(profile);
+        else
+            ActionSystemRuntime.SaveFacialPresets();
+
         Debug.Log("[PipeServer] UpdateFacialPreset: saved '" + presetName + "' with " + preset.targets.Count + " targets");
     }
 
