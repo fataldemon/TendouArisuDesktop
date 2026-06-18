@@ -69,7 +69,7 @@ public class FacialEngine : MonoBehaviour
         var preset = GetPreset(presetName);
         if (meshRenderer == null) { Debug.LogWarning("[FacialEngine] PlayExpression: meshRenderer is NULL! Cannot apply '" + presetName + "'"); return; }
         if (preset == null) { Debug.LogWarning("[FacialEngine] PlayExpression: preset '" + presetName + "' not found"); return; }
-        Debug.Log("[FacialEngine] PlayExpression: '" + presetName + "' weight=" + weight + " targets=" + preset.targets.Count);
+        Debug.Log("[FacialEngine] PlayExpression: '" + presetName + "' weight=" + weight + " targets=" + preset.targets.Count + "\n" + new System.Diagnostics.StackTrace());
 
         var existingKeys = new List<int>(_activeBlends.Keys);
         for (int k = 0; k < existingKeys.Count; k++)
@@ -200,6 +200,7 @@ public class FacialEngine : MonoBehaviour
     {
         var preset = GetPreset(presetName);
         if (preset == null || meshRenderer == null) return;
+        Debug.Log("[FacialEngine] PreviewInstant: '" + presetName + "' weight=" + weight + " targets=" + preset.targets.Count + "\n" + new System.Diagnostics.StackTrace());
 
         for (int i = 0; i < preset.targets.Count; i++)
         {
@@ -225,6 +226,7 @@ public class FacialEngine : MonoBehaviour
     public void ApplyPresetDirect(FacialPresetConfig preset, float weight = 1f)
     {
         if (meshRenderer == null || preset == null) return;
+        Debug.Log("[FacialEngine] ApplyPresetDirect: '" + preset.presetName + "' weight=" + weight + " targets=" + preset.targets.Count + "\n" + new System.Diagnostics.StackTrace());
         ResetInstant();
         for (int i = 0; i < preset.targets.Count; i++)
         {
