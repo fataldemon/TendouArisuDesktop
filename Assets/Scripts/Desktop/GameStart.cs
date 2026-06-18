@@ -32,6 +32,7 @@ public class GameStart : MonoBehaviour
     [SerializeField] private AudioSource m_AudioSource;
     private Queue<AudioClip> _playQueue = new Queue<AudioClip>();
     private bool _ttsAllDispatched;
+    private bool _speakingSessionActive;
     private float _dialogStartTime;
     private string _pendingEmotion;
     [SerializeField] public int msg_position_x = 300;
@@ -543,7 +544,7 @@ public class GameStart : MonoBehaviour
                 int num = (int)Math.Round((float)msg_max_length * Time.deltaTime / dialogueInterval);
                 msg_length_receive += num;
             }
-            if (_playQueue.Count > 0 || m_AudioSource.isPlaying) { }
+            if (_playQueue.Count > 0 || m_AudioSource.isPlaying || _speakingSessionActive) { }
             else if (Time.time - _dialogStartTime >= _dialogueHoldDuration)
             {
                 Debug.Log("[Dialog] Closing after " + (Time.time - _dialogStartTime).ToString("F1") + "s (hold=" + _dialogueHoldDuration.ToString("F1") + ")");
@@ -1025,6 +1026,7 @@ public class GameStart : MonoBehaviour
         Debug.Log("[Split] " + sentences.Count + " segments");
         _playQueue.Clear();
         _ttsAllDispatched = false;
+        _speakingSessionActive = true;
         StartCoroutine(PlayQueueLoop());
 
         for (int i = 0; i < sentences.Count; i++)
@@ -1132,6 +1134,8 @@ public class GameStart : MonoBehaviour
             {
                 Debug.Log("[Play] all dispatched, queue empty, done");
                 if (!started) StartSpeak();
+                _speakingSessionActive = false;
+                _dialogStartTime = Time.time;
                 emotionPlayer?.RestoreToIdle();
                 _pendingEmotion = null;
                 yield break;
