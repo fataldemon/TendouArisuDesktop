@@ -12,6 +12,7 @@ public class EmotionPlayer : MonoBehaviour
     public AnimationLibrary animLibrary;
 
     private ActionGroupInstance _current;
+    private EmotionSequenceInstance _sequence;
     private bool _isCrossfadingToNext;
     private float _crossfadeTimer;
     private float _crossfadeDuration;
@@ -20,6 +21,7 @@ public class EmotionPlayer : MonoBehaviour
     private float _facialWeightOverride = -1f;
 
     public bool IsPlaying => _current != null && !_current.config.isIdle;
+    public bool IsSequencePlaying => _sequence != null && !_sequence.IsFinished;
     public bool IsTTSPlaying { get; set; }
     public ActionGroupConfig CurrentConfig => _current?.config;
     public ActionGroupInstance CurrentInstance => _current;
@@ -67,10 +69,18 @@ public class EmotionPlayer : MonoBehaviour
     {
         if (previewController != null && previewController.IsPreviewing) return;
 
+        var entry = ActionSystemRuntime.GetMappingEntry(emotion);
+
+        if (entry != null && entry.steps != null && entry.steps.Count > 0)
+        {
+            StartSequence(entry);
+            return;
+        }
+        _sequence = null;
+
         _facialOverride = null;
         _facialWeightOverride = -1f;
 
-        var entry = ActionSystemRuntime.GetMappingEntry(emotion);
         if (entry != null)
         {
             if (!string.IsNullOrEmpty(entry.facialOverride))
@@ -102,6 +112,7 @@ public class EmotionPlayer : MonoBehaviour
     public void NotifyTTSStart()
     {
         IsTTSPlaying = true;
+        if (_sequence != null) _sequence.ttsStarted = true;
         if (_current != null)
         {
             _current.ttsStarted = true;
@@ -112,6 +123,7 @@ public class EmotionPlayer : MonoBehaviour
     public void NotifyTTSEnd()
     {
         IsTTSPlaying = false;
+        if (_sequence != null) _sequence.ttsEnded = true;
         if (_current != null)
         {
             _current.ttsEnded = true;
@@ -122,6 +134,7 @@ public class EmotionPlayer : MonoBehaviour
     public void NotifyTTSError()
     {
         IsTTSPlaying = false;
+        if (_sequence != null) _sequence.ttsEnded = true;
         if (_current != null)
         {
             _current.ttsEnded = true;
@@ -302,6 +315,19 @@ public class EmotionPlayer : MonoBehaviour
                 RestoreToIdle();
             }
         }
+
+        if (_sequence != null && !_sequence.IsFinished && _current != null && _current.state == ActionGroupState.Active)
+        {
+            if (!_current.config.loop)
+            {
+                if (bodyEngine.HasClipFinished("fullBody"))
+                    AdvanceSequence();
+            }
+            else if (_sequence.ttsEnded)
+            {
+                AdvanceSequence();
+            }
+        }
     }
 
     private List<ResolvedClip> ResolveAllBodyClips(ActionGroupConfig config)
@@ -364,8 +390,96 @@ public class EmotionPlayer : MonoBehaviour
         return null;
     }
 
+    private void StartSequence(EmotionMappingEntry mapping)
+    {
+        _sequence = new EmotionSequenceInstance
+        {
+            steps = mapping.steps,
+            currentStepIndex = -1,
+            allOneShot = true
+        };
+        for (int i = 0; i < mapping.steps.Count; i++)
+        {
+            var g = ActionSystemRuntime.GetActionGroup(mapping.steps[i].actionGroupName);
+            if (g != null && g.loop) { _sequence.allOneShot = false; break; }
+        }
+        Debug.Log("[EmotionPlayer] StartSequence: " + mapping.emotion + " steps=" + mapping.steps.Count + " allOneShot=" + _sequence.allOneShot);
+        PlaySequenceStep(0, mapping.steps[0].blendDuration);
+        OnActionGroupStart?.Invoke();
+    }
+
+    private void PlaySequenceStep(int index, float blendDuration)
+    {
+        if (_sequence == null || index >= _sequence.steps.Count) return;
+        _sequence.currentStepIndex = index;
+        var step = _sequence.steps[index];
+
+        var config = ActionSystemRuntime.GetActionGroup(step.actionGroupName);
+        if (config == null)
+        {
+            Debug.LogWarning("[EmotionPlayer] PlaySequenceStep: group '" + step.actionGroupName + "' not found, advancing");
+            AdvanceSequence();
+            return;
+        }
+
+        _facialOverride = !string.IsNullOrEmpty(step.facialOverride) ? step.facialOverride : null;
+        _facialWeightOverride = step.facialWeightOverride;
+
+        var playConfig = new ActionGroupConfig
+        {
+            groupName = config.groupName,
+            facialPreset = config.facialPreset,
+            facialWeight = config.facialWeight,
+            bodyClips = config.bodyClips,
+            loop = config.loop,
+            blendInBody = blendDuration,
+            blendInFacial = 0.01f,
+            blendOutBody = config.blendOutBody,
+            blendOutFacial = 0.01f,
+            holdAfterTTS = config.holdAfterTTS,
+            holdNoTTS = config.holdNoTTS,
+            isIdle = false,
+            allowRootMotion = config.allowRootMotion,
+            enableEyeTracking = config.enableEyeTracking
+        };
+
+        Debug.Log("[EmotionPlayer] PlaySequenceStep: [" + index + "] " + step.actionGroupName +
+            " blend=" + blendDuration + " loop=" + config.loop +
+            " facial=" + (_facialOverride ?? config.facialPreset));
+        TransitionTo(playConfig, blendDuration <= 0);
+        if (_current != null) _current.suppressAutoEnd = true;
+    }
+
+    private void AdvanceSequence()
+    {
+        if (_sequence == null) return;
+        int next = _sequence.currentStepIndex + 1;
+
+        if (_sequence.ttsEnded)
+        {
+            while (next < _sequence.steps.Count)
+            {
+                var g = ActionSystemRuntime.GetActionGroup(_sequence.steps[next].actionGroupName);
+                if (g != null && g.loop) { next++; continue; }
+                break;
+            }
+        }
+
+        if (next >= _sequence.steps.Count)
+        {
+            Debug.Log("[EmotionPlayer] AdvanceSequence: sequence finished");
+            _sequence = null;
+            OnActionGroupEnd?.Invoke();
+            RestoreToIdle();
+            return;
+        }
+
+        PlaySequenceStep(next, _sequence.steps[next].blendDuration);
+    }
+
     public void ForceIdle()
     {
+        _sequence = null;
         var idle = ActionSystemRuntime.ResolveEmotion("待机") ?? ActionSystemRuntime.IdleGroup;
         if (idle == null) return;
         var clips = ResolveAllBodyClips(idle);

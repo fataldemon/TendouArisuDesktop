@@ -268,7 +268,9 @@ public partial class MainWindow : Window
             m.IsRandomEvent,
             EmotionDisplay = m.IsRandomEvent ? "🎲 " + m.Emotion : (m.Emotion is "待机" or "触摸" or "拖拽") ? "★ " + m.Emotion : m.Emotion,
             FacialSummary = !string.IsNullOrEmpty(m.FacialOverride) ? m.FacialOverride : (m.FacialGroup?.Preset ?? "-"),
-            ActionSummary = !string.IsNullOrEmpty(m.ActionGroupName) ? m.ActionGroupName : (m.ActionGroup?.AnimationName ?? "-"),
+            ActionSummary = m.Steps.Count > 1
+                ? string.Join(" → ", m.Steps.Select(s => s.ActionGroupName))
+                : !string.IsNullOrEmpty(m.ActionGroupName) ? m.ActionGroupName : (m.ActionGroup?.AnimationName ?? "-"),
         }).ToList();
         LstExprMappings.ItemsSource = displayList;
     }
@@ -632,36 +634,60 @@ public partial class MainWindow : Window
         var sp = PanelExprEdit;
         var entry = _exprEditing;
 
-        // Emotion name
         var emoPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
         emoPanel.Children.Add(new TextBlock { Text = "情绪:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
         var txtEmotion = new TextBox { Width = 120, Text = entry.Emotion };
         txtEmotion.TextChanged += (_, _) => entry.Emotion = txtEmotion.Text;
         emoPanel.Children.Add(txtEmotion);
-        var btnPreviewAll = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(8, 0, 0, 0) };
-        btnPreviewAll.Click += (_, _) =>
-        {
-            var group = _initData?.ActionGroups.FirstOrDefault(g => g.GroupName == entry.ActionGroupName);
-            var clipParts = new List<string>();
-            if (group != null)
-                foreach (var c in group.BodyClips)
-                    if (!string.IsNullOrEmpty(c.ClipName))
-                        clipParts.Add(c.BodyPart + "=" + c.ClipName);
-            string facial = !string.IsNullOrEmpty(entry.FacialOverride) ? entry.FacialOverride : (group?.FacialPreset ?? "");
-            float facialW = entry.FacialWeightOverride > 0 ? entry.FacialWeightOverride : (group?.FacialWeight ?? 1f);
-            _ = _pipe.SendCommand("preview_group_action", new
-            {
-                actionX = string.Join("|", clipParts),
-                facialX = facial,
-                facialW = facialW,
-                actionY = group?.AllowRootMotion ?? false ? 1f : 0f,
-                actionW = group?.EnableEyeTracking ?? false ? 1f : 0f
-            });
-        };
-        emoPanel.Children.Add(btnPreviewAll);
         sp.Children.Add(emoPanel);
 
-        // Action Group selector
+        if (entry.Steps.Count > 0)
+            BuildExprStepsEditor(sp, entry);
+        else
+            BuildExprLegacyEditor(sp, entry);
+
+        var rndRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
+        var chkRnd = new CheckBox { Content = "随机事件", VerticalAlignment = VerticalAlignment.Center, IsChecked = entry.IsRandomEvent };
+        chkRnd.Checked += (_, _) => entry.IsRandomEvent = true;
+        chkRnd.Unchecked += (_, _) => entry.IsRandomEvent = false;
+        rndRow.Children.Add(chkRnd);
+        sp.Children.Add(rndRow);
+
+        var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
+        var btnSave = new Button { Content = "保存", Width = 70, Style = (Style)FindResource("PrimaryButton") };
+        btnSave.Click += (_, _) =>
+        {
+            if (string.IsNullOrEmpty(entry.Emotion)) { MessageBox.Show("请输入情绪名称"); return; }
+            string stepsJson = entry.Steps.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(entry.Steps, JsonConfig.Options) : "";
+            string actionX = entry.Steps.Count > 0 ? entry.Steps[0].ActionGroupName : entry.ActionGroupName;
+            string facialX = entry.Steps.Count > 0 ? entry.Steps[0].FacialOverride : (entry.FacialOverride ?? "");
+            float facialW = entry.Steps.Count > 0 && entry.Steps[0].FacialWeightOverride > 0
+                ? entry.Steps[0].FacialWeightOverride
+                : (entry.FacialWeightOverride > 0 ? entry.FacialWeightOverride : 1f);
+            _ = _pipe.SendCommand("update_expression_mapping", new
+            {
+                emotion = entry.Emotion, actionX, facialX, facialW,
+                isRandom = entry.IsRandomEvent, stepsJson
+            });
+            _ = _pipe.SendCommand("restore_expression");
+            _exprEditing = null;
+            PanelExprEdit.Children.Clear();
+            PanelExprEdit.Children.Add(new TextBlock { Text = "已保存", Foreground = Res("Accent"), FontSize = 13 });
+        };
+        actionRow.Children.Add(btnSave);
+        var btnCancel = new Button { Content = "取消", Width = 70, Margin = new Thickness(8, 0, 0, 0) };
+        btnCancel.Click += (_, _) =>
+        {
+            _ = _pipe.SendCommand("restore_expression");
+            _exprEditing = null;
+            PanelExprEdit.Children.Clear();
+        };
+        actionRow.Children.Add(btnCancel);
+        sp.Children.Add(actionRow);
+    }
+
+    private void BuildExprLegacyEditor(StackPanel sp, ExpressionMappingEntry entry)
+    {
         sp.Children.Add(new TextBlock { Text = "动作组:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 8, 0, 4) });
         var cboGroup = new ComboBox { Width = 180 };
         if (_initData?.ActionGroups != null)
@@ -671,7 +697,6 @@ public partial class MainWindow : Window
         cboGroup.SelectionChanged += (_, _) => { if (cboGroup.SelectedItem != null) entry.ActionGroupName = cboGroup.SelectedItem.ToString()!; };
         sp.Children.Add(cboGroup);
 
-        // Facial Override selector
         sp.Children.Add(new TextBlock { Text = "表情覆盖:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 12, 0, 4) });
         var facialPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
         var btnNoneF = new Button { Content = "(无)", Width = 50, Style = (Style)FindResource("SmallButton"), FontSize = 10, Margin = new Thickness(0, 0, 2, 2) };
@@ -697,15 +722,7 @@ public partial class MainWindow : Window
         weightRow.Children.Add(lblW);
         sp.Children.Add(weightRow);
 
-        // Random event
-        var rndRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 0) };
-        var chkRnd = new CheckBox { Content = "随机事件", VerticalAlignment = VerticalAlignment.Center, IsChecked = entry.IsRandomEvent };
-        chkRnd.Checked += (_, _) => entry.IsRandomEvent = true;
-        chkRnd.Unchecked += (_, _) => entry.IsRandomEvent = false;
-        rndRow.Children.Add(chkRnd);
-        sp.Children.Add(rndRow);
-
-        var btnPreviewFacial = new Button { Content = "预览表情", Width = 80, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 4, 0, 0) };
+        var btnPreviewFacial = new Button { Content = "预览表情", Width = 80, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 4, 0, 4) };
         btnPreviewFacial.Click += (_, _) =>
         {
             if (!string.IsNullOrEmpty(entry.FacialOverride))
@@ -713,35 +730,106 @@ public partial class MainWindow : Window
         };
         sp.Children.Add(btnPreviewFacial);
 
-        // Save / Cancel
-        var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
-        var btnSave = new Button { Content = "保存", Width = 70, Style = (Style)FindResource("PrimaryButton") };
-        btnSave.Click += (_, _) =>
+        var btnConvert = new Button { Content = "转为动作序列", Width = 110, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 8, 0, 0) };
+        btnConvert.Click += (_, _) =>
         {
-            if (string.IsNullOrEmpty(entry.Emotion)) { MessageBox.Show("请输入情绪名称"); return; }
-            _ = _pipe.SendCommand("update_expression_mapping", new
+            entry.Steps.Add(new EmotionStepDto
             {
-                emotion = entry.Emotion,
-                actionX = entry.ActionGroupName,
-                facialX = entry.FacialOverride ?? "",
-                facialW = entry.FacialWeightOverride > 0 ? entry.FacialWeightOverride : 1f,
-                isRandom = entry.IsRandomEvent
+                ActionGroupName = entry.ActionGroupName,
+                FacialOverride = entry.FacialOverride ?? "",
+                FacialWeightOverride = entry.FacialWeightOverride,
+                BlendDuration = 0.35f
             });
-            _ = _pipe.SendCommand("restore_expression");
-            _exprEditing = null;
-            PanelExprEdit.Children.Clear();
-            PanelExprEdit.Children.Add(new TextBlock { Text = "已保存", Foreground = Res("Accent"), FontSize = 13 });
+            BuildExprEditPanel();
         };
-        actionRow.Children.Add(btnSave);
-        var btnCancel = new Button { Content = "取消", Width = 70, Margin = new Thickness(8, 0, 0, 0) };
-        btnCancel.Click += (_, _) =>
+        sp.Children.Add(btnConvert);
+    }
+
+    private void BuildExprStepsEditor(StackPanel sp, ExpressionMappingEntry entry)
+    {
+        sp.Children.Add(new TextBlock { Text = "── 动作序列 ──", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 6, 0, 4), FontSize = 12 });
+
+        for (int idx = 0; idx < entry.Steps.Count; idx++)
         {
-            _ = _pipe.SendCommand("restore_expression");
-            _exprEditing = null;
-            PanelExprEdit.Children.Clear();
+            int stepIdx = idx;
+            var step = entry.Steps[stepIdx];
+            var stepBorder = new Border
+            {
+                BorderBrush = (Brush)FindResource("BorderColor"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8),
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+            var stepPanel = new StackPanel();
+
+            var headerRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+            headerRow.Children.Add(new TextBlock { Text = "步骤 " + (stepIdx + 1), FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
+            var cboGroup = new ComboBox { Width = 140, FontSize = 11 };
+            if (_initData?.ActionGroups != null)
+                foreach (var g in _initData.ActionGroups.OrderBy(g => g.GroupName))
+                    cboGroup.Items.Add(g.GroupName);
+            cboGroup.SelectedItem = step.ActionGroupName;
+            cboGroup.SelectionChanged += (_, _) => { if (cboGroup.SelectedItem != null) { step.ActionGroupName = cboGroup.SelectedItem.ToString()!; BuildExprEditPanel(); } };
+            headerRow.Children.Add(cboGroup);
+            var groupInfo = _initData?.ActionGroups.FirstOrDefault(g => g.GroupName == step.ActionGroupName);
+            if (groupInfo != null && groupInfo.Loop)
+                headerRow.Children.Add(new TextBlock { Text = "(循环)", Foreground = Res("Accent"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0), FontSize = 10 });
+            var btnDel = new Button { Content = "✕", Width = 26, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(6, 0, 0, 0), FontSize = 9 };
+            btnDel.Click += (_, _) => { entry.Steps.RemoveAt(stepIdx); if (entry.Steps.Count == 0) entry.Steps.Clear(); BuildExprEditPanel(); };
+            headerRow.Children.Add(btnDel);
+            stepPanel.Children.Add(headerRow);
+
+            var facialRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
+            facialRow.Children.Add(new TextBlock { Text = "表情覆盖:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, FontSize = 11, Margin = new Thickness(0, 0, 4, 0) });
+            var btnNone = new Button { Content = "(无)", Width = 36, Style = (Style)FindResource("SmallButton"), FontSize = 9, Margin = new Thickness(0, 0, 2, 0) };
+            btnNone.IsEnabled = !string.IsNullOrEmpty(step.FacialOverride);
+            btnNone.Click += (_, _) => { step.FacialOverride = ""; BuildExprEditPanel(); };
+            facialRow.Children.Add(btnNone);
+            foreach (var preset in FacialPresetNames.All)
+            {
+                var btn = new Button { Content = preset, Width = 60, Style = (Style)FindResource("SmallButton"), FontSize = 9, Margin = new Thickness(0, 0, 2, 0) };
+                btn.IsEnabled = preset != step.FacialOverride;
+                btn.Click += (_, _) => { step.FacialOverride = preset; BuildExprEditPanel(); };
+                facialRow.Children.Add(btn);
+            }
+            stepPanel.Children.Add(facialRow);
+
+            var wRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
+            wRow.Children.Add(new TextBlock { Text = "覆盖权重:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, FontSize = 11, Margin = new Thickness(0, 0, 4, 0) });
+            float wInit = step.FacialWeightOverride > 0 ? step.FacialWeightOverride : 1f;
+            var slW = new Slider { Width = 100, Minimum = 0, Maximum = 1, Value = wInit, SmallChange = 0.05, TickFrequency = 0.1 };
+            var lblWt = new TextBlock { Text = wInit.ToString("F1"), VerticalAlignment = VerticalAlignment.Center, FontSize = 11, Margin = new Thickness(4, 0, 0, 0) };
+            slW.ValueChanged += (_, ev) => { step.FacialWeightOverride = (float)ev.NewValue; lblWt.Text = ev.NewValue.ToString("F1"); };
+            wRow.Children.Add(slW);
+            wRow.Children.Add(lblWt);
+            stepPanel.Children.Add(wRow);
+
+            var blendRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 0) };
+            blendRow.Children.Add(new TextBlock { Text = stepIdx == 0 ? "进入时间:" : "过渡时间:", Foreground = Res("TextSecondary"), VerticalAlignment = VerticalAlignment.Center, FontSize = 11, Margin = new Thickness(0, 0, 4, 0) });
+            var slBlend = new Slider { Width = 100, Minimum = 0, Maximum = 2, Value = step.BlendDuration, SmallChange = 0.01, TickFrequency = 0.1 };
+            var lblBl = new TextBlock { Text = step.BlendDuration <= 0.001f ? "0s (无缝)" : step.BlendDuration.ToString("F2") + "s", VerticalAlignment = VerticalAlignment.Center, FontSize = 11, Margin = new Thickness(4, 0, 0, 0) };
+            slBlend.ValueChanged += (_, ev) => { step.BlendDuration = (float)ev.NewValue; lblBl.Text = ev.NewValue <= 0.001 ? "0s (无缝)" : ev.NewValue.ToString("F2") + "s"; };
+            blendRow.Children.Add(slBlend);
+            blendRow.Children.Add(lblBl);
+            stepPanel.Children.Add(blendRow);
+
+            stepBorder.Child = stepPanel;
+            sp.Children.Add(stepBorder);
+        }
+
+        var btnAdd = new Button { Content = "+ 添加步骤", Width = 100, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 2, 0, 4) };
+        btnAdd.Click += (_, _) => { entry.Steps.Add(new EmotionStepDto { ActionGroupName = "Speak Normal", BlendDuration = 0.35f }); BuildExprEditPanel(); };
+        sp.Children.Add(btnAdd);
+
+        var btnRevert = new Button { Content = "恢复为单动作", Width = 110, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 0, 0, 0) };
+        btnRevert.Click += (_, _) =>
+        {
+            if (entry.Steps.Count > 0) { entry.ActionGroupName = entry.Steps[0].ActionGroupName; entry.FacialOverride = entry.Steps[0].FacialOverride; entry.FacialWeightOverride = entry.Steps[0].FacialWeightOverride; }
+            entry.Steps.Clear();
+            BuildExprEditPanel();
         };
-        actionRow.Children.Add(btnCancel);
-        sp.Children.Add(actionRow);
+        sp.Children.Add(btnRevert);
     }
 
     #endregion

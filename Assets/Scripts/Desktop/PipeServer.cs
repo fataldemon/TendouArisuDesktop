@@ -276,12 +276,27 @@ public class PipeServer : MonoBehaviour
                 sb.Append(",\"isRandomEvent\":").Append(m.isRandomEvent ? "true" : "false");
             sb.Append(",\"facialGroup\":{\"preset\":\"").Append(EscapeJson(facial ?? ""));
             sb.Append("\",\"weight\":").Append(facialW.ToString("F2")).Append('}');
-            if (group != null)
+        if (group != null)
+        {
+            sb.Append(",\"actionGroup\":{\"animationName\":\"").Append(EscapeJson(group.groupName));
+            sb.Append("\",\"bodyPart\":\"fullBody\",\"weight\":1}");
+        }
+        sb.Append(",\"steps\":[");
+        if (m.steps != null)
+        {
+            for (int j = 0; j < m.steps.Count; j++)
             {
-                sb.Append(",\"actionGroup\":{\"animationName\":\"").Append(EscapeJson(group.groupName));
-                sb.Append("\",\"bodyPart\":\"fullBody\",\"weight\":1}");
+                if (j > 0) sb.Append(',');
+                var s = m.steps[j];
+                sb.Append("{\"actionGroupName\":\"").Append(EscapeJson(s.actionGroupName ?? "")).Append('"');
+                sb.Append(",\"facialOverride\":\"").Append(EscapeJson(s.facialOverride ?? "")).Append('"');
+                sb.Append(",\"facialWeightOverride\":").Append(s.facialWeightOverride.ToString("F2"));
+                sb.Append(",\"blendDuration\":").Append(s.blendDuration.ToString("F2"));
+                sb.Append('}');
             }
-            sb.Append('}');
+        }
+        sb.Append(']');
+        sb.Append('}');
         }
         sb.Append(']');
     }
@@ -1010,7 +1025,16 @@ public class PipeServer : MonoBehaviour
         string groupName = !string.IsNullOrEmpty(cmd.actionX) ? cmd.actionX : cmd.emotion;
         string facial = cmd.facialX ?? "";
         bool random = cmd.isRandom;
-        ActionSystemRuntime.SetMapping(cmd.emotion, groupName, facial, random);
+        float facialW = cmd.facialW > 0 ? cmd.facialW : -1f;
+
+        List<EmotionStepEntry> steps = null;
+        if (!string.IsNullOrEmpty(cmd.stepsJson))
+        {
+            try { steps = Newtonsoft.Json.JsonConvert.DeserializeObject<List<EmotionStepEntry>>(cmd.stepsJson); }
+            catch (System.Exception e) { Debug.LogWarning("[PipeServer] Failed to parse steps: " + e.Message); }
+        }
+
+        ActionSystemRuntime.SetMapping(cmd.emotion, groupName, facial, random, steps, facialW);
     }
 
     private void UpdateActionGroup(PipeCommand cmd)
@@ -1158,6 +1182,7 @@ public class PipeCommand
     public string facialGroupsJson = "";
     public string actionGroupsJson = "";
     public string targetsJson = "";
+    public string stepsJson = "";
     public string blushMode = "";
     public int actionParam = -1;
     public bool noZoom;

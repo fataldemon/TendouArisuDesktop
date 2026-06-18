@@ -114,6 +114,13 @@ public static class ActionSystemRuntime
         return null;
     }
 
+    public static List<EmotionStepEntry> GetEffectiveSteps(EmotionMappingEntry entry)
+    {
+        if (entry == null) return new List<EmotionStepEntry>();
+        if (entry.steps != null && entry.steps.Count > 0) return entry.steps;
+        return new List<EmotionStepEntry>();
+    }
+
     public static FacialPresetConfig GetFacialPreset(string presetName)
     {
         EnsureInit();
@@ -123,22 +130,31 @@ public static class ActionSystemRuntime
         return null;
     }
 
-    public static void SetMapping(string emotion, string actionGroupName, string facialOverride, bool isRandom = false)
+    public static void SetMapping(string emotion, string actionGroupName, string facialOverride, bool isRandom = false,
+        List<EmotionStepEntry> steps = null, float facialWeightOverride = -1f)
     {
         EnsureInit();
-        Debug.Log("[Runtime] SetMapping: " + emotion + " → group=" + actionGroupName + " facial=" + facialOverride + " random=" + isRandom);
+        Debug.Log("[Runtime] SetMapping: " + emotion + " → group=" + actionGroupName + " facial=" + facialOverride + " random=" + isRandom + " steps=" + (steps != null ? steps.Count : 0));
         for (int i = 0; i < _emotionMappings.Count; i++)
         {
             if (_emotionMappings[i].emotion == emotion)
             {
                 _emotionMappings[i].actionGroupName = actionGroupName;
                 _emotionMappings[i].facialOverride = facialOverride;
+                _emotionMappings[i].facialWeightOverride = facialWeightOverride;
                 _emotionMappings[i].isRandomEvent = isRandom;
+                _emotionMappings[i].steps = steps ?? new List<EmotionStepEntry>();
                 ActionSystemJsonIO.SaveEmotionMappings(_emotionMappings);
                 return;
             }
         }
-        _emotionMappings.Add(new EmotionMappingEntry { emotion = emotion, actionGroupName = actionGroupName, facialOverride = facialOverride, isRandomEvent = isRandom });
+        var entry = new EmotionMappingEntry
+        {
+            emotion = emotion, actionGroupName = actionGroupName, facialOverride = facialOverride,
+            facialWeightOverride = facialWeightOverride, isRandomEvent = isRandom,
+            steps = steps ?? new List<EmotionStepEntry>()
+        };
+        _emotionMappings.Add(entry);
         ActionSystemJsonIO.SaveEmotionMappings(_emotionMappings);
     }
 

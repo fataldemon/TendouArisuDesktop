@@ -1136,7 +1136,9 @@ public class GameStart : MonoBehaviour
                 if (!started) StartSpeak();
                 _speakingSessionActive = false;
                 _dialogStartTime = Time.time;
-                emotionPlayer?.RestoreToIdle();
+                emotionPlayer?.NotifyTTSEnd();
+                if (emotionPlayer != null && !emotionPlayer.IsSequencePlaying)
+                    emotionPlayer.RestoreToIdle();
                 _pendingEmotion = null;
                 yield break;
             }

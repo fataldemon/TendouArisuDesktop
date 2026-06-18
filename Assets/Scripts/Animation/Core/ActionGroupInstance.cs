@@ -8,6 +8,23 @@ public struct ResolvedClip
     public string bodyPart;
 }
 
+public class EmotionSequenceInstance
+{
+    public List<EmotionStepEntry> steps;
+    public int currentStepIndex;
+    public bool ttsStarted;
+    public bool ttsEnded;
+    public bool allOneShot;
+    public ActionGroupInstance currentGroupInstance;
+
+    public EmotionStepEntry CurrentStep =>
+        (currentStepIndex >= 0 && currentStepIndex < steps.Count)
+            ? steps[currentStepIndex] : null;
+
+    public bool HasNextStep => currentStepIndex + 1 < steps.Count;
+    public bool IsFinished => currentStepIndex >= steps.Count;
+}
+
 public class ActionGroupInstance
 {
     public ActionGroupConfig config;

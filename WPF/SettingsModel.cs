@@ -71,6 +71,14 @@ public class AnimationEntry
     public int ActionParam { get; set; }
 }
 
+public class EmotionStepDto
+{
+    public string ActionGroupName { get; set; } = "";
+    public string FacialOverride { get; set; } = "";
+    public float FacialWeightOverride { get; set; } = -1f;
+    public float BlendDuration { get; set; } = 0.35f;
+}
+
 public class ExpressionMappingEntry
 {
     public string Emotion { get; set; } = "";
@@ -78,6 +86,7 @@ public class ExpressionMappingEntry
     public string FacialOverride { get; set; } = "";
     public float FacialWeightOverride { get; set; } = -1f;
     public bool IsRandomEvent { get; set; }
+    public List<EmotionStepDto> Steps { get; set; } = new();
 
     // Legacy compatibility
     public FacialGroupEntry? FacialGroup { get; set; }

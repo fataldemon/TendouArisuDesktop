@@ -3,9 +3,20 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
+public class EmotionStepEntry
+{
+    public string actionGroupName;
+    public string facialOverride;
+    public float facialWeightOverride = -1f;
+    public float blendDuration = 0.35f;
+}
+
+[Serializable]
 public class EmotionMappingEntry
 {
     public string emotion;
+    public List<EmotionStepEntry> steps = new List<EmotionStepEntry>();
+
     public string actionGroupName;
     public string facialOverride;
     public float facialWeightOverride = -1f;
