@@ -98,25 +98,28 @@ public class NetManager
     {
         try
         {
-            if (socket != null && (socket.State == WebSocketState.Open || socket.State == WebSocketState.CloseSent))
-            {
-                byte[] arrry = new byte[3072];
-                ArraySegment<byte> buffer = new ArraySegment<byte>(arrry);
-                var task = socket.ReceiveAsync(buffer, CancellationToken.None);
-                task.Wait();
-
-                Debug.Log("Socket current state: " + socket.State);
-
-                if (socket.State == WebSocketState.CloseReceived || task.Result.MessageType == WebSocketMessageType.Close)
-                {
-                    return null;
-                }
-                return Encoding.UTF8.GetString(buffer.Array, 0, task.Result.Count);
-            }
-            else
-            {
+            if (socket == null || (socket.State != WebSocketState.Open && socket.State != WebSocketState.CloseSent))
                 return null;
+
+            var sb = new StringBuilder();
+            byte[] buffer = new byte[4096];
+            WebSocketReceiveResult result;
+
+            do
+            {
+                var segment = new ArraySegment<byte>(buffer);
+                var task = socket.ReceiveAsync(segment, CancellationToken.None);
+                task.Wait();
+                result = task.Result;
+
+                if (socket.State == WebSocketState.CloseReceived || result.MessageType == WebSocketMessageType.Close)
+                    return null;
+
+                sb.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
             }
+            while (!result.EndOfMessage);
+
+            return sb.ToString();
         }
         catch (WebSocketException ex)
         {
