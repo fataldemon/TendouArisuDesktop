@@ -697,6 +697,28 @@ public partial class MainWindow : Window
         cboGroup.SelectionChanged += (_, _) => { if (cboGroup.SelectedItem != null) entry.ActionGroupName = cboGroup.SelectedItem.ToString()!; };
         sp.Children.Add(cboGroup);
 
+        var btnPreview = new Button { Content = "预览", Width = 60, Style = (Style)FindResource("SmallButton"), Margin = new Thickness(0, 6, 0, 0) };
+        btnPreview.Click += (_, _) =>
+        {
+            var group = _initData?.ActionGroups.FirstOrDefault(g => g.GroupName == entry.ActionGroupName);
+            var clipParts = new List<string>();
+            if (group != null)
+                foreach (var c in group.BodyClips)
+                    if (!string.IsNullOrEmpty(c.ClipName))
+                        clipParts.Add(c.BodyPart + "=" + c.ClipName);
+            string facial = !string.IsNullOrEmpty(entry.FacialOverride) ? entry.FacialOverride : (group?.FacialPreset ?? "");
+            float facialW = entry.FacialWeightOverride > 0 ? entry.FacialWeightOverride : (group?.FacialWeight ?? 1f);
+            _ = _pipe.SendCommand("preview_group_action", new
+            {
+                actionX = string.Join("|", clipParts),
+                facialX = facial,
+                facialW,
+                actionY = group?.AllowRootMotion ?? false ? 1f : 0f,
+                actionW = group?.EnableEyeTracking ?? false ? 1f : 0f
+            });
+        };
+        sp.Children.Add(btnPreview);
+
         sp.Children.Add(new TextBlock { Text = "表情覆盖:", Foreground = Res("TextSecondary"), Margin = new Thickness(0, 12, 0, 4) });
         var facialPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
         var btnNoneF = new Button { Content = "(无)", Width = 50, Style = (Style)FindResource("SmallButton"), FontSize = 10, Margin = new Thickness(0, 0, 2, 2) };
