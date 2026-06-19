@@ -1071,7 +1071,7 @@ public class GameStart : MonoBehaviour
                 sent = translated;
             }
 
-            string lang = config.translationEnabled ? "all_ja" : "zh";
+            string lang = config.translationEnabled ? "ja" : "zh";
             bool synthDone = false;
             GenerateVoiceToQueue(sent, emotion, lang, () => synthDone = true);
             yield return new WaitUntil(() => synthDone);
