@@ -773,6 +773,12 @@ public class GameStart : MonoBehaviour
         if (!string.IsNullOrEmpty(emotion))
             _pendingEmotion = emotion;
 
+        if (string.IsNullOrEmpty(text))
+        {
+            Debug.Log("[Pipeline] text is empty after cleaning, skipping");
+            return;
+        }
+
         Debug.Log("[Pipeline] start text=\"" + (text.Length > 30 ? text.Substring(0, 30) + "..." : text) + "\" trans=" + config.translationEnabled);
 
         if (config.translationEnabled)
@@ -1065,13 +1071,19 @@ public class GameStart : MonoBehaviour
                     (r) => { translated = r; done = true; },
                     (e) => { done = true; });
                 yield return new WaitUntil(() => done);
-                if (translated == null) { Debug.Log("[Trans] seg " + (i + 1) + " FAILED val=\"" + (sent.Length > 20 ? sent.Substring(0, 20) + "..." : sent) + "\""); continue; }
-                Debug.Log("[Trans] seg " + (i + 1) + " OK val=\"" + (translated.Length > 20 ? translated.Substring(0, 20) + "..." : translated) + "\"");
-                text_answer = text_answer + "\n" + translated;
-                sent = translated;
+                if (translated == null)
+                {
+                    Debug.Log("[Trans] seg " + (i + 1) + " FAILED, fallback to zh");
+                }
+                else
+                {
+                    Debug.Log("[Trans] seg " + (i + 1) + " OK val=\"" + (translated.Length > 20 ? translated.Substring(0, 20) + "..." : translated) + "\"");
+                    text_answer = text_answer + "\n" + translated;
+                    sent = translated;
+                }
             }
 
-            string lang = config.translationEnabled ? "ja" : "zh";
+            string lang = (config.translationEnabled && sent != sentences[i]) ? "ja" : "zh";
             bool synthDone = false;
             GenerateVoiceToQueue(sent, emotion, lang, () => synthDone = true);
             yield return new WaitUntil(() => synthDone);
