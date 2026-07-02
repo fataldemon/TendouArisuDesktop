@@ -105,6 +105,24 @@ public class AnimationLibrary : MonoBehaviour
     private string DetectCategory(string clipName, string path)
     {
         string p = path.ToLower();
+        const string mateRootLower = "importedanimations/mateengine/";
+        int mi = p.IndexOf(mateRootLower);
+        if (mi >= 0)
+        {
+            int subStart = path.IndexOf("MateEngine/", System.StringComparison.OrdinalIgnoreCase);
+            if (subStart >= 0)
+            {
+                subStart += "MateEngine/".Length;
+                string afterMate = path.Substring(subStart);
+                int slash = afterMate.IndexOf('/');
+                if (slash > 0)
+                {
+                    string sub = afterMate.Substring(0, slash);
+                    if (sub.Length > 0) return sub;
+                }
+            }
+            return "MateEngine";
+        }
         if (p.Contains("/idle") || p.Contains("idle")) return "Idle";
         if (p.Contains("/gesture") || p.Contains("gesture")) return "Gesture";
         if (p.Contains("/emote") || p.Contains("react") || p.Contains("layer")) return "Emote";
