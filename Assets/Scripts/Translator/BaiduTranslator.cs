@@ -97,31 +97,6 @@ public class BaiduTranslator : MonoBehaviour
 
     private string SpecializedJPWords(string _text)
     {
-        _text = _text.Replace("����", "���󤻤�");
-        _text = _text.Replace("�ѥѥѥ�", "�ѥ�ѥ��ѩ`��");
-        _text = _text.Replace("�ܥ�ܥ�", "�ѥ�ѥ��ѩ`��");
-        _text = _text.Replace("���ȥѥ󥫥ȥѥ�", "�ѥ�ѥ��ѩ`��");
-        _text = _text.Replace("�ѥ�ѥ��ѩ`�󥫥ѥ�", "�ѥ�ѥ��ѩ`��");
-        _text = _text.Replace("RPG", "���`��ԩ`���`");
-        _text = _text.Replace("HP", "�������ԩ`");
-        _text = _text.Replace("�Ҿ�����", "��⥤");
-        _text = _text.Replace("�Ҥ����", "��⥤");
-        _text = _text.Replace("�v�����", "�ߥɥ�");
-        _text = _text.Replace("�v����", "�ߥɥ�");
-        _text = _text.Replace("�ߤɤ�����", "�ߥɥ�");
-        _text = _text.Replace("�椺����", "�楺");
-        _text = _text.Replace("���㤵��", "�楦��");
-        _text = _text.Replace("����", "�楦��");
-        _text = _text.Replace("��", "��");
-        _text = _text.Replace("�վ�", "�ҥޥ�");
-        _text = _text.Replace("����", "�ҥ�");
-        _text = _text.Replace("Kei", "�����`");
-        _text = _text.Replace("kei", "�����`");
-        _text = _text.Replace("������", "�����꥿��");
-        _text = _text.Replace("�ˤ�ä�", "�ˤ�");
-        _text = _text.Replace("�����ѧԺ", "���إ�ѧ�@");
-        _text = _text.Replace("�����", "���إ�");
-        _text = _text.Replace("���F", "���`���饤��"); 
         return _text;
     }
 
