@@ -44,3 +44,45 @@
 | 3 | 随机事件 loop/时长优化 | 小 |
 | 4 | 消息多时卡死修复 (OnGUI/RoundedBg/Regex 优化) | 中 |
 | 5 | 挂载系统 (附件 + 物品库 + 持続/动作挂载) | 设计完成 |
+
+## 待实现功能 — Mate-Engine 动画借鉴路线图
+
+> 参考 `F:\GitRepository\Mate-Engine`。纯手写无第三方依赖(与现有架构一致),适配 URP + 现有 6 层 Playable 架构。
+
+### ✅ 阶段 5:动画片段搬运(已完成)
+
+| 内容 | 状态 | 提交 |
+|------|:--:|------|
+| 导入 117 个 Mate-Engine Humanoid 身体片段到 `Assets/ImportedAnimations/MateEngine/`(13 类) | ✅ | `312d8bb` |
+
+### 🔴 阶段 1:程序化生命感(最高收益 — Mate "顺滑感"的灵魂)
+
+| # | 任务 | 借鉴自 Mate-Engine | 复杂度 |
+|---|------|---------------------|:--:|
+| 1 | `SpringSolver.cs` 临界阻尼弹簧工具 + 帧率无关平滑(`1-Mathf.Exp(-k*dt)`) | `AvatarSwayController` | 小 |
+| 2 | `AdditiveBoneLayer.cs` 逆四元数叠加骨骼层(与 6 层 Playable 共存) | `AvatarSwayController` | 中 |
+| 3 | `IdleBreathingController.cs` 噪声驱动呼吸(脊椎/胸骨微缩放),接 EmotionPlayer idle | 原创 | 小 |
+| 4 | `DragInertiaController.cs` 拖拽惯性前倾 | `AvatarSwayController` | 中 |
+| 5 | `MouseLookAtDriver.cs` 升级 EyeTrackingController(driver-bone delta + 脊柱级联权重) | `AvatarMouseTracking` | 中 |
+| 6 | 修复 `BodyEngine`/`FacialEngine` 帧率相关 `Lerp(a,b,k*dt)` | — | 小 |
+
+### 🟡 阶段 2:UI 动效(范围小,就一个对话框)
+
+| # | 任务 | 借鉴自 | 复杂度 |
+|---|------|--------|:--:|
+| 7 | `BubbleAnimator.cs` 淡入/缩放/打字机(替代 `GameStart.cs:796` 的 IMGUI) | 原创 | 中 |
+| 8 | `UIBlur.shader` URP 重写 Poisson 盘模糊毛玻璃(可选) | `UiBlur.shader` | 中 |
+
+### 🟡 阶段 3:情绪反馈粒子
+
+| # | 任务 | 借鉴自 | 复杂度 |
+|---|------|--------|:--:|
+| 9 | `EmotionVFXController.cs` 数据驱动爱心/汗滴/震屏(Unity ParticleSystem) | 原创 | 中 |
+| 10 | 替换静态 Drops 网格为带动画粒子 | — | 小 |
+
+### 🟡 阶段 4:嘴形同步与音频
+
+| # | 任务 | 借鉴自 | 复杂度 |
+|---|------|--------|:--:|
+| 11 | 升级 `AudioMouthController` 为音素驱动,接入 TTS 生命周期 | 原创 | 中 |
+| 12 | 音频驱动 idle 微律动(可选) | `AvatarAnimatorController`(NAudio) | 中 |
