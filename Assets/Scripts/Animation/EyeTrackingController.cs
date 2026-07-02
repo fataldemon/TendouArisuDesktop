@@ -58,8 +58,8 @@ public class EyeTrackingController : MonoBehaviour
 
         if (inAction)
         {
-            _currentX = Mathf.Lerp(_currentX, 0f, Time.deltaTime * 12f);
-            _currentY = Mathf.Lerp(_currentY, 0f, Time.deltaTime * 12f);
+            _currentX = SpringMath.Damp(_currentX, 0f, 12f, Time.deltaTime);
+            _currentY = SpringMath.Damp(_currentY, 0f, 12f, Time.deltaTime);
             _wasInAction = true;
         }
         else
@@ -80,8 +80,8 @@ public class EyeTrackingController : MonoBehaviour
             float targetX = (dx / (Screen.width * 0.5f)) * lookStrength;
             float targetY = (dy / (Screen.height * 0.5f)) * lookStrength;
 
-            _currentX = Mathf.Lerp(_currentX, targetX, Time.deltaTime * 8f);
-            _currentY = Mathf.Lerp(_currentY, targetY, Time.deltaTime * 8f);
+            _currentX = SpringMath.Damp(_currentX, targetX, 8f, Time.deltaTime);
+            _currentY = SpringMath.Damp(_currentY, targetY, 8f, Time.deltaTime);
         }
 
         float left = Mathf.Max(0f, _currentX);
@@ -98,7 +98,7 @@ public class EyeTrackingController : MonoBehaviour
 
         bool headIdle = !expressionActive;
 
-        _headBlendOut = Mathf.Lerp(_headBlendOut, headIdle ? 1f : 0f, Time.deltaTime * 10f);
+        _headBlendOut = SpringMath.Damp(_headBlendOut, headIdle ? 1f : 0f, 10f, Time.deltaTime);
         if (_headBlendOut < 0.01f) return;
 
         var head = bodyEngine.animator.GetBoneTransform(HumanBodyBones.Head);
