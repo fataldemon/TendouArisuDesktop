@@ -88,6 +88,8 @@ public class GameStart : MonoBehaviour
     private Vector3 screenPos;
     private Vector2 guiOffset = new Vector2(-450f, -200f);
 
+    public BubbleAnimator bubbleAnimator;
+
     private GUIStyle TextAreaStyle;
     private GUIStyle roundedBoxStyle;
 
@@ -552,9 +554,14 @@ public class GameStart : MonoBehaviour
                 Debug.Log("[Dialog] Closing after " + (Time.time - _dialogStartTime).ToString("F1") + "s (hold=" + _dialogueHoldDuration.ToString("F1") + ")");
                 onDialogue = false;
                 dialogueTimer = 0f;
-                msg_length_receive = 0;
+                bubbleAnimator?.Hide(text_answer);
+                // msg_length_receive reset deferred until fade-out completes (handled in Update)
             }
         }
+
+        // deferred reset: once the bubble fully faded out, clear the open-width so next show re-animates
+        if (!onDialogue && bubbleAnimator != null && !bubbleAnimator.IsVisible && msg_length_receive != 0)
+            msg_length_receive = 0;
 
         if (onVoice && !m_AudioSource.isPlaying)
         {
@@ -617,6 +624,7 @@ public class GameStart : MonoBehaviour
                             expressionApplied = false;
                             text_answer = "";
                             onDialogue = false;
+                            bubbleAnimator?.Hide(text_answer);
                         }
                         else
                         {
@@ -822,7 +830,8 @@ public class GameStart : MonoBehaviour
                 fontSize = Mathf.Clamp(fontSize + (int)(scroll * 4f), 10, 60);
         }
 
-        if (targetTransform != null && onDialogue)
+        bool bubbleShown = onDialogue || (bubbleAnimator != null && bubbleAnimator.IsVisible);
+        if (targetTransform != null && bubbleShown)
         {
             TextAreaStyle = new GUIStyle(GUI.skin.textArea);
             TextAreaStyle.fontSize = fontSize;
@@ -834,12 +843,25 @@ public class GameStart : MonoBehaviour
             TextAreaStyle.active.background = null;
             TextAreaStyle.padding = new RectOffset(8, 8, 6, 6);
 
-            float height = TextAreaStyle.CalcHeight(new GUIContent(text_answer), msg_length_receive - 20);
+            // typewriter text: live text_answer while active, snapshot while fading out
+            string displayText = bubbleAnimator != null
+                ? bubbleAnimator.GetDisplayText(text_answer, onDialogue)
+                : text_answer;
+
+            float alphaMul = 1f, scaleMul = 1f, slideY = 0f;
+            if (bubbleAnimator != null)
+            {
+                alphaMul = bubbleAnimator.Alpha;
+                scaleMul = Mathf.Max(0.01f, bubbleAnimator.Scale);
+                slideY = bubbleAnimator.SlideOffsetY;
+            }
+
+            float height = TextAreaStyle.CalcHeight(new GUIContent(displayText), msg_length_receive - 20);
 
             float bubbleX = Mathf.Clamp(screenPos.x + guiOffset.x - (float)(msg_length_receive / 2) + (float)(msg_max_length / 2),
                 -msg_length_receive + 80f, Screen.width - 80f);
             float bubbleY = Mathf.Clamp(Screen.height - msg_height - 160f + guiOffset.y,
-                0f, Screen.height - msg_height);
+                0f, Screen.height - msg_height) + slideY;
 
             Rect position = new Rect(bubbleX, bubbleY, msg_length_receive, msg_height);
             Rect rect = new Rect(bubbleX - 10f, (float)Screen.height - screenPos.y + guiOffset.y - 10f,
@@ -854,29 +876,54 @@ public class GameStart : MonoBehaviour
                 cachedBgWidth = bw; cachedBgHeight = bh;
                 roundedBoxStyle.normal.background = cachedRoundedBg;
             }
-            GUI.Box(boxRect, "", roundedBoxStyle);
 
+            // apply fade (alpha) + pop (scale around bubble center) for this draw only
+            Color savedColor = GUI.color;
+            Matrix4x4 savedMatrix = GUI.matrix;
+            GUI.color = new Color(savedColor.r, savedColor.g, savedColor.b, savedColor.a * alphaMul);
+            Vector2 pivot = boxRect.center;
+            GUI.matrix = Matrix4x4.TRS(new Vector3((1f - scaleMul) * pivot.x, (1f - scaleMul) * pivot.y, 0f),
+                Quaternion.identity, Vector3.one * scaleMul);
+
+            GUI.Box(boxRect, "", roundedBoxStyle);
             scrollPosition = GUI.BeginScrollView(position, scrollPosition, rect);
-            GUI.TextArea(rect, text_answer, TextAreaStyle);
+            GUI.TextArea(rect, displayText, TextAreaStyle);
             GUI.EndScrollView();
 
-            if (isScrolling)
+            GUI.matrix = savedMatrix;
+            GUI.color = savedColor;
+
+            // auto-scroll long text, but only after the typewriter finishes revealing
+            bool typing = onDialogue && bubbleAnimator != null && bubbleAnimator.VisibleChars < displayText.Length;
+            if (typing)
             {
-                scrollPosition.y += scrollSpeed * Time.deltaTime;
-                if (scrollPosition.y >= rect.height - position.height)
+                scrollPosition.y = 0f; // hold at top while characters reveal
+            }
+            else if (onDialogue && rect.height > position.height)
+            {
+                if (isScrolling)
                 {
-                    isScrolling = false;
-                    pauseTimer = pauseDuration;
+                    scrollPosition.y += scrollSpeed * Time.deltaTime;
+                    if (scrollPosition.y >= rect.height - position.height)
+                    {
+                        isScrolling = false;
+                        pauseTimer = pauseDuration;
+                    }
+                }
+                else
+                {
+                    pauseTimer -= Time.deltaTime;
+                    if (pauseTimer <= 0f)
+                    {
+                        scrollPosition.y = 0f;
+                        isScrolling = true;
+                    }
                 }
             }
-            else
+            else if (rect.height <= position.height)
             {
-                pauseTimer -= Time.deltaTime;
-                if (pauseTimer <= 0f)
-                {
-                    scrollPosition.y = 0f;
-                    isScrolling = true;
-                }
+                scrollPosition.y = 0f;
+                isScrolling = false;
             }
         }
 
@@ -1180,6 +1227,7 @@ public class GameStart : MonoBehaviour
         }
         _dialogStartTime = Time.time;
         onDialogue = true;
+        bubbleAnimator?.Show();
     }
 
     private void PlayVoice(AudioClip _clip, string _response)
