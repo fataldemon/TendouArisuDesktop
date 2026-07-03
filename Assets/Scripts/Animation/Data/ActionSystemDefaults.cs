@@ -61,6 +61,7 @@ public static class ActionSystemDefaults
         groups.Add(Group("Focused", "curious", 1f, "AGIA_Idle_cute_03_leaning_forward", false, false));
         groups.Add(Group("Afraid", "sweating", 1f, "KA_Idle29_Surprised", false, false));
         groups.Add(Group("Apologize", "sweating", 1f, "KA_Idle44_GreetingBow", false, false));
+        groups.Add(Group("WindowSit", "", 1f, "PET_SITTING_DEMO", true, false));
 
         return groups;
     }
@@ -72,6 +73,7 @@ public static class ActionSystemDefaults
         M(list, "待机", "Idle", "plain");
         M(list, "触摸", "Touch", "");
         M(list, "拖拽", "Drag", "");
+        M(list, "窗口吸附", "WindowSit", "");
         M(list, "微笑", "Speak Normal", "");
         M(list, "认真", "Speak Explain", "serious");
         M(list, "坚定", "Determine", "serious");

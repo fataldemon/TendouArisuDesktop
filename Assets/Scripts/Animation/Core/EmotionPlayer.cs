@@ -154,6 +154,13 @@ public class EmotionPlayer : MonoBehaviour
         return ActionSystemRuntime.GetActionGroup(groupName);
     }
 
+    /// <summary>
+    /// When non-empty, every transition plays THIS group's body clips while keeping the
+    /// requested emotion's facial expression + lifecycle. Used by window-snap so the avatar
+    /// stays seated (body) while messages only change the face. Null/empty = normal behavior.
+    /// </summary>
+    public string BodyLockActionGroup;
+
     public void TransitionTo(ActionGroupConfig config, bool instant)
     {
         if (_current != null && (_current.state == ActionGroupState.BlendingOut || _current.state == ActionGroupState.BlendingIn))
@@ -163,6 +170,11 @@ public class EmotionPlayer : MonoBehaviour
         }
 
         var clips = ResolveAllBodyClips(config);
+        if (!string.IsNullOrEmpty(BodyLockActionGroup))
+        {
+            var lockConfig = ResolveConfig(BodyLockActionGroup);
+            if (lockConfig != null) clips = ResolveAllBodyClips(lockConfig);
+        }
         var instance = new ActionGroupInstance(config, clips);
 
         if (instant || _current == null)

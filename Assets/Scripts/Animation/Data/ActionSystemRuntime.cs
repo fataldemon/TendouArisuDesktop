@@ -40,8 +40,8 @@ public static class ActionSystemRuntime
         var jsonMappings = ActionSystemJsonIO.LoadEmotionMappings();
         if (jsonMappings != null && jsonMappings.Count > 0)
         {
-            _emotionMappings = jsonMappings;
-            Debug.Log("[Runtime] Loaded emotion mappings from JSON: " + jsonMappings.Count);
+            MergeEmotionMappings(jsonMappings);
+            Debug.Log("[Runtime] Merged emotion mappings from JSON: " + jsonMappings.Count);
         }
 
         for (int i = 0; i < _actionGroups.Count; i++)
@@ -82,6 +82,27 @@ public static class ActionSystemRuntime
                 }
             }
             if (!found) _actionGroups.Add(jg);
+        }
+    }
+
+    private static void MergeEmotionMappings(List<EmotionMappingEntry> jsonMappings)
+    {
+        // JSON overrides defaults by emotion name; defaults absent from JSON (e.g. newly
+        // added system emotions like 窗口吸附) are kept so new features stay visible to
+        // existing configs; JSON-only entries (user-created in WPF) are added.
+        foreach (var jm in jsonMappings)
+        {
+            bool found = false;
+            for (int i = 0; i < _emotionMappings.Count; i++)
+            {
+                if (_emotionMappings[i].emotion == jm.emotion)
+                {
+                    _emotionMappings[i] = jm;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) _emotionMappings.Add(jm);
         }
     }
 
