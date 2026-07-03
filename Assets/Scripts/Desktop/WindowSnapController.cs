@@ -236,6 +236,8 @@ public class WindowSnapController : MonoBehaviour
         transparentWindow.currentY = newY;
     }
 
+
+
     private void Unsnap()
     {
         if (!_snapped) return;
