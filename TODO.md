@@ -49,38 +49,60 @@
 
 > 参考 `F:\GitRepository\Mate-Engine`。纯手写无第三方依赖(与现有架构一致),适配 URP + 现有 6 层 Playable 架构。
 
-### ✅ 阶段 5:动画片段搬运(已完成)
+### ✅ 阶段 1:程序化生命感(已完成 `04e17a3`)
 
-| 内容 | 状态 | 提交 |
-|------|:--:|------|
-| 导入 117 个 Mate-Engine Humanoid 身体片段到 `Assets/ImportedAnimations/MateEngine/`(13 类) | ✅ | `312d8bb` |
+| 内容 | 状态 |
+|------|:--:|
+| SpringMath.cs(弹簧 + 帧率无关平滑) | ✅ |
+| IdleBreathingController.cs(胸腔 pitch 微旋转,挂 MagicaManager.OnPreSimulation) | ✅ |
+| DragInertiaController.cs(拖拽惯性根 Transform 倾斜) | ✅ |
+| EyeTrackingController.cs(5 处 Lerp→Damp 帧率修复) | ✅ |
 
-### 🔴 阶段 1:程序化生命感(最高收益 — Mate "顺滑感"的灵魂)
+### ✅ 阶段 2:UI 动效(已完成 `a16d537`)
 
-| # | 任务 | 借鉴自 Mate-Engine | 复杂度 |
-|---|------|---------------------|:--:|
-| 1 | `SpringSolver.cs` 临界阻尼弹簧工具 + 帧率无关平滑(`1-Mathf.Exp(-k*dt)`) | `AvatarSwayController` | 小 |
-| 2 | `AdditiveBoneLayer.cs` 逆四元数叠加骨骼层(与 6 层 Playable 共存) | `AvatarSwayController` | 中 |
-| 3 | `IdleBreathingController.cs` 噪声驱动呼吸(脊椎/胸骨微缩放),接 EmotionPlayer idle | 原创 | 小 |
-| 4 | `DragInertiaController.cs` 拖拽惯性前倾 | `AvatarSwayController` | 中 |
-| 5 | `MouseLookAtDriver.cs` 升级 EyeTrackingController(driver-bone delta + 脊柱级联权重) | `AvatarMouseTracking` | 中 |
-| 6 | 修复 `BodyEngine`/`FacialEngine` 帧率相关 `Lerp(a,b,k*dt)` | — | 小 |
+| 内容 | 状态 |
+|------|:--:|
+| BubbleAnimator.cs(淡入/缩放弹出/滑入/打字机) | ✅ |
+| GameStart.OnGUI(GUI.color/GUI.matrix/Substring 集成) | ✅ |
+| 打字机完成后自动滚动长文本 | ✅ |
 
-### 🟡 阶段 2:UI 动效(范围小,就一个对话框)
+### ✅ 阶段 5:动画片段搬运(已完成 `312d8bb`)
 
-| # | 任务 | 借鉴自 | 复杂度 |
-|---|------|--------|:--:|
-| 7 | `BubbleAnimator.cs` 淡入/缩放/打字机(替代 `GameStart.cs:796` 的 IMGUI) | 原创 | 中 |
-| 8 | `UIBlur.shader` URP 重写 Poisson 盘模糊毛玻璃(可选) | `UiBlur.shader` | 中 |
+| 内容 | 状态 |
+|------|:--:|
+| 导入 117 个 Mate-Engine Humanoid 身体片段(13 类) | ✅ |
 
-### 🟡 阶段 3:情绪反馈粒子
+### ✅ 阶段 6:窗口吸附 v1(已完成 `449bd8f`)
+
+| 内容 | 状态 |
+|------|:--:|
+| WindowSnapController(EnumWindows 吸附/跟随/座位校准) | ✅ |
+| 可见窗口过滤(IsSitEligibleWindow + Z 序遮挡检测) | ✅ |
+| 身体锁(BodyLockActionGroup,消息时不起身) | ✅ |
+| 平滑滑入 + 目标移动时紧跟不脱节 | ✅ |
+| 情绪映射合并修复(新默认情绪对旧配置可见) | ✅ |
+
+### ❌ 头发/背部遮挡(暂缓 — URP 透明叠加限制)
+
+尝试了多种方案,均在 build 中完全无效:
+
+| 方案 | 结果 |
+|------|------|
+| fragment discard/clip(屏幕 Y / 深度 Z / Y+Z 组合 / SV_POSITION 修正) | discard 在此环境不生效 |
+| 外部深度遮挡体(Queue Geometry-1 + DepthOnly pass) | URP 深度管线不配合 |
+| z-order avatar 插到目标窗口层级 | SetWindowPos 语义搞反 |
+
+**结论**:URP 透明叠加窗口(WS_EX_LAYERED + DWM)下,fragment discard 和深度测试均不可靠。
+**未来方向**:URP 后处理 RendererFeature(全屏 pass,渲染完后改 alpha)——完全不同的机制,绕开 fragment shader 限制。
+
+### ⏳ 阶段 3:情绪反馈粒子
 
 | # | 任务 | 借鉴自 | 复杂度 |
 |---|------|--------|:--:|
 | 9 | `EmotionVFXController.cs` 数据驱动爱心/汗滴/震屏(Unity ParticleSystem) | 原创 | 中 |
 | 10 | 替换静态 Drops 网格为带动画粒子 | — | 小 |
 
-### 🟡 阶段 4:嘴形同步与音频
+### ⏳ 阶段 4:嘴形同步与音频
 
 | # | 任务 | 借鉴自 | 复杂度 |
 |---|------|--------|:--:|
